@@ -23,6 +23,7 @@ process so that does not happen again:
 | [cumotion_guide.md](cumotion_guide.md) | writing or tuning a scripted driver, or running a collection |
 | [ops.md](ops.md) | running anything on this host -- environment, display, commands, data layout, limits |
 | [pipeline_paths.md](pipeline_paths.md) | wondering how teleop, recording and cuMotion differ -- the measured side-by-side, and the CPU/GPU question |
+| [control_paths_research.md](control_paths_research.md) | asking why teleop uses RMPFlow, whether it causes the hard contacts, and how RoboDojo drives its robot -- research notes and an experiment plan |
 | [upstream_sync.md](upstream_sync.md) | keeping up with `origin/main` -- the sync procedure and the impact snapshot of the current upstream delta |
 | [upstream_bug_report_2026-08.md](upstream_bug_report_2026-08.md) | the three Arena defects we fixed locally and reported (historical) |
 
@@ -70,6 +71,7 @@ branch `chuanruiz/feature/robodojo-tasks` (pre-baseline code; the Agibot config 
 
 ## Open decisions for the user
 
+- Control architecture: run the experiment plan in [control_paths_research.md](control_paths_research.md) (RMPFlow vs joint-space teleop, soft gains) before changing anything.
 - make_toast step 2: choose the chest handover point, then resume `make_toast_cumotion.py`.
 - Push the prepared Arena bug-fix branch (`chuanruiz/fix/agibot_left_arm_and_env_cfg_callback`)
   upstream, or fold it into the team baseline PR.
