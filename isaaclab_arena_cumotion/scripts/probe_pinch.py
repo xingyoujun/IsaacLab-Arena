@@ -21,7 +21,7 @@ A part is fit for a task when every repeat reads HELD/HELD and the close peak st
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/probe_pinch.py --headless \\
+        isaaclab_arena_cumotion/scripts/probe_pinch.py \\
         --env agibot_tidy_workbench --object metal_billet --centre_offset 0.010 \\
         --env-arg billet_scale=1.2
 
@@ -62,6 +62,7 @@ import isaaclab.utils.math as math_utils  # noqa: E402
 
 from isaaclab_arena.embodiments.agibot.agibot import AgibotDualArmJointActionsCfg  # noqa: E402
 from isaaclab_arena_cumotion.embodiment_cumotion_registry import get_embodiment_cumotion_cfg  # noqa: E402
+from isaaclab_arena_cumotion.executor import joint_ids_as_list  # noqa: E402
 from isaaclab_arena_cumotion.scripts.probe_common import (  # noqa: E402
     build_probe_env,
     environment_cfg_type,
@@ -95,7 +96,10 @@ offsets, start = {}, 0
 for term_name, dim in zip(manager.active_terms, manager.action_term_dim):
     offsets[term_name] = (start, dim)
     start += dim
-term_joint_ids = {term_name: list(manager.get_term(term_name)._joint_ids) for term_name in manager.active_terms}
+term_joint_ids = {
+    term_name: joint_ids_as_list(manager.get_term(term_name)._joint_ids, robot.num_joints)
+    for term_name in manager.active_terms
+}
 gripper_term, arm_term = f"{args.arm}_gripper_action", f"{args.arm}_arm_action"
 hand_joint = term_joint_ids[gripper_term][0]
 ramp_steps = max(1, round(args.ramp_seconds / env.step_dt))

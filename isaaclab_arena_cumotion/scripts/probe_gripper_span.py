@@ -14,7 +14,7 @@ puts the *tool frame* on the object, so if the pads are elsewhere the fingers cl
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/probe_gripper_span.py --headless
+        isaaclab_arena_cumotion/scripts/probe_gripper_span.py
 """
 
 import argparse

@@ -87,7 +87,9 @@ class CumotionArmPlanner:
         arm: str = "left",
         robot_scene_name: str = "robot",
     ) -> None:
-        from isaacsim.core.experimental.utils.app import enable_extension
+        # Isaac Lab 3.0 GA no longer exposes isaacsim.core.experimental on the Python path; its own
+        # helper drives Kit's extension manager directly.
+        from isaaclab.sim.utils.extensions import enable_extension
 
         enable_extension("isaacsim.robot_motion.cumotion")
 
@@ -121,8 +123,7 @@ class CumotionArmPlanner:
             robot_description=self.robot_description,
             kinematics=self.kinematics,
             controlled_joint_names=[
-                self.robot_description.cspace_coord_name(i)
-                for i in range(self.robot_description.num_cspace_coords())
+                self.robot_description.cspace_coord_name(i) for i in range(self.robot_description.num_cspace_coords())
             ],
         )
         self._planner = GraphBasedMotionPlanner(cumotion_robot, self.world, tool_frame=self.cfg.tool_frame)
@@ -147,13 +148,15 @@ class CumotionArmPlanner:
         """Current tool-frame position in world coordinates."""
         import warp as wp
 
-        return wp.to_torch(self.robot.data.body_pos_w)[0, self.tool_body_index].detach().cpu().numpy().astype(
-            np.float64
+        return (
+            wp.to_torch(self.robot.data.body_pos_w)[0, self.tool_body_index].detach().cpu().numpy().astype(np.float64)
         )
 
     def forward_kinematics(self, q: np.ndarray) -> np.ndarray:
         """Tool-frame position in world coordinates for an arm configuration."""
-        return self.base_pos + np.asarray(self.kinematics.pose(np.asarray(q, dtype=np.float64), self.cfg.tool_frame).translation)
+        return self.base_pos + np.asarray(
+            self.kinematics.pose(np.asarray(q, dtype=np.float64), self.cfg.tool_frame).translation
+        )
 
     def kinematics_error_m(self) -> float:
         """Distance between cuMotion's forward kinematics and the simulated tool body.
@@ -255,8 +258,6 @@ class CumotionArmPlanner:
         pose exactly while the jaws point somewhere else. Measuring it here rather than taking it
         from a configured axis name means the two descriptions cannot silently disagree.
         """
-        import torch
-
         import warp as wp
 
         import isaaclab.utils.math as math_utils

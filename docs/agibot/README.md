@@ -26,7 +26,7 @@ process so that does not happen again:
 | [upstream_bug_report_2026-08.md](upstream_bug_report_2026-08.md) | the three Arena defects we fixed locally and reported (historical) |
 
 The same process is available to coding agents as the `agibot-benchmark-task` skill
-(`.agents/skills/agibot-benchmark-task/SKILL.md`), which points here.
+(`skills/developer/agibot-benchmark-task/SKILL.md`, aliased from `.agents/skills/`), which points here.
 
 ## The one rule
 

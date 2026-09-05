@@ -21,7 +21,7 @@ same machinery as stack_bowls_cumotion.
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/sleeve_on_peg_cumotion.py --headless --video /tmp/sleeve.mp4
+        isaaclab_arena_cumotion/scripts/sleeve_on_peg_cumotion.py --video /tmp/sleeve.mp4
 """
 
 import argparse

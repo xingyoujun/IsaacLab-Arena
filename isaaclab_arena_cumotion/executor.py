@@ -46,6 +46,25 @@ DEFAULT_SETTLE_SECONDS = 40 / 120
 """Time a followed path holds its final configuration for; 40 steps at the original 1/120 s dt."""
 
 
+def joint_ids_as_list(joint_ids, num_joints: int) -> list[int]:
+    """Normalise an action term's joint index selection to a plain list of ints.
+
+    Isaac Lab hands these out as a slice (all joints), a torch tensor (joint actions) or a warp
+    array (binary joint actions, since 3.0 GA); the executors want indexable Python lists.
+
+    Args:
+        joint_ids: The term's ``_joint_ids``.
+        num_joints: The articulation's joint count, for resolving a slice.
+    """
+    if isinstance(joint_ids, slice):
+        return list(range(num_joints))[joint_ids]
+    if isinstance(joint_ids, torch.Tensor):
+        return [int(i) for i in joint_ids.detach().cpu().reshape(-1).tolist()]
+    if hasattr(joint_ids, "numpy"):  # warp arrays (device or host)
+        return [int(i) for i in joint_ids.numpy().reshape(-1)]
+    return [int(i) for i in joint_ids]
+
+
 class ArmExecutor:
     """Drives one arm along planned paths and holds the simulation loop.
 
@@ -192,9 +211,7 @@ class JointActionInterface:
             self._slices[name] = slice(offset, offset + dim)
             self._joint_names[name] = list(joint_names)
             robot = env.scene.articulations[term.cfg.asset_name]
-            if isinstance(joint_ids, slice):
-                joint_ids = list(range(robot.num_joints))[joint_ids]
-            self._joint_ids[name] = list(joint_ids)
+            self._joint_ids[name] = joint_ids_as_list(joint_ids, robot.num_joints)
             offset += dim
         self.sync_from_robot()
 

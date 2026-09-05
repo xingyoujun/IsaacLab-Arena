@@ -26,7 +26,7 @@ transform for runtime prims), so a config-class mount cannot work. Mount numbers
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/rerender_demo_cameras.py --headless \\
+        isaaclab_arena_cumotion/scripts/rerender_demo_cameras.py \\
         --env agibot_handover_toast \\
         --hdf5 /home/ubuntu/playground/datasets/handover_toast_v0_raw/handover_toast.hdf5 \\
         --demo-range 0 100

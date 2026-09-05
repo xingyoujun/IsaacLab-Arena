@@ -10,7 +10,7 @@ Arena runs **natively from `.venv`** (uv), not Docker (the container was retired
 ```bash
 cd /home/ubuntu/code/IsaacLab-Arena
 export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y      # else imports block on an interactive EULA prompt
-.venv/bin/python isaaclab_arena/evaluation/policy_runner.py --headless --policy_type zero_action --num_steps 30 agibot_stack_bowls
+.venv/bin/python isaaclab_arena/evaluation/policy_runner.py --policy_type zero_action --num_steps 30 agibot_stack_bowls
 ```
 
 - `isaacsim.core.utils.*` is not importable in this install; use `omni.usd` / `pxr` directly.
@@ -39,20 +39,21 @@ x11vnc -display :99 -forever -shared -localhost -rfbauth ~/.vnc/passwd -rfbport 
 websockify --web=/usr/share/novnc 6080 localhost:5900
 ```
 
-Then `DISPLAY=:99 ... --viz kit --device cpu` (never `--headless`). Arena's own teleop/record
+Then `DISPLAY=:99 ... --viz kit --device cpu` (no `--viz` means headless since Isaac Lab 3.0 GA; the old `--headless` flag is gone). Arena's own teleop/record
 scripts were deleted upstream; use Isaac Lab's with Arena's registration callback and **both**
 device flags (`--arena_teleop_device` configures, `--teleop_device` instantiates; giving only the
 first silently falls back to the 7-value keyboard and dies with `expected: 14, received: 7`):
 
 ```bash
-# drive only (records nothing)
-DISPLAY=:99 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
+# drive only (records nothing). ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 works around the
+# Isaac Lab 3.0 GA issue of a blank Kit viewport (RTX per-env scene partitioning).
+DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
   submodules/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py --viz kit --device cpu \
   --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
   --task agibot_tidy_workbench --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard
 
 # record
-DISPLAY=:99 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
+DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
   submodules/IsaacLab/scripts/tools/record_demos.py --viz kit --device cpu \
   --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
   --task agibot_tidy_workbench --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard \

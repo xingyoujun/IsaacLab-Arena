@@ -13,7 +13,7 @@ revolution, so ``rim_grasps`` does not describe it, and the asset carries no ann
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/make_toast_cumotion.py --headless \\
+        isaaclab_arena_cumotion/scripts/make_toast_cumotion.py \\
         --video /path/to/pick.mp4
 """
 

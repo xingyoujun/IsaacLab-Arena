@@ -72,12 +72,12 @@ AGIBOT_ARENA_A2D_CFG.init_state.joint_pos.update(MIRRORED_LEFT_WRIST_JOINT_POS)
 # slowly and the object slips out -- while effort >= 30 is step-for-step identical to 100. The
 # left gripper gets the right's values verbatim. (The arm actuators are already identical on
 # both sides; the wrist rest pose above is the only arm-side asymmetry.)
-AGIBOT_ARENA_A2D_CFG.actuators["left_gripper"].effort_limit_sim = {
+AGIBOT_ARENA_A2D_CFG.actuators["left_gripper"].joint_effort_limit = {
     "left_hand_joint1": 100.0,
     "left_.*_Support_Joint": 100.0,
 }
-AGIBOT_ARENA_A2D_CFG.actuators["left_gripper"].velocity_limit_sim = 10.0
-AGIBOT_ARENA_A2D_CFG.actuators["left_gripper_passive"].effort_limit_sim = 100.0
+AGIBOT_ARENA_A2D_CFG.actuators["left_gripper"].joint_velocity_limit = 10.0
+AGIBOT_ARENA_A2D_CFG.actuators["left_gripper_passive"].joint_effort_limit = 100.0
 
 AGIBOT_LEFT_ARM_ARENA_RMPFLOW_CFG = copy.deepcopy(AGIBOT_LEFT_ARM_RMPFLOW_CFG)
 AGIBOT_LEFT_ARM_ARENA_RMPFLOW_CFG.collision_file = os.path.join(_RMPFLOW_DIR, "agibot_left_arm_gripper.yaml")

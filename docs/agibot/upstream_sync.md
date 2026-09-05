@@ -118,7 +118,32 @@ What it changes for us, verified against the GA tree:
 - Kitchen environments renamed (`kitchenbench_*`), several new kitchen envs, docs restructured,
   uv wheel flavour dropped (only the from-source install remains, which is what this host uses).
 
-### Recommended sequence for this delta
+### Executed 2026-09-05
+
+1. Working tree committed in six topical commits; `origin/main` merged (`b93d614d2`), the three
+   conflicts resolved as planned; submodule updated over HTTPS to `bb0c8e1b9`.
+2. `uv sync --extra dev` took 19 s: Isaac Sim and torch were unchanged, so only the editable Lab
+   packages (isaaclab 6.1.17 -> 16.4.0, newton 1.2 -> 1.5, warp 1.13 -> 1.16, isaacteleop
+   1.4.126rc1) and a few new dependencies moved (111 added, 34 removed).
+3. Migrations: actuator fields renamed to `joint_effort_limit` / `joint_velocity_limit`
+   (`agibot.py`, `apply_arm_gains`); `joint_ids_as_list` in `executor.py` normalises the GA
+   torch/warp joint-id selections (used by `EnvActionExecutor` and `probe_pinch`); `--headless`
+   dropped from every usage string, doc command and the collection driver; teleop commands carry
+   `ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0`; the `agibot-benchmark-task` skill moved
+   to `skills/developer/` with the `.agents/skills/` alias upstream now expects.
+4. cuMotion planner: `isaacsim.core.experimental.utils.app.enable_extension` is not importable in
+   the GA environment; switched to `isaaclab.sim.utils.extensions.enable_extension`.
+5. Verification on the GA environment: five-env zero-action smoke 5/5; the four probes pass with
+   results identical to the pre-merge run (reach counts, pinch HELD/HELD); config/registry pytest
+   subset 10/11 -- the one failure is upstream's `test_every_registered_cli_adapter_uses_its_typed_cfg_defaults`
+   run **in isolation**: GA's `isaaclab.sim.schemas` touches `pxr.UsdPhysics.Tokens` at import,
+   which only exists once Kit is up, so the upstream `background.py` import fails in a Kit-less
+   process (also fails on pristine upstream code; in a full Phase 1 run earlier tests start Kit).
+   Phase 1 result: see the status line below.
+6. Asset URLs now resolve under `Assets/Isaac/6.1/...` in the Lab cache; the Agibot URDF there is
+   byte-identical to the 6.0 copy the cuMotion registry reads from `ISAAC_ASSET_ROOT`.
+
+### Recommended sequence for this delta (as planned)
 
 1. Commit the current working tree in topical commits (nothing to sync until it is committed).
 2. Copy `merge_demos.py` into our package; update the collection driver (done 2026-09-05).

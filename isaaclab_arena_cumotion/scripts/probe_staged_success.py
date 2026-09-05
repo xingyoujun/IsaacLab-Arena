@@ -16,7 +16,7 @@ which otherwise surfaces as "I did the task and it never said success" after a l
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/probe_staged_success.py --headless --env agibot_sleeve_on_peg \\
+        isaaclab_arena_cumotion/scripts/probe_staged_success.py --env agibot_sleeve_on_peg \\
         --pose peg_sleeve=0.40,0.00,0.6432 --physics_seconds 2
 
 Poses are ``name=x,y,z`` or ``name=x,y,z,yaw_deg`` in the world frame; objects not named keep the

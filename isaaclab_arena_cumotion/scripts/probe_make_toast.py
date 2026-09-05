@@ -13,7 +13,7 @@ are measured here.
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/probe_make_toast.py --headless
+        isaaclab_arena_cumotion/scripts/probe_make_toast.py
 """
 
 import argparse

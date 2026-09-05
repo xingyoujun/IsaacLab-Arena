@@ -17,7 +17,7 @@ whichever tool axis points from the wrist towards the fingers.
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/probe_gripper_axes.py --headless
+        isaaclab_arena_cumotion/scripts/probe_gripper_axes.py
 """
 
 import argparse
@@ -63,7 +63,10 @@ for name in body_names:
 import isaaclab.utils.math as math_utils  # noqa: E402
 import torch  # noqa: E402
 
-for side, tool, wrist in (("left", "gripper_center", "left_base_link"), ("right", "right_gripper_center", "right_base_link")):
+for side, tool, wrist in (
+    ("left", "gripper_center", "left_base_link"),
+    ("right", "right_gripper_center", "right_base_link"),
+):
     if tool not in body_names or wrist not in body_names:
         print(f"\n{side}: no {tool}/{wrist} body")
         continue
@@ -89,11 +92,17 @@ for side, tool, wrist in (("left", "gripper_center", "left_base_link"), ("right"
         return f"{'+' if vector[axis] > 0 else '-'}{'xyz'[axis]}"
 
     print(f"\n{side} ({tool}), {len(left_jaw)} + {len(right_jaw)} jaw bodies")
-    print(f"  jaw separation  world {np.round(separation_w, 4)}  |  tool {np.round(separation_tool, 4)}"
-          f"  -> closing axis {dominant(separation_tool)}  ({np.linalg.norm(separation_w) * 1000:.1f} mm apart)")
-    print(f"  wrist -> tool   world {np.round(wrist_to_tool_w, 4)}  |  tool {np.round(approach_tool, 4)}"
-          f"  -> approach axis {dominant(approach_tool)}")
-    print(f"  tool axes in world: x {np.round(rotation[:, 0], 2)} y {np.round(rotation[:, 1], 2)}"
-          f" z {np.round(rotation[:, 2], 2)}")
+    print(
+        f"  jaw separation  world {np.round(separation_w, 4)}  |  tool {np.round(separation_tool, 4)}"
+        f"  -> closing axis {dominant(separation_tool)}  ({np.linalg.norm(separation_w) * 1000:.1f} mm apart)"
+    )
+    print(
+        f"  wrist -> tool   world {np.round(wrist_to_tool_w, 4)}  |  tool {np.round(approach_tool, 4)}"
+        f"  -> approach axis {dominant(approach_tool)}"
+    )
+    print(
+        f"  tool axes in world: x {np.round(rotation[:, 0], 2)} y {np.round(rotation[:, 1], 2)}"
+        f" z {np.round(rotation[:, 2], 2)}"
+    )
 
 simulation_app.close()

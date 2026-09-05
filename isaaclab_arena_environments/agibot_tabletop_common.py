@@ -235,10 +235,13 @@ def apply_arm_gains(env_cfg, cfg: AgibotTabletopEnvironmentCfg) -> None:
         env_cfg: The compiled environment configuration, patched in place.
         cfg: The environment configuration carrying the overrides.
     """
+    # ``joint_effort_limit`` is the solver-level ceiling (Isaac Lab 3.0 GA name; the pre-GA
+    # ``effort_limit_sim`` is a deprecated alias). Implicit actuators derive their model-facing
+    # ``actuator_effort_limit`` from it when that is left None, so one field is enough.
     overrides = {
         "stiffness": cfg.arm_stiffness,
         "damping": cfg.arm_damping,
-        "effort_limit_sim": cfg.arm_effort_limit,
+        "joint_effort_limit": cfg.arm_effort_limit,
     }
     overrides = {key: value for key, value in overrides.items() if value is not None}
     if not overrides:
@@ -249,10 +252,6 @@ def apply_arm_gains(env_cfg, cfg: AgibotTabletopEnvironmentCfg) -> None:
             continue
         for key, value in overrides.items():
             setattr(actuator, key, value)
-            # effort_limit shadows effort_limit_sim on implicit actuators; keep them equal or
-            # Isaac Lab warns and picks one arbitrarily.
-            if key == "effort_limit_sim":
-                actuator.effort_limit = value
         print(f"[arm gains] {name}: " + ", ".join(f"{k}={v:g}" for k, v in overrides.items()))
 
 

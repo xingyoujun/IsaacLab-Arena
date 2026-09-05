@@ -18,7 +18,7 @@ task's own success predicate accepts are exported.
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/stack_bowls_cumotion.py --headless --jitter 0.05 \\
+        isaaclab_arena_cumotion/scripts/stack_bowls_cumotion.py --jitter 0.05 \\
         --record-dir /home/ubuntu/playground/datasets/stack_bowls_v0_raw --num-demos 6
 """
 

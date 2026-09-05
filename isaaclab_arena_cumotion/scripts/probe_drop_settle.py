@@ -15,7 +15,7 @@ object is read after the scene settles, then dropped from a small height and rea
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/probe_drop_settle.py --headless --env agibot_tidy_workbench
+        isaaclab_arena_cumotion/scripts/probe_drop_settle.py --env agibot_tidy_workbench
 
 Read ``origin above surface`` as the origin convention (0 mm = bottom-origin, half the height =
 centre-origin, anything odd = re-centre the asset before placing it by origin), ``tilt`` as whether

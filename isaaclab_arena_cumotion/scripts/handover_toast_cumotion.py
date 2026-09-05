@@ -19,7 +19,7 @@ articulation as before.
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/handover_toast_cumotion.py --headless \\
+        isaaclab_arena_cumotion/scripts/handover_toast_cumotion.py \\
         --record-dir /home/ubuntu/playground/datasets/handover_toast --num-demos 3 \\
         --video /home/ubuntu/playground/make_toast/handover.mp4
 """

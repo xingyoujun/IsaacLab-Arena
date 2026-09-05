@@ -14,7 +14,7 @@ jaws point somewhere else entirely, and only one hand need be affected.
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/probe_tool_orientation.py --headless
+        isaaclab_arena_cumotion/scripts/probe_tool_orientation.py
 """
 
 import argparse
@@ -72,7 +72,9 @@ for arm in ("left", "right"):
 
     # cuMotion's tool frame for the same configuration. Its pose is in the arm's base frame, and
     # the robot is not yawed in this scene, so the rotation is directly comparable.
-    lula_rotation = np.asarray(planner.kinematics.pose(np.asarray(q, dtype=np.float64), cfg.tool_frame).rotation.matrix())
+    lula_rotation = np.asarray(
+        planner.kinematics.pose(np.asarray(q, dtype=np.float64), cfg.tool_frame).rotation.matrix()
+    )
 
     relative = sim_rotation.T @ lula_rotation
     angle_deg = float(np.degrees(np.arccos(np.clip((np.trace(relative) - 1.0) / 2.0, -1.0, 1.0))))
@@ -82,8 +84,13 @@ for arm in ("left", "right"):
     print(f"  configured approach axis {cfg.tool_approach_axis}, jaw axis {cfg.jaw_axis}")
     print(f"  tool_correction is identity: {np.allclose(planner.tool_correction, np.eye(3))}")
     print(f"  position cross-check: {planner.kinematics_error_m() * 1000:.2f} mm")
-    print("  sim  tool axes in world: " + "  ".join(f"{a} {np.round(sim_rotation[:, i], 3)}" for i, a in enumerate("xyz")))
-    print("  lula tool axes in world: " + "  ".join(f"{a} {np.round(lula_rotation[:, i], 3)}" for i, a in enumerate("xyz")))
+    print(
+        "  sim  tool axes in world: " + "  ".join(f"{a} {np.round(sim_rotation[:, i], 3)}" for i, a in enumerate("xyz"))
+    )
+    print(
+        "  lula tool axes in world: "
+        + "  ".join(f"{a} {np.round(lula_rotation[:, i], 3)}" for i, a in enumerate("xyz"))
+    )
     print(f"  ORIENTATION MISMATCH: {angle_deg:.2f} deg")
     print(f"  sim  approach (tool z) points {axis_label(sim_rotation[:, 2])} in world")
     print(f"  lula approach (tool z) points {axis_label(lula_rotation[:, 2])} in world")

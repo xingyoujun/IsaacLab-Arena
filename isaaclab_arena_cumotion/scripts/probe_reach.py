@@ -18,7 +18,7 @@ Points come from ``--point x,y,z`` (world frame) or from the current positions o
 Usage::
 
     OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \\
-        isaaclab_arena_cumotion/scripts/probe_reach.py --headless --env agibot_tidy_workbench \\
+        isaaclab_arena_cumotion/scripts/probe_reach.py --env agibot_tidy_workbench \\
         --point 0.52,0.30,0.83 --point 0.33,-0.18,0.65 --tilts 0,30,50,75
 
 Read the table as "poses reachable out of headings x spins": a dozen or more at a lean of 30-50

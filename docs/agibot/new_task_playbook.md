@@ -10,7 +10,7 @@ All probes run headless from the repo root with the uv environment:
 
 ```bash
 export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y
-.venv/bin/python isaaclab_arena_cumotion/scripts/<probe>.py --headless --env <env> [...]
+.venv/bin/python isaaclab_arena_cumotion/scripts/<probe>.py --env <env> [...]
 ```
 
 Every probe accepts `--env-arg FIELD=VALUE` (repeatable) to override the environment's typed
@@ -61,7 +61,7 @@ instead. See [asset_guide.md](asset_guide.md) for the reasons and the exceptions
 Run `probe_pinch.py` on every object the robot must hold, at the scale you intend to use:
 
 ```bash
-.venv/bin/python isaaclab_arena_cumotion/scripts/probe_pinch.py --headless \
+.venv/bin/python isaaclab_arena_cumotion/scripts/probe_pinch.py \
     --env agibot_tidy_workbench --object metal_billet --centre_offset 0.010 --repeats 3
 ```
 
@@ -84,7 +84,7 @@ Lay the scene out from the shared constants in `agibot_tabletop_common.py`: robo
 `REACH_X_BAND_M` (0.35-0.45). Then run the reach scan on every grasp point and every release point:
 
 ```bash
-.venv/bin/python isaaclab_arena_cumotion/scripts/probe_reach.py --headless --env <env> \
+.venv/bin/python isaaclab_arena_cumotion/scripts/probe_reach.py --env <env> \
     --point 0.43,-0.16,0.66 --point 0.52,0.30,0.83 --tilts 0,30,50,75 [--horizontal]
 ```
 
@@ -124,7 +124,7 @@ Gate: `probe_staged_success.py` writes the goal poses and reads `is_success` bef
 physics:
 
 ```bash
-.venv/bin/python isaaclab_arena_cumotion/scripts/probe_staged_success.py --headless \
+.venv/bin/python isaaclab_arena_cumotion/scripts/probe_staged_success.py \
     --env agibot_sleeve_on_peg --pose peg_sleeve=0.40,0.00,0.6432 --physics_seconds 2
 ```
 
@@ -144,8 +144,8 @@ Teleop through Isaac Lab's script with **both** device flags
 (see [ops.md](ops.md) for the display set-up):
 
 ```bash
-DISPLAY=:99 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
-  submodules/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py \
+DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y \
+  .venv/bin/python submodules/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py \
   --viz kit --device cpu \
   --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
   --task <env> --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard
@@ -160,8 +160,8 @@ object flies, go to [triage.md](triage.md) -- run the pinch probe first, do not 
 it removes the success termination itself. `teleop_se3_agent.py` records nothing.
 
 ```bash
-DISPLAY=:99 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
-  submodules/IsaacLab/scripts/tools/record_demos.py --viz kit --device cpu \
+DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y \
+  .venv/bin/python submodules/IsaacLab/scripts/tools/record_demos.py --viz kit --device cpu \
   --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
   --task <env> --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard \
   --step_hz 15 --num_demos 0 --num_success_steps 10 \
