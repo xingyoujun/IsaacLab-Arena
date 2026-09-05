@@ -24,6 +24,10 @@ export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y      # else imports block on an in
   three times.
 - Fresh clones: submodules over HTTPS (`git -c url."https://github.com/".insteadOf="git@github.com:"
   submodule update --init --recursive`), then `git lfs pull` or the `.hdf5` test data are stubs.
+- After any `uv sync`, check the venv's integrity before trusting test failures: compare every
+  `*.dist-info/RECORD` against disk (a ten-line Python loop; see `upstream_sync.md`). On 2026-09-05 the
+  `usd-exchange` package had lost 51 files, which made every Kit-less import of Arena fail and looked
+  exactly like an upstream bug. `uv sync --extra dev --reinstall-package <name>` repairs a package.
 - Tests: `.venv/bin/python -m pytest -m 'not with_cameras and not with_subprocess' isaaclab_arena/tests`
   is Phase 1 (~1080 tests, green after the default-config merge); the `run-tests` skill describes
   the three phases (its Docker wrapping does not apply here).

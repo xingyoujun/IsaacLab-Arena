@@ -3,14 +3,21 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Keyboard teleoperation for a bimanual robot, one arm at a time."""
+"""Keyboard teleoperation for a bimanual robot, one arm at a time.
+
+The configuration lives in ``dual_arm_keyboard_cfg`` so that registering the device does not import
+``carb`` (through ``Se3Keyboard``) in processes where Kit is not running.
+"""
 
 from __future__ import annotations
 
 import torch
+from typing import TYPE_CHECKING
 
-from isaaclab.devices.keyboard import Se3Keyboard, Se3KeyboardCfg
-from isaaclab.utils.configclass import configclass
+from isaaclab.devices.keyboard import Se3Keyboard
+
+if TYPE_CHECKING:
+    from isaaclab_arena.devices.dual_arm_keyboard_cfg import DualArmSe3KeyboardCfg
 
 ARM_ACTION_DIM = 6
 """Delta pose an arm term consumes: three translation, three rotation."""
@@ -82,10 +89,3 @@ class DualArmSe3Keyboard(Se3Keyboard):
         offset = self._active_arm * ARM_SLICE_DIM
         both[offset : offset + ARM_SLICE_DIM] = command[:ARM_SLICE_DIM]
         return both
-
-
-@configclass
-class DualArmSe3KeyboardCfg(Se3KeyboardCfg):
-    """Configuration for the Tab-switching two-arm keyboard."""
-
-    class_type: type[DualArmSe3Keyboard] = DualArmSe3Keyboard

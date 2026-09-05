@@ -24,7 +24,7 @@ from isaaclab.devices.spacemouse import Se3SpaceMouseCfg
 from isaaclab_teleop import IsaacTeleopCfg, XrCfg
 
 from isaaclab_arena.assets.register import register_device
-from isaaclab_arena.devices.dual_arm_keyboard import DualArmSe3KeyboardCfg
+from isaaclab_arena.devices.dual_arm_keyboard_cfg import DualArmSe3KeyboardCfg
 
 
 class TeleopDeviceBase(ABC):
