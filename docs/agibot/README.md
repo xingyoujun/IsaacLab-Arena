@@ -16,6 +16,7 @@ process so that does not happen again:
 
 | document | read it when |
 | --- | --- |
+| [../../dev.md](../../dev.md) | first -- the map of every difference from upstream Arena and the improvements an agent must apply on top of it |
 | [new_task_playbook.md](new_task_playbook.md) | starting any new task or asset -- the mandatory gate sequence, with the tool for each gate |
 | [triage.md](triage.md) | something misbehaves -- one decision tree to name the layer at fault, plus the refuted-fixes list |
 | [asset_guide.md](asset_guide.md) | choosing, sizing or registering an object -- the gripper envelope and the asset intake rules |
