@@ -106,20 +106,93 @@ Consequences to expect (hypotheses, to be measured before any code moves):
   Using cuMotion's IK (collision-aware) per step is the alternative if differential IK proves
   too loose, at a latency cost to measure at 15 Hz.
 
-## 5. Proposed experiment plan (no changes yet)
+## 5. The arm's PD, sized from measurement
 
-1. **Baseline numbers** with the existing probes on `agibot_stack_bowls`: table-press finger speed
-   and arm torque (the descend-and-close probe), idle drift, rim-grasp close peak. RMPFlow +
-   current stack + stock gains.
-2. **Prototype B** in a scratch environment: `DifferentialInverseKinematicsAction` (relative, dls,
-   with `joint_limit_avoidance_gain`) driving `SmoothJointPositionAction`-style targets, both arms,
-   the left `body_offset` applied. Same three measurements. Also a 5-minute noVNC teleop for feel
-   (redundancy drift, self-collision).
-3. **Prototype B + soft gains** (4400 / 40 / effort 300, then 100): same measurements, plus the
-   rim-grasp lift that failed under RMPFlow with soft gains.
-4. **Prototype C** if B drifts: cuMotion IK per control step; measure latency at 15 Hz.
-5. Decide. If B or C wins, the change is one action config class on the embodiment plus a device
-   retargeter; the recorder, LeRobot configs and cuMotion path do not move.
+The Agibot USD authors every arm drive at stiffness 1e7, damping 0, max force 1000 -- placeholder
+"rigid" drives -- and Isaac Lab's `AGIBOT_A2D_CFG` keeps them (1e7 on joint 1, 2e4 on joints 2-7,
+damping 0). Nobody has sized this robot's PD; the only thing we changed so far is the effort limit
+(300 at task level). Measured in simulation on 2026-09-05 (PhysX generalized mass matrix and
+gravity-compensation torques, rest pose and a mid-carry pose from a recorded demo; the authored
+links weigh 2.6 kg per arm including the hand):
+
+| joint | M_ii (kg m^2) | gravity torque (N m) | critical damping 2*sqrt(k*M) at k = 1000 / 4400 / 20000 |
+| --- | --- | --- | --- |
+| arm_joint1 (shoulder) | 0.21 | 4.4 | 29 / 61 / 130 |
+| arm_joint2 | 0.19 | 2.7 | 27 / 57 / 122 |
+| arm_joint3 | 0.13 | 2.9 | 22 / 47 / 101 |
+| arm_joint4 (elbow) | 0.12 | 1.6 | 22 / 46 / 98 |
+| arm_joint5 | 0.02 | 1.0 | 8 / 17 / 37 |
+| arm_joint6 | 0.04 | 0.2 | 13 / 26 / 56 |
+| arm_joint7 (wrist roll) | 0.0007 | 0.0 | 1.7 / 3.6 / 7.6 |
+
+What this says:
+
+- **The stock drive is an undamped spring.** At k = 2e4 and damping 0 the shoulder's natural
+  frequency is sqrt(2e4 / 0.21) = 310 rad/s (about 50 Hz) with zero damping ratio: every contact
+  stores and returns its impact energy. That is the physics behind the violent table and object
+  contacts, independent of the controller in front of it.
+- **Gravity is not the reason soft settings "collapsed".** The largest gravity torque anywhere in
+  the arm is 4.4 N m. The earlier "effort 100 -> arm droops 332 mm" result cannot be gravity
+  load (100 N m is 23x the load); it is what a 2e4-1e7 stiffness drive does when its force is
+  clamped far below what that stiffness demands. With a sane stiffness, 50-100 N m is ample, and
+  gravity sag under PD is g/k = 4.4/4400 = 1 mrad -- disabling gravity (RoboDojo, Galbot, GR1T2
+  do) is optional here, not necessary.
+- **RoboDojo's 4400 / 40 is a reasonable order of magnitude for this arm too**: 40 is close to
+  critical at the shoulder and over-damped at the wrists. A per-joint damping at zeta ~ 1 (about
+  60 / 55 / 47 / 46 / 17 / 26 / 4 for k = 4400) is the principled version; k = 1000 with about
+  half those dampings is a softer alternative.
+- **The PD cannot be chosen independently of the controller.** The soft-gain test that "dropped
+  a bowl mid-lift" was run under RMPFlow, whose joint targets move every substep and carry
+  velocity feed-forward; a soft arm lags them and oscillates. Under joint-space targets with a
+  first-order hold (the cuMotion recording path, RoboDojo's interpolation) lag is benign. Gains
+  and controller have to be tested as a matrix.
+
+Where a change would land: `AGIBOT_ARENA_A2D_CFG.actuators["left_arm" / "right_arm"]` in
+`agibot.py` (the embodiment default), replacing the current per-task `arm_effort_limit` knob. The
+user has asked for this to be configured properly; it supersedes the earlier "frozen" decision
+once the matrix below has been measured.
+
+## 6. "IK every step" -- is that RoboDojo's way, and which IK?
+
+Yes. RoboDojo's `ee_pose` action mode solves cuRobo IK once per 25 Hz action from the measured
+joints, then linearly interpolates the joint targets over 8 of the 10 physics substeps and holds
+for 2; its scripted data used cuRobo *planning* with the same joint-target execution. The
+proposal is the same shape at our 15 Hz / 8 substeps. Three IK implementations exist in this stack:
+
+| option | what it is | redundancy / limits | contacts | cost per step | notes |
+| --- | --- | --- | --- | --- | --- |
+| Isaac Lab `DifferentialInverseKinematicsAction` (dls / adaptive_dls) | one Jacobian step from the measured pose | joint-limit avoidance term only; the redundant joint drifts | none | negligible | Arena's Franka path; simplest; `body_offset` and the left tool-frame convention carry over |
+| Isaac Lab **Pink IK** (`PinkInverseKinematicsActionCfg`) | QP over both arms: frame tasks + damping task + null-space posture task, joint limits as constraints, `lm_damping` for step jumps | posture task holds the elbows; limits enforced | none (no self-collision) | ~ms | what Isaac Lab's own teleop stack (isaacteleop / XR retargeters) targets, reference config in `pickplace_gr1t2_env_cfg.py`; needs a URDF consistent with the scene USD (Lab generates it from the USD) |
+| cuMotion IK per step (our planner's `ik_reachable`) | collision-aware IK against the planner's world model | full | table and registered objects | ~25 ms per solve measured (576 solves in 15 s in the reach probe), two arms ~50 ms of a 66 ms budget | tight at 15 Hz, but it is the only one that knows about the table |
+
+RMPFlow's one real advantage over all three is self-collision and torso avoidance from its sphere
+model. For table-top bimanual work that is rarely exercised by an operator; Pink's posture task
+covers most of it, and the surface guard stays as the table's representative in the control path.
+
+Recommended candidate order: Pink IK first (it is the direction Isaac Lab itself is going for
+teleop, handles both arms in one solve and gives joint targets the recording pipeline already
+understands), differential IK as the cheap fallback, cuMotion IK if collision awareness in the
+loop turns out to matter.
+
+## 7. Proposed experiment plan (no changes yet)
+
+A matrix, each cell measured with the existing probes on `agibot_stack_bowls` (table-press finger
+speed and arm torque, idle drift, rim-grasp close peak and lift, cuMotion path tracking error):
+
+| | stock PD (2e4 / 0) | k = 4400, zeta ~ 1 per joint | k = 1000, zeta ~ 1 per joint |
+| --- | --- | --- | --- |
+| RMPFlow + current stack (today) | baseline | expected: lag / oscillation (the old soft-gain result) | -- |
+| joint-space targets (cuMotion recording path, no teleop) | tracking baseline | contact should soften; check tracking | check tracking |
+| Pink IK teleop prototype (scratch env) | -- | primary candidate | fallback |
+| differential IK teleop prototype | -- | cheap comparison | -- |
+
+Order: (1) baseline row today; (2) joint-space row -- it needs no new code, only the gains, and
+tells whether soft gains hold a pinch and track a plan; (3) Pink IK prototype with the gains that
+won in (2), 5 minutes of noVNC teleop for feel (redundancy, elbows, self-collision), the same
+measurements; (4) differential IK only if Pink is awkward to set up; (5) decide. If a joint-space
+teleop path wins, the change is one action config class on the embodiment plus a device
+retargeter and the PD in `agibot.py`; the recorder, LeRobot configs and cuMotion path do not move,
+and `joint_pos_target` becomes a cross-check.
 
 Until then the standard stays: RMPFlow + target hold + surface guard + ramped gripper, all on
 `cuda:0`, with the frozen actuator config.
