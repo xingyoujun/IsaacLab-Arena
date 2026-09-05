@@ -103,6 +103,44 @@ insertion possible), so `sleeve.usda` is SDF (inserts; pinchable only with the r
 the original convex and a 24-wedge ring kept beside it; and the Factory gear is re-centred. Both are
 geometry facts, not tuning.
 
+## Colliders: what Arena's own assets use, and how to measure one (2026-09-05)
+
+Survey of the stock library (14 assets pulled from the staging bucket plus the local cache):
+
+| asset family | collider | parameters |
+| --- | --- | --- |
+| SRL robolab objects (ceramic mug, coffee pot, clay plates, measuring cups, yogurt cup, hammers, ladle) | authored `convexDecomposition` | 256 hulls, `hullVertexLimit` default 64, `minThickness` default 0.001, `errorPercentage` 1 %, `shrinkWrap` on |
+| Arena mug (`Objects/Mug`) | authored `convexDecomposition` | 36-vertex hulls, default hull count |
+| power drill, grey bin | authored `convexDecomposition` | 100 / 279 hulls, 64 vertices |
+| KLT bin, brown box, Isaac containers, StandMixer | hand-authored primitive compounds (cubes, cylinders) | exact interiors |
+| YCB (cracker box, sugar box, mustard) | `convexHull` | convex objects only |
+| Factory gear / peg / hole | `sdf` | thin or hollow parts |
+| our RoboDojo bowl | authored `convexDecomposition` | 64 hulls, **16** vertices, **`minThickness` 0.02**, 2 %, shrinkWrap |
+
+Arena has no collider-fidelity test. Its checks are placement-level: the relation solver's
+mesh mode builds its own SDF from the visual mesh, and `test_physics_settle` grades layouts by
+whether objects come to rest. Isaac Lab 3.0 GA adds a spawn-time knob,
+`CollisionPropertiesCfg(mesh_collision_property=SDFMeshPropertiesCfg(...))`, meant to override an
+asset's authored approximation; on this host it authored `physics:approximation = sdf` on the
+stage but the simulated contacts were bit-identical to stock, so it does not reach PhysX cooking
+as used here. A collider change therefore means a USD override layer (or re-export), not config.
+
+**Measure colliders with object-against-object contacts, never with the gripper.** The clean
+measurement for the bowl is nesting: a dropped bowl rests 23.2 mm above the one below, the visual
+mesh predicts 22.5 mm, so the wall collider is right to within 1 mm despite its coarse parameters.
+Three pad-based scans that said "the inner wall is 10-20 mm inboard" were all artefacts:
+
+- a dynamic object re-pinned every 15 Hz step still falls 22 mm inside the step;
+- a kinematic object teleported into place sweeps through the pads on the way;
+- the Agibot's open span (105 mm) equals the bowl's mouth (106 mm) and its finger links are wider
+  than the pads, so the links hit the rim before the pads reach the wall -- every "contact at the
+  inner wall" was the gripper body.
+
+What a rim pinch actually does to this bowl: the open finger links tilt it 18 deg before the
+pads close, the pinch closes on a 45-55 deg tilted bowl, and the pad visuals enter the wall
+material by at most 1.8 mm (pad thickness 3 mm, contact offset). A pad "stuck to the inner wall"
+is the bulky gripper wedged in a mouth it barely fits, not a collider defect.
+
 ## Scale rules
 
 - Pick the scale from the gripper envelope, then check looks -- not the other way round.
