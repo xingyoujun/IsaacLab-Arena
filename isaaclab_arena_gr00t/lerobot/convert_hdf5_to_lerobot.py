@@ -10,13 +10,13 @@ import numpy as np
 import shutil
 import subprocess
 import time
-import torchvision
 import traceback
 from dataclasses import fields
 from pathlib import Path
 from tqdm import tqdm
 from typing import Any
 
+import imageio.v2 as imageio
 import pandas as pd
 
 from isaaclab_arena_gr00t.lerobot.config.dataset_config import Gr00tDatasetConfig
@@ -290,15 +290,8 @@ def write_video_job(queue: mp.Queue, error_queue: mp.Queue, config: Gr00tDataset
                     frames = resize_frames_with_padding(
                         frames, target_image_size=config.target_image_size, bgr_conversion=False, pad_img=True
                     )
-                # h264 codec encoding. torchvision removed its video API (write_video is gone
-                # from 0.22 on), so fall back to imageio-ffmpeg, which writes the same
-                # h264/yuv420p mp4 the LeRobot loaders expect.
-                if hasattr(torchvision.io, "write_video"):
-                    torchvision.io.write_video(video_path, frames, fps, video_codec="h264")
-                else:
-                    import imageio.v3 as iio
-
-                    iio.imwrite(video_path, np.asarray(frames, dtype=np.uint8), fps=fps, codec="libx264")
+                # h264 codec encoding
+                imageio.mimwrite(video_path, frames, fps=fps, codec="libx264")
 
         except Exception as e:
             # Get the traceback and put in error queue
@@ -527,13 +520,11 @@ def convert_hdf5_to_lerobot(config: Gr00tDatasetConfig):
         # 2.2. Update total length, episodes_info
         length = df_ret_dict["length"]
         total_length += length
-        episodes_info.append(
-            {
-                "episode_index": episode_index,
-                "tasks": [tasks[task_index] for task_index in df_ret_dict["annotation"]],
-                "length": length,
-            }
-        )
+        episodes_info.append({
+            "episode_index": episode_index,
+            "tasks": [tasks[task_index] for task_index in df_ret_dict["annotation"]],
+            "length": length,
+        })
         # 2.3. Generate videos/
         if config.sidecar_camera_streams:
             # Re-rendered sidecar mp4s: one per (demo, camera), copied verbatim -- no image data

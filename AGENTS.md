@@ -8,9 +8,9 @@ Isaac Lab-Arena is a composable environment-creation and policy-evaluation libra
 
 ## Skill library
 
-Recurring multi-step workflows (container management, the three-phase test suite, commits and PRs) are captured as Agent Skills under `.agents/skills/`. When a task matches a skill, prefer invoking it over re-deriving the procedure from this file.
+Recurring multi-step workflows are captured as Agent Skills under `skills/`, grouped by audience. When a task matches a skill, prefer invoking it over re-deriving the procedure from this file.
 
-Claude Code reads the library via the committed `.claude/skills` symlink; Codex scans `.agents/skills/` directly.
+The canonical skill sources live under `skills/developer/` and `skills/user/`. These folders describe the primary audience and validation owner; they do not restrict which workflows may reuse a skill. Codex discovers the skills through flat symlinks in `.agents/skills/`; Claude Code reads the same aliases through the committed `.claude/skills` symlink. Keep the canonical sources and flat discovery aliases synchronized when adding, removing, or renaming a skill.
 
 Fresh-clone setup (run once):
 
@@ -59,6 +59,22 @@ Lint and format tooling (`pre-commit` and the hooks it runs — black, flake8, i
 - Don't use Sphinx-style cross-references.
 
 ## Conventions
+
+### Coordinate-frame naming
+
+Use active target-source notation for Arena-owned poses and transforms:
+
+- `T_A_B` maps points from frame `B` into frame `A`.
+- `T_A_B = (t_A_B, q_A_B)` consists of translation `t_A_B` and rotation
+  `q_A_B`, with the rotation represented as a quaternion.
+- For example, `T_W_O` maps points from object frame `O` into world frame `W`.
+- Transform composition follows `T_C_A = T_C_B * T_B_A`.
+- Frame letters are contextual. Define each near its first use when its meaning is not obvious.
+- Preserve external API names such as Isaac Lab's `root_pose_w`. Its lowercase `_w`, `_e`, and `_b` suffixes
+  denote the simulation world, local environment, and robot base frames, respectively.
+- A lowercase API suffix names only the frame in which a quantity is expressed. When both source and target
+  frames matter in Arena calculations, bind the value to an explicit transform name, for example
+  `T_W_O = object.data.root_pose_w`.
 
 ### Wrapped Environment
 

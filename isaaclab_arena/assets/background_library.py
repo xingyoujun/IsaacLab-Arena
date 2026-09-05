@@ -58,9 +58,6 @@ class KitchenBackground(LibraryBackground):
     initial_pose = Pose(position_xyz=(0.772, 3.39, -0.895), rotation_xyzw=(0, 0, -0.70711, 0.70711))
     object_min_z = -0.2
 
-    def __init__(self):
-        super().__init__()
-
 
 @register_asset
 class KitchenWithOpenDrawerBackground(LibraryBackground):
@@ -76,9 +73,6 @@ class KitchenWithOpenDrawerBackground(LibraryBackground):
     initial_pose = Pose(position_xyz=(0.772, 3.39, -0.895), rotation_xyzw=(0, 0, -0.70711, 0.70711))
     object_min_z = -0.2
 
-    def __init__(self):
-        super().__init__()
-
 
 @register_asset
 class PackingTableBackground(LibraryBackground):
@@ -91,9 +85,6 @@ class PackingTableBackground(LibraryBackground):
     usd_path = f"{ARENA_NUCLEUS_DIR}/Arena/assets/background_library/packing_table/packing_table.usd"
     initial_pose = Pose(position_xyz=(0.72193, -0.04727, -0.92512), rotation_xyzw=(0.0, 0.0, -0.70711, 0.70711))
     object_min_z = -0.2
-
-    def __init__(self):
-        super().__init__()
 
 
 @register_asset
@@ -108,9 +99,6 @@ class GalileoBackground(LibraryBackground):
     initial_pose = Pose(position_xyz=(4.420, 1.408, -0.795), rotation_xyzw=(0.0, 0.0, 0.0, 1.0))
     object_min_z = -0.2
 
-    def __init__(self):
-        super().__init__()
-
 
 @register_asset
 class GalileoLocomanipBackground(LibraryBackground):
@@ -124,9 +112,6 @@ class GalileoLocomanipBackground(LibraryBackground):
     initial_pose = Pose(position_xyz=(4.420, 1.408, -0.795), rotation_xyzw=(0.0, 0.0, 0.0, 1.0))
     object_min_z = -0.2
 
-    def __init__(self):
-        super().__init__()
-
 
 @register_asset
 class Table(LibraryBackground):
@@ -138,9 +123,6 @@ class Table(LibraryBackground):
     tags = ["background"]
     usd_path = f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd"
     object_min_z = -0.05
-
-    def __init__(self):
-        super().__init__()
 
 
 @register_asset
@@ -158,8 +140,8 @@ class OfficeTableBackground(LibraryBackground):
         "rigid_props": sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
     }
 
-    def __init__(self):
-        super().__init__(scale=self.scale)
+    def __init__(self, **kwargs):
+        super().__init__(scale=self.scale, **kwargs)
 
 
 @register_asset
@@ -223,9 +205,6 @@ class MapleTableRobolab(LibraryBackground):
     tags = ["background", "robolab"]
     usd_path = f"{ARENA_NUCLEUS_DIR}/Arena/assets/object_library/srl_robolab_assets/scenes/maple_table.usda"
     object_min_z = -0.05
-
-    def __init__(self):
-        super().__init__()
 
 
 @register_asset

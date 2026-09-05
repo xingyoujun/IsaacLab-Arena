@@ -26,6 +26,7 @@ from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArena
 from isaaclab_arena.environments.isaaclab_arena_manager_based_env_cfg import (
     IsaacArenaManagerBasedMimicEnvCfg,
     IsaacLabArenaManagerBasedRLEnvCfg,
+    apply_arena_global_settings,
 )
 from isaaclab_arena.environments.relation_solver_interface import solve_and_apply_relation_placement
 from isaaclab_arena.metrics.metric_base import MetricBase
@@ -42,10 +43,11 @@ from isaaclab_arena.relations.object_placer_params import ObjectPlacerParams
 from isaaclab_arena.relations.placement_events import PLACEMENT_RESET_EVENT_NAME
 from isaaclab_arena.relations.relation_solver_params import RelationSolverParams
 from isaaclab_arena.tasks.no_task import NoTask
+from isaaclab_arena.terms.events import ResetBackgroundPhysics
 from isaaclab_arena.utils.configclass import combine_configclass_instances, make_configclass
 from isaaclab_arena.utils.isaaclab_utils.recorders import ArenaEnvRecorderManagerCfg
-from isaaclab_arena.utils.isaaclab_utils.resolve_clone_plan_source_patch import patch_resolve_clone_plan_source
 from isaaclab_arena.utils.isaaclab_utils.simulation_app import reapply_viewer_cfg
+from isaaclab_arena.utils.isaaclab_utils.warp_patch import install_empty_cpu_warp_to_torch_patch
 from isaaclab_arena.utils.multiprocess import get_local_rank
 from isaaclab_arena.variations import variations_hydra, variations_printing
 from isaaclab_arena.variations.variation_base import RunTimeVariationBase, VariationBase
@@ -258,8 +260,28 @@ class ArenaEnvBuilder:
         progress_tracking_events_cfg: Any = (
             make_progress_tracking_events_cfg(progress_objectives) if progress_objectives else None
         )
+        background_physics_events_cfg = None
+        background_physics_paths = self.arena_env.scene.get_background_physics_paths()
+        if background_physics_paths:
+            reset_background_physics = EventTermCfg(
+                func=ResetBackgroundPhysics,
+                mode="reset",
+                params={
+                    "background_prim_paths": self.arena_env.scene.get_background_physics_prim_paths(),
+                    "physics_paths": background_physics_paths,
+                    "referenced_paths": self.arena_env.scene.get_background_physics_referenced_paths(),
+                },
+            )
+            BackgroundPhysicsEventsCfg = make_configclass(
+                "BackgroundPhysicsEventsCfg",
+                [("reset_background_physics", EventTermCfg, reset_background_physics)],
+            )
+            background_physics_events_cfg = BackgroundPhysicsEventsCfg()
+        # Keep the background term first so its one-time snapshot observes the
+        # composed startup state before any reset event can mutate scene entities.
         events_cfg = combine_configclass_instances(
             "EventsCfg",
+            background_physics_events_cfg,
             embodiment.get_events_cfg(),
             self.arena_env.scene.get_events_cfg(),
             task.get_events_cfg(),
@@ -442,6 +464,8 @@ class ArenaEnvBuilder:
         Returns:
             A ``(name, cfg, env_kwargs)`` tuple.
         """
+        install_empty_cpu_warp_to_torch_patch()
+        apply_arena_global_settings()
         name = self.arena_env.name
         if env_cfg is None:
             env_cfg, env_kwargs = self.compose_manager_cfg()
@@ -474,12 +498,6 @@ class ArenaEnvBuilder:
             num_envs=self.cfg.num_envs,
             use_fabric=not self.cfg.disable_fabric,
         )
-        # During Lab's env build, ObjectSets give every env cfg its own clone-plan destination
-        # It is an issue for cameras nested under the robot that multiple destination are returned for the same source.
-        # E.g. camera gets /World/envs/env_{}/Robot, /World/envs/env_{}/Robot/panda_link0/external_camera  as destinations.
-        # Lab EA2 cannot pick one so patching to support single destination for the same source.
-        # TODO(xinjieyao, 2026-08-05): Remove this patch once Lab is updated to GA.
-        patch_resolve_clone_plan_source()
         return name, cfg, env_kwargs
 
     def make_registered(

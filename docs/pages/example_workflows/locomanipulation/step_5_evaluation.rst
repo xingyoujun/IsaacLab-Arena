@@ -38,6 +38,40 @@ pre-trained model checkpoint below:
          --local-dir $MODELS_DIR/checkpoint-20000
 
 
+**Prerequisite: launch the GR00T policy server**
+
+The Arena evaluation client runs in the Base container and connects to a GR00T policy server.
+Before running the evaluation, open another terminal **outside the Arena development
+container**.
+The server runs out of
+the `Isaac-GR00T <https://github.com/NVIDIA/Isaac-GR00T/tree/e29d8fc50b0e4745120ae3fb72447986fe638aa6>`_
+submodule pinned at commit ``e29d8fc``; populate it with
+``git submodule update --init submodules/Isaac-GR00T`` if it is not already
+checked out. Then, from the repository root in that terminal, launch the server and
+leave it running:
+
+.. note::
+
+   Blackwell GPUs with compute capability ``sm_120`` require CUDA 12.8 or newer. The
+   `official GR00T documentation <https://github.com/NVIDIA/Isaac-GR00T/blob/e29d8fc50b0e4745120ae3fb72447986fe638aa6/README.md?plain=1#L102>`_
+   specifies CUDA 12.8 and ``pytorch-cu128`` for RTX 5090 systems. Please refer to the
+   documentation for the latest requirements.
+
+.. note::
+
+   ``$MODELS_DIR`` exists inside the container. On the host, the checkpoint is
+   under the models directory passed to ``./docker/run_docker.sh -m`` (default ``$HOME/models``).
+
+.. code-block:: bash
+
+   cd submodules/Isaac-GR00T
+   uv run python gr00t/eval/run_gr00t_server.py \
+     --modality-config-path ../../isaaclab_arena_gr00t/embodiments/g1/g1_sim_wbc_data_config.py \
+     --model-path $HOME/models/isaaclab_arena/locomanipulation_tutorial/checkpoint-20000 \
+     --embodiment-tag NEW_EMBODIMENT \
+     --device cuda --host 127.0.0.1 --port 5555
+
+
 Step 1: Run Single Environment Evaluation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -64,30 +98,6 @@ The Arena GR00T evaluation client is configured by a config file at ``isaaclab_a
       pov_cam_name_sim: "robot_head_cam_rgb"
 
       task_mode_name: g1_locomanipulation
-
-**Prerequisite: launch the GR00T policy server**
-
-The Arena evaluation client runs in the Base container and connects to a GR00T policy server.
-The server runs out of
-the `Isaac-GR00T <https://github.com/NVIDIA/Isaac-GR00T/tree/e29d8fc50b0e4745120ae3fb72447986fe638aa6>`_
-submodule pinned at commit ``e29d8fc``; populate it with
-``git submodule update --init submodules/Isaac-GR00T`` if it is not already
-checked out. Then, in a separate shell with ``uv`` available from the repo root:
-
-.. todo::
-
-   The ``submodules/Isaac-GR00T`` submodule will be removed after the policy
-   config refactor. After that, users will be expected to set up a separate
-   GR00T repository checkout themselves and launch the server from there.
-
-.. code-block:: bash
-
-   cd submodules/Isaac-GR00T
-   uv run python gr00t/eval/run_gr00t_server.py \
-     --modality-config-path ../../isaaclab_arena_gr00t/embodiments/g1/g1_sim_wbc_data_config.py \
-     --model-path /models/isaaclab_arena/locomanipulation_tutorial/checkpoint-20000 \
-     --embodiment-tag NEW_EMBODIMENT \
-     --device cuda --host 127.0.0.1 --port 5555
 
 Test the policy in a single environment with visualization via the GUI run:
 
@@ -160,7 +170,6 @@ Parallel evaluation of the policy in multiple parallel environments is also supp
            --device cuda \
            --policy_device cuda  \
            --distributed \
-           --headless \
            galileo_g1_locomanip_pick_and_place \
            --object brown_box \
            --embodiment g1_wbc_joint

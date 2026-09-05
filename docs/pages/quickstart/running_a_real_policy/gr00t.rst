@@ -18,13 +18,14 @@ submodule pinned at commit ``e29d8fc``. Populate it if needed:
 
    git submodule update --init submodules/Isaac-GR00T
 
+.. note::
+
+   Blackwell GPUs with compute capability ``sm_120`` require CUDA 12.8 or newer. The
+   `official GR00T documentation <https://github.com/NVIDIA/Isaac-GR00T/blob/e29d8fc50b0e4745120ae3fb72447986fe638aa6/README.md?plain=1#L102>`_
+   specify CUDA 12.8 and ``pytorch-cu128`` for RTX 5090 systems. Please refer to the
+   documentation for the latest requirements.
+
 Then start the server from the repository root in a separate shell:
-
-.. todo::
-
-   The ``submodules/Isaac-GR00T`` submodule will be removed after the policy
-   config refactor. After that, users will set up a separate GR00T repository
-   checkout and launch the server from there.
 
 .. code-block:: bash
 
@@ -41,6 +42,13 @@ reuse the local cache. Leave this server running.
 
 Run GR00T with the Experiment Runner
 ------------------------------------
+
+If you run Arena from its native ``uv`` environment, install the GR00T client
+package:
+
+.. code-block:: bash
+
+   uv sync --group gr00t-client
 
 Arena includes a one-Run YAML configuration for the first rollout. It selects the
 DROID environment, connects the GR00T policy to the server, and stops after three episodes.
