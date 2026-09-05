@@ -10,18 +10,22 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from isaaclab_arena.assets.register import register_environment
-from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentCfg, ArenaEnvironmentFactory
+from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentFactory
+from isaaclab_arena_environments.agibot_tabletop_common import (
+    TABLE_TOP_Z,
+    AgibotTabletopEnvironmentCfg,
+    build_agibot,
+    build_tabletop_stage,
+    build_teleop_device,
+    install_agibot_control_stack,
+)
 
 if TYPE_CHECKING:
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
 
-# Agibot base and table, shared with agibot_stack_bowls -- see there for how both were measured.
-_ROBOT_POSITION_XYZ = (-0.60, 0.0, 0.0)
-_TABLE_TOP_Z = 0.6232
-_TABLE_POSITION_X = -0.365 + 0.5 * 1.1
-
-# Where the toaster's origin goes. Measured, not guessed: probe_make_toast_reach sweeps the slots'
-# reachability against this x and it falls off a cliff outward of 0.40 --
+# Where the toaster's origin goes. Measured, not guessed: an IK reach scan (now
+# ``isaaclab_arena_cumotion/scripts/probe_reach.py``) sweeps the slots' reachability against this
+# x and it falls off a cliff outward of 0.40 --
 #
 #     x    0.28  0.32  0.36  0.40  0.44  0.48
 #     left    4     4     2     2     0     0     (reachable slot orientations, of 14)
@@ -52,33 +56,14 @@ _SHELF_ROTATION_XYZW = (0.0, 0.0, 0.7071067811865476, 0.7071067811865476)
 # q = R_z(pi/2) * R_y(pi/2), written (x, y, z, w) as Isaac Lab 3.0 expects.
 _BREAD_ROTATION_XYZW = (-0.5, 0.5, 0.5, 0.5)
 
-# RoboDojo stages every task in "Simple_Room_nolight" lit by an HDRI dome; see
-# agibot_stack_bowls_environment for the measurements behind these two.
-_DOME_LIGHT_HDR = "brown_photostudio_robolab"
-_DOME_LIGHT_INTENSITY = 1000.0
-
 
 @dataclass
-class AgibotMakeToastEnvironmentCfg(ArenaEnvironmentCfg):
-    """Configure the Agibot toast-making environment."""
+class AgibotMakeToastEnvironmentCfg(AgibotTabletopEnvironmentCfg):
+    """Configure the Agibot toast-making environment.
 
-    background: str = "robodojo_table"
-
-    embodiment: str = "agibot"
-
-    teleop_device: str | None = "dual_arm_keyboard"
-    """Must emit as many values as the arm mode consumes: ``dual_arm_keyboard`` for two arms
-    (14), plain ``keyboard`` for one (7)."""
-
-    arm_mode: str = "dual"
-    """Which arm(s) to drive: ``"left"``, ``"right"`` or ``"dual"``.
-
-    The rack sits on the robot's right and the toaster on its left, so both arms have work."""
-
-    teleop_pos_sensitivity: float = 0.03
-    teleop_rot_sensitivity: float = 0.1
-    """Metres and radians of commanded end-effector motion per held key, per control step. Both
-    carried over from agibot_stack_bowls, where they were tuned against the same arms."""
+    The rack sits on the robot's right and the toaster on its left, so both arms have work and
+    the shared ``arm_mode`` default of ``"dual"`` stands.
+    """
 
     num_breads: int = 4
     """How many slices to put in the rack. RoboDojo's make_toast uses four."""
@@ -105,18 +90,8 @@ class AgibotMakeToastEnvironmentCfg(ArenaEnvironmentCfg):
     """Half-extent of the per-reset random offset applied to the toaster on both world axes; its
     yaw stays fixed.
 
-    Keep it inside the slots' reachability plateau (x 0.28-0.40, measured by
-    probe_make_toast_reach) or the insertion loses its target."""
-
-    head_view: bool = True
-    """Put the viewport on the robot's head, so teleop is driven from the robot's own view."""
-
-    room: bool = True
-    """Stage the task in RoboDojo's room instead of on a bare ground plane."""
-
-    arm_effort_limit: float | None = 300.0
-    """Torque ceiling for both arms, in N m. None keeps the shipped 1000-2000. See
-    agibot_stack_bowls_environment for the measurements behind this value."""
+    Keep it inside the slots' reachability plateau (x 0.28-0.40, measured with the IK reach
+    scan) or the insertion loses its target."""
 
 
 def _jitter_rack_group(
@@ -182,28 +157,6 @@ def _jitter_rack_group(
                 )
 
 
-def _apply_arm_effort_limit(env_cfg, effort_limit: float | None) -> None:
-    """Cap both arms' actuator torque on the compiled config, before the articulation exists.
-
-    This has to happen on ``env_cfg.scene.robot.actuators`` rather than through
-    ``write_joint_*_to_sim`` at run time: those setters reach PhysX but leave Isaac Lab's
-    ``ImplicitActuator`` holding its original limit, so the two disagree.
-
-    Args:
-        env_cfg: The compiled environment configuration, patched in place.
-        effort_limit: Torque ceiling in N m, or None to keep the shipped values.
-    """
-    if effort_limit is None:
-        return
-    for name, actuator in env_cfg.scene.robot.actuators.items():
-        if not name.endswith("_arm"):
-            continue
-        # effort_limit shadows effort_limit_sim on implicit actuators; keep them equal or Isaac
-        # Lab warns and picks one arbitrarily.
-        actuator.effort_limit_sim = effort_limit
-        actuator.effort_limit = effort_limit
-
-
 @register_environment
 class AgibotMakeToastEnvironment(ArenaEnvironmentFactory[AgibotMakeToastEnvironmentCfg]):
     """Load two slices of bread into a toaster and press its lever, with the Agibot."""
@@ -213,27 +166,16 @@ class AgibotMakeToastEnvironment(ArenaEnvironmentFactory[AgibotMakeToastEnvironm
 
     def build(self, cfg: AgibotMakeToastEnvironmentCfg) -> IsaacLabArenaEnvironment:
         """Build the environment from its typed configuration."""
-        import isaaclab.sim as sim_utils
-
-        from isaaclab_arena.embodiments.common.arm_mode import ArmMode
         from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
         from isaaclab_arena.scene.scene import Scene
         from isaaclab_arena.tasks.make_toast_task import MakeToastTask
-        from isaaclab_arena.utils.arm_target_hold import install_arm_target_hold
         from isaaclab_arena.utils.pose import Pose
 
-        table_asset = self.asset_registry.get_asset_by_name(cfg.background)
-        background = table_asset()
-        background.set_initial_pose(
-            Pose(
-                position_xyz=(_TABLE_POSITION_X, 0.0, _TABLE_TOP_Z - table_asset.HALF_THICKNESS_M),
-                rotation_xyzw=(0.0, 0.0, 0.0, 1.0),
-            )
-        )
+        background, surroundings, light = build_tabletop_stage(self, cfg)
 
         toaster_asset = self.asset_registry.get_asset_by_name("toaster")
         toaster = toaster_asset()
-        toaster_z = _TABLE_TOP_Z + toaster_asset.HALF_HEIGHT_M
+        toaster_z = TABLE_TOP_Z + toaster_asset.HALF_HEIGHT_M
         # The toaster's own jitter is applied by the same event as the rack group's (below),
         # not by a PoseRange: the generic pose randomizer also writes a root velocity, which
         # PhysX rejects on a fixed-base articulation.
@@ -243,7 +185,7 @@ class AgibotMakeToastEnvironment(ArenaEnvironmentFactory[AgibotMakeToastEnvironm
 
         shelf_asset = self.asset_registry.get_asset_by_name("bread_shelf")
         bread_shelf = shelf_asset()
-        shelf_origin_z = _TABLE_TOP_Z + shelf_asset.HALF_HEIGHT_M
+        shelf_origin_z = TABLE_TOP_Z + shelf_asset.HALF_HEIGHT_M
         bread_shelf.set_initial_pose(
             Pose(position_xyz=(*_SHELF_POSITION_XY, shelf_origin_z), rotation_xyzw=_SHELF_ROTATION_XYZW)
         )
@@ -268,35 +210,8 @@ class AgibotMakeToastEnvironment(ArenaEnvironmentFactory[AgibotMakeToastEnvironm
             )
             breads.append(bread)
 
-        arm_mode = {"left": ArmMode.LEFT, "right": ArmMode.RIGHT, "dual": ArmMode.DUAL_ARM}[cfg.arm_mode]
-        embodiment = self.asset_registry.get_asset_by_name(cfg.embodiment)(
-            enable_cameras=cfg.enable_cameras, arm_mode=arm_mode
-        )
-        embodiment.set_initial_pose(Pose(position_xyz=_ROBOT_POSITION_XYZ, rotation_xyzw=(0.0, 0.0, 0.0, 1.0)))
-
-        if cfg.teleop_device is not None:
-            teleop_device = self.device_registry.get_device_by_name(cfg.teleop_device)(
-                pos_sensitivity=cfg.teleop_pos_sensitivity,
-                rot_sensitivity=cfg.teleop_rot_sensitivity,
-            )
-        else:
-            teleop_device = None
-
-        # A fresh DomeLightCfg per instance: the asset's default is a class attribute, so reusing
-        # it would leak the HDR texture into every other environment built in the same process.
-        light = self.asset_registry.get_asset_by_name("light")(
-            spawner_cfg=sim_utils.DomeLightCfg(intensity=_DOME_LIGHT_INTENSITY),
-            hdr=self.hdr_registry.get_hdr_by_name(_DOME_LIGHT_HDR)(),
-        )
-
-        if cfg.room:
-            # The room brings its own floor, so it replaces the default grid ground plane.
-            room_asset = self.asset_registry.get_asset_by_name("robodojo_simple_room")
-            surroundings = room_asset()
-            surroundings.object_cfg.spawn.scale = room_asset.SCALE
-        else:
-            surroundings = self.asset_registry.get_asset_by_name("ground_plane")()
-
+        embodiment = build_agibot(self, cfg)
+        teleop_device = build_teleop_device(self, cfg)
         scene = Scene(assets=[background, toaster, bread_shelf, *breads, surroundings, light])
 
         # The rack and its slices are jittered as one rigid group, so the nominal poses the event
@@ -318,10 +233,9 @@ class AgibotMakeToastEnvironment(ArenaEnvironmentFactory[AgibotMakeToastEnvironm
         ]
 
         def env_cfg_callback(env_cfg):
-            """Swap the arm terms for ones that hold their target while idle, cap arm torque, and
-            attach the rack-group jitter after every asset's own reset event."""
-            install_arm_target_hold(env_cfg)
-            _apply_arm_effort_limit(env_cfg, cfg.arm_effort_limit)
+            """Install the standard control stack, then attach the rack-group jitter after every
+            asset's own reset event."""
+            install_agibot_control_stack(env_cfg, cfg)
             shelf_jittered = cfg.shelf_jitter_x_min_m or cfg.shelf_jitter_x_max_m or cfg.shelf_jitter_y_m
             if shelf_jittered or cfg.shelf_jitter_yaw_rad:
                 from isaaclab.managers import EventTermCfg

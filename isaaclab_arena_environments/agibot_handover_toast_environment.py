@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING
 from isaaclab_arena.assets.register import register_environment
 from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentFactory
 from isaaclab_arena_environments.agibot_make_toast_environment import (
-    _TABLE_TOP_Z,
     AgibotMakeToastEnvironment,
     AgibotMakeToastEnvironmentCfg,
 )
+from isaaclab_arena_environments.agibot_tabletop_common import TABLE_TOP_Z
 
 if TYPE_CHECKING:
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
@@ -72,7 +72,7 @@ class AgibotHandoverToastEnvironment(
             # The Agibot's left tool body; the right one is right_gripper_center. The rack sits on
             # the robot's right, so the left hand is the receiving one.
             receive_body_name="gripper_center",
-            table_top_z_m=_TABLE_TOP_Z,
+            table_top_z_m=TABLE_TOP_Z,
             episode_length_s=120.0,
             viewer_cfg=environment.embodiment.get_head_viewer_cfg() if cfg.head_view else None,
         )
