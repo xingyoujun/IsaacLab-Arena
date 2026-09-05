@@ -362,7 +362,7 @@ def _pick_slice(bread_keys: list[str], target: str):
 
     # Near-centre candidates first, wide offsets only as a fallback: every centred grasp so far
     # has held through the carry, while every +/-25 mm one has either slipped out during the lift
-    # (measured with probe_env_action_tracking: pads closed on the slice at 14.3 mm, then closed
+    # (measured 2026-08 with an action-tracking probe: pads closed on the slice at 14.3 mm, then closed
     # through it to 2.2 mm as the lift ran) or come out marginal. The offsets exist for scenes
     # where the centre is unreachable, not as equals.
     def _offset_mm(proposal) -> float:

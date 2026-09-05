@@ -268,7 +268,7 @@ parser.add_argument(
     action="store_true",
     help=(
         "After the pick, carry the slice to chest height and pass it to the other arm. The two"
-        " arms' workspaces do not overlap over the table -- probe_make_toast_reach measures the"
+        " arms' workspaces do not overlap over the table -- the IK reach scan (probe_reach.py) measures the"
         " rack as right-arm-only and the toaster slots as left-arm-only -- so a slice can only get"
         " from one to the other through a handover in front of the chest, where both reach."
     ),
