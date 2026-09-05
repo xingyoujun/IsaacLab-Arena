@@ -150,7 +150,9 @@ What it changes for us, verified against the GA tree:
    string `class_type` that Isaac Lab resolves at device creation (GA supports this), and the
    device class is only imported when a device is built. Rule for us: nothing that the registries
    import at module level may need Kit -- upstream keeps that invariant, and so must we.
-   Re-run results: see the line below.
+   Final Phase 1 run after both repairs: **1114 passed, 0 failed** (5 skipped, 2 xfailed, 24 min).
+   Still unverified on GA: an interactive noVNC teleop session (the device instantiates and emits
+   its 14-dim action under `--viz kit` on the Xvfb display, so the plumbing is there).
 6. Asset URLs now resolve under `Assets/Isaac/6.1/...` in the Lab cache; the Agibot URDF there is
    byte-identical to the 6.0 copy the cuMotion registry reads from `ISAAC_ASSET_ROOT`.
 
