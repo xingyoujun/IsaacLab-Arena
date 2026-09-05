@@ -260,7 +260,8 @@ def install_agibot_control_stack(env_cfg, cfg: AgibotTabletopEnvironmentCfg, sur
 
     Call it first in every Agibot task's ``env_cfg_callback``. In order: the idle-arm target hold
     (an RMPFlow arm commanded zero otherwise walks 88 mm off its reset pose), the surface guard,
-    the ramped gripper, and the arm gain overrides. The order matters -- the guard subclasses the
+    the ramped gripper, the arm gain overrides, and the demo recorder that labels every recording
+    with the applied joint position targets (see ``embodiments/agibot/demo_recorders.py``). The order matters -- the guard subclasses the
     target-holding term -- and every installer leaves joint-space terms alone, so an environment
     rebuilt with ``AgibotDualArmJointActionsCfg`` for scripted recording is unaffected.
 
@@ -269,6 +270,7 @@ def install_agibot_control_stack(env_cfg, cfg: AgibotTabletopEnvironmentCfg, sur
         cfg: The environment configuration carrying the knobs.
         surface_z: World height of the work surface the guard protects.
     """
+    from isaaclab_arena.embodiments.agibot.demo_recorders import agibot_demo_recorder_cfg
     from isaaclab_arena.utils.arm_target_hold import install_arm_target_hold
     from isaaclab_arena.utils.ramped_gripper import install_ramped_gripper
     from isaaclab_arena.utils.surface_guard import install_surface_guard
@@ -279,3 +281,7 @@ def install_agibot_control_stack(env_cfg, cfg: AgibotTabletopEnvironmentCfg, sur
     if cfg.gripper_ramp_seconds > 0:
         install_ramped_gripper(env_cfg, cfg.gripper_ramp_seconds)
     apply_arm_gains(env_cfg, cfg)
+    # Every recording of this environment -- record_demos.py picks this up through the gym
+    # registration -- carries the joint position target label next to the raw actions, so
+    # teleoperated and scripted demonstrations share one action space downstream.
+    env_cfg.demo_recorder_config = agibot_demo_recorder_cfg(with_cameras=cfg.enable_cameras)

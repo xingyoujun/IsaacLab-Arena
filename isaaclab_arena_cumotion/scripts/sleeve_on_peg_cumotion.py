@@ -131,8 +131,8 @@ from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
     arena_env_builder_cfg_from_argparse,
     get_isaaclab_arena_cli_parser,
 )
+from isaaclab_arena.embodiments.agibot.demo_recorders import agibot_demo_recorder_cfg  # noqa: E402
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder  # noqa: E402
-from isaaclab_arena.utils.isaaclab_utils.recorders import ArenaEnvRecorderManagerCfg  # noqa: E402
 from isaaclab_arena_cumotion.executor import ArmExecutor, EnvActionExecutor, JointActionInterface  # noqa: E402
 from isaaclab_arena_cumotion.grasps import (  # noqa: E402
     DOWN_FACING_ROTATION,
@@ -181,8 +181,7 @@ if recording:
     def _recording_env_cfg(patched):
         """Attach the demo recorder; success is judged and exported by this script instead."""
         patched = _prev_cb(patched) if _prev_cb is not None else patched
-        patched.recorders = ArenaEnvRecorderManagerCfg()
-        patched.recorders.record_pre_step_flat_camera_observations = None
+        patched.recorders = agibot_demo_recorder_cfg(with_cameras=False)  # states-only; images re-rendered offline
         patched.recorders.dataset_export_dir_path = args.record_dir
         patched.recorders.dataset_filename = args.dataset_name
         patched.recorders.dataset_export_mode = DatasetExportMode.EXPORT_SUCCEEDED_ONLY

@@ -146,7 +146,7 @@ Teleop through Isaac Lab's script with **both** device flags
 ```bash
 DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y \
   .venv/bin/python submodules/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py \
-  --viz kit --device cpu \
+  --viz kit --device cuda:0 \
   --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
   --task <env> --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard
 ```
@@ -161,7 +161,7 @@ it removes the success termination itself. `teleop_se3_agent.py` records nothing
 
 ```bash
 DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y \
-  .venv/bin/python submodules/IsaacLab/scripts/tools/record_demos.py --viz kit --device cpu \
+  .venv/bin/python submodules/IsaacLab/scripts/tools/record_demos.py --viz kit --device cuda:0 \
   --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
   --task <env> --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard \
   --step_hz 15 --num_demos 0 --num_success_steps 10 \

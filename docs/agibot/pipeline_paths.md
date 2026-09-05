@@ -26,17 +26,41 @@ session scratchpad; the table below is the durable record).
 | action vector | 14 (`[L pose 6, L grip 1, R pose 6, R grip 1]`) | 14 | 20 (`[L arm 7, L grip 3, R arm 7, R grip 3]`) |
 | who drives | human keys -> device -> `env.step` | same | planner -> `EnvActionExecutor` -> `env.step` (or `ArmExecutor` direct joint writes when not recording) |
 | terminations | `success` only (time_out removed) -> success auto-resets the scene | none (success held aside and judged by the script; time_out removed) | `time_out` at 600 s (success judged by the script) |
-| recorder | none | Isaac Lab `ActionStateRecorderManagerCfg` (5 terms), export succeeded only | Arena `ArenaEnvRecorderManagerCfg` minus the camera term (6 terms), export succeeded only |
-| recorded actions | -- | `actions (T,14)` = EE deltas + binary gripper; `processed_actions (T,18)` | `actions (T,20)` = absolute joint targets; `processed_actions (T,20)` |
+| recorder | none | `AgibotDemoRecorderManagerCfg` (Arena's + `joint_pos_target`), registered by the env, export succeeded only | same recorder, camera term off (images re-rendered offline) |
+| recorded actions | -- | `actions (T,14)` = EE deltas + binary gripper; `processed_actions (T,18)`; **`joint_pos_target (T,20)`** | `actions (T,20)` = absolute joint targets; `processed_actions (T,20)`; **`joint_pos_target (T,20)`** (== actions) |
 | pacing | as fast as the Kit loop renders | `RateLimiter` at `--step_hz` (we pass 15) | as fast as the sim steps (headless) |
-| default device in our commands | `--device cpu` (inherited from upstream's XR recording docs) | `--device cpu` | `cuda:0` |
+| device | `cuda:0` (was `cpu` until 2026-09-05, inherited from upstream's XR docs) | `cuda:0` | `cuda:0` |
 | viewer | Kit GUI via noVNC, head-view viewport | same | headless |
 
-The data consequence: a teleop recording and a cuMotion recording of the same task share
-observations and states but **not action semantics** (relative end-effector deltas vs absolute
-joint targets). They cannot be mixed in one training set without converting one side; the
-LeRobot configs under `isaaclab_arena_gr00t/lerobot/config/agibot_*` assume the joint-space
-(cuMotion) layout.
+## Why the two recordings could not be mixed, and how they are unified
+
+The raw `actions` of the two paths are different quantities. A teleop step's 14 numbers are
+*how far the operator asked each end-effector to move this control step* (dx, dy, dz in metres and
+an axis-angle rotation in radians, scaled by the sensitivity) plus a binary open/close per hand.
+Nothing in them says where the joints went: RMPFlow, inside the simulator, turns the delta into a
+target pose and solves joint position targets for the 7 arm joints at every physics substep, and
+the binary gripper is expanded into a ramped target for the 3 gripper joints. A cuMotion step's 20
+numbers *are* those joint position targets (7 + 3 per arm, radians, absolute). A policy trained on
+one cannot emit the other, so the two datasets were not mixable as recorded.
+
+What both paths share underneath is the joint position target the drives were actually given at
+the end of each control step. Since 2026-09-05 every Agibot recording writes it as
+`joint_pos_target (T, 20)` in `AgibotDualArmJointActionsCfg` order
+(`isaaclab_arena/embodiments/agibot/demo_recorders.py`, installed by `install_agibot_control_stack`
+as the env's demo recorder, and used by the cuMotion drivers). Measured on `agibot_stack_bowls`:
+
+| check | result |
+| --- | --- |
+| cuMotion demo: `joint_pos_target` vs `actions` | identical, max difference 0.000000 rad on arms and grippers |
+| teleop-path demo: arm `joint_pos_target[t]` vs `states/joint_position[t+1]` | 95th percentile 1.8 deg; 7 of 129 steps above 5 deg, all at the first steps after reset (RMPFlow's first-step jump) and at gripper contact |
+| teleop-path demo: gripper column while the raw command is a bare -1 | the recorded target ramps 0.994 -> 0 over 1.67 s, i.e. exactly what the fingers were driven with |
+| merge of one teleop-path and one cuMotion demo | `merge_demos.py --drop_mismatched` keeps `joint_pos_target`, `obs/*`, `states/*`, `initial_state/*` and drops the raw `actions`, `obs/actions`, `processed_actions` (recorded in the file's `dropped_keys` attribute) |
+
+The LeRobot configs (`isaaclab_arena_gr00t/lerobot/config/agibot_*`) now read
+`action_name_sim: joint_pos_target`, so a mixed file converts to one dataset with a 20-dim
+joint-space action for every frame; `observation.state` (34 joints) is unchanged. The raw
+per-path files keep their own `actions` for replay and debugging. End-to-end result of the
+re-render + conversion of the mixed file: see the status line below.
 
 ## GPU or CPU?
 
@@ -59,10 +83,9 @@ knowing which device you are on: the CPU pipeline reports errors the GPU pipelin
 (velocity writes to kinematic bodies, zero-joint articulations), and GPU memory per process is
 2 GB higher, which matters against the two-process ceiling of this box.
 
-Recommendation: standardise teleop and recording on `--device cuda:0` so every path runs the same
-physics pipeline as the collected data, and keep `--device cpu` as the debugging mode that surfaces
-silent errors. This is a change to the standard commands in `ops.md` and the playbook and is left
-for the user to confirm.
+Decision (user, 2026-09-05): **everything runs on `cuda:0`** -- teleop, recording, cuMotion, probes,
+every new task. `--device cpu` is kept only as the debugging mode that surfaces silent errors. The
+commands in `ops.md` and the playbook say `cuda:0`.
 
 ## Things checked while measuring
 

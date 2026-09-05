@@ -70,7 +70,6 @@ branch `chuanruiz/feature/robodojo-tasks` (pre-baseline code; the Agibot config 
 
 ## Open decisions for the user
 
-- Standardise teleop/recording on `--device cuda:0` (see [pipeline_paths.md](pipeline_paths.md)); GPU teleop works on GA.
 - make_toast step 2: choose the chest handover point, then resume `make_toast_cumotion.py`.
 - Push the prepared Arena bug-fix branch (`chuanruiz/fix/agibot_left_arm_and_env_cfg_callback`)
   upstream, or fold it into the team baseline PR.

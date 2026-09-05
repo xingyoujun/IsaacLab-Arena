@@ -213,8 +213,28 @@ class _ValidationReport:
     env_args_status: str = "OK"
 
 
-def _validate_compatibility(infos: list[_FileInfo]) -> _ValidationReport:
-    """Compare input files for compatibility and produce a :class:`_ValidationReport`."""
+def _mismatched_keys(infos: list[_FileInfo]) -> set[str]:
+    """Dataset keys (relative to a demo group) that are missing from, or differ in shape/dtype
+    between, any two inputs."""
+    if len(infos) < 2:
+        return set()
+    ref = infos[0].schema_fingerprint
+    keys: set[str] = set()
+    for other in infos[1:]:
+        fp = other.schema_fingerprint
+        keys |= set(ref) ^ set(fp)
+        keys |= {k for k in set(ref) & set(fp) if ref[k] != fp[k]}
+    return keys
+
+
+def _validate_compatibility(infos: list[_FileInfo], drop_mismatched: bool = False) -> _ValidationReport:
+    """Compare input files for compatibility and produce a :class:`_ValidationReport`.
+
+    Args:
+        infos: The inspected inputs.
+        drop_mismatched: Report schema differences as warnings (the keys will be dropped from the
+            merged output) instead of errors.
+    """
     report = _ValidationReport()
 
     versions = {i.format_version for i in infos}
@@ -234,9 +254,9 @@ def _validate_compatibility(infos: list[_FileInfo]) -> _ValidationReport:
                 continue
             any_schema_diff = True
             msg = f"Schema mismatch between {ref.path} and {other.path}:\n  " + "\n  ".join(diffs)
-            report.errors.append(msg)
+            (report.warnings if drop_mismatched else report.errors).append(msg)
         if any_schema_diff:
-            report.schema_status = "MISMATCH"
+            report.schema_status = "DROPPED" if drop_mismatched else "MISMATCH"
 
     env_names = {i.env_args.get("env_name", "") for i in infos}
     sim_args_set = {json.dumps(i.env_args.get("sim_args", {}), sort_keys=True) for i in infos}
@@ -341,12 +361,37 @@ def _print_summary(
     print()
 
 
-def _merge(infos: list[_FileInfo], output_path: str) -> tuple[int, int, int]:
+def _copy_demo_without(src_demo: h5py.Group, dst_parent: h5py.Group, name: str, dropped: set[str]) -> None:
+    """Copy a demo group into ``dst_parent`` as ``name``, leaving out the datasets in ``dropped``."""
+    dst = dst_parent.create_group(name)
+    dst.attrs.update(src_demo.attrs)
+
+    def _visit(rel_name: str, obj: h5py.Group | h5py.Dataset) -> None:
+        if isinstance(obj, h5py.Group):
+            group = dst.require_group(rel_name)
+            group.attrs.update(obj.attrs)
+        elif rel_name not in dropped:
+            parent = dst.require_group(rel_name.rsplit("/", 1)[0]) if "/" in rel_name else dst
+            parent.create_dataset(rel_name.rsplit("/", 1)[-1], data=obj[()], dtype=obj.dtype)
+            dst[rel_name].attrs.update(obj.attrs)
+
+    src_demo.visititems(_visit)
+
+
+def _merge(infos: list[_FileInfo], output_path: str, dropped: set[str] | None = None) -> tuple[int, int, int]:
     """Write a merged HDF5 dataset from validated inputs.
+
+    Args:
+        infos: The inspected inputs, in merge order.
+        output_path: Where to write the merged file.
+        dropped: Dataset keys (relative to a demo group) to leave out of every demo, e.g. the raw
+            ``actions`` when teleoperated (14-dim) and scripted (20-dim) demos are merged on their
+            shared ``joint_pos_target`` label.
 
     Returns:
         A tuple ``(output_size_bytes, total_steps_written, total_demos_written)``.
     """
+    dropped = dropped or set()
     format_version = infos[0].format_version
     merged_env_args = dict(infos[0].env_args)
     for other in infos[1:]:
@@ -361,6 +406,8 @@ def _merge(infos: list[_FileInfo], output_path: str) -> tuple[int, int, int]:
         out.attrs["format_version"] = format_version
         data_out = out.create_group("data")
         data_out.attrs["env_args"] = json.dumps(merged_env_args)
+        if dropped:
+            data_out.attrs["dropped_keys"] = json.dumps(sorted(dropped))
 
         for info in infos:
             with h5py.File(info.path, "r") as src:
@@ -368,7 +415,10 @@ def _merge(infos: list[_FileInfo], output_path: str) -> tuple[int, int, int]:
                 for src_demo_name in _sorted_demo_names(src_data):
                     dst_demo_name = f"demo_{total_demos_written}"
                     try:
-                        src.copy(src_data[src_demo_name], data_out, name=dst_demo_name)
+                        if dropped:
+                            _copy_demo_without(src_data[src_demo_name], data_out, dst_demo_name, dropped)
+                        else:
+                            src.copy(src_data[src_demo_name], data_out, name=dst_demo_name)
                     except (OSError, RuntimeError, ValueError) as e:
                         # h5py error messages from deep recursive copies are notoriously opaque;
                         # surface the offending source file and demo so the operator can
@@ -382,6 +432,8 @@ def _merge(infos: list[_FileInfo], output_path: str) -> tuple[int, int, int]:
                         total_steps_written += int(dst_demo.attrs["num_samples"])
                     elif "actions" in dst_demo:
                         total_steps_written += int(dst_demo["actions"].shape[0])
+                    elif "joint_pos_target" in dst_demo:
+                        total_steps_written += int(dst_demo["joint_pos_target"].shape[0])
                     total_demos_written += 1
 
         data_out.attrs["total"] = total_steps_written
@@ -421,6 +473,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dry_run",
         action="store_true",
         help="Validate inputs and print the merge report without writing the output file.",
+    )
+    parser.add_argument(
+        "--drop_mismatched",
+        action="store_true",
+        help=(
+            "Instead of aborting on schema differences, leave every dataset whose shape or dtype"
+            " differs between inputs (or is missing from one) out of the merged file and record them"
+            " in the output's 'dropped_keys' attribute. Lets teleoperated (14-dim raw actions) and"
+            " scripted (20-dim) demos merge on their shared keys such as 'joint_pos_target'."
+        ),
     )
     return parser
 
@@ -464,7 +526,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERROR: {e}", file=sys.stderr)
             return 2
 
-    report = _validate_compatibility(infos)
+    report = _validate_compatibility(infos, drop_mismatched=args.drop_mismatched)
+    dropped = _mismatched_keys(infos) if args.drop_mismatched else set()
+    if dropped:
+        report.info.append(f"Dropping {len(dropped)} mismatched dataset(s) from the merged output: {sorted(dropped)}")
 
     if args.dry_run:
         _print_summary(infos, args.output_file, report=report, dry_run=True)
@@ -487,7 +552,7 @@ def main(argv: list[str] | None = None) -> int:
     tmp_path = args.output_file + ".tmp"
     success = False
     try:
-        output_size, total_steps, total_demos = _merge(infos, tmp_path)
+        output_size, total_steps, total_demos = _merge(infos, tmp_path, dropped=dropped)
         os.replace(tmp_path, args.output_file)
         success = True
     except Exception as e:

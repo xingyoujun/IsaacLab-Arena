@@ -81,8 +81,8 @@ from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
     arena_env_builder_cfg_from_argparse,
     get_isaaclab_arena_cli_parser,
 )
+from isaaclab_arena.embodiments.agibot.demo_recorders import agibot_demo_recorder_cfg  # noqa: E402
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder  # noqa: E402
-from isaaclab_arena.utils.isaaclab_utils.recorders import ArenaEnvRecorderManagerCfg  # noqa: E402
 from isaaclab_arena_cumotion.executor import ArmExecutor, EnvActionExecutor, JointActionInterface  # noqa: E402
 from isaaclab_arena_cumotion.grasps import matrix_from_quat_wxyz, quat_wxyz_from_matrix, slab_grasps  # noqa: E402
 from isaaclab_arena_cumotion.pick_place import PickAndPlace  # noqa: E402
@@ -168,9 +168,7 @@ if recording:
         rate.
         """
         patched = _prev_cb(patched) if _prev_cb is not None else patched
-        patched.recorders = ArenaEnvRecorderManagerCfg()
-        # Cameras are off in states-only recording; the camera-obs recorder term would KeyError.
-        patched.recorders.record_pre_step_flat_camera_observations = None
+        patched.recorders = agibot_demo_recorder_cfg(with_cameras=False)  # states-only; images re-rendered offline
         patched.recorders.dataset_export_dir_path = args.record_dir
         patched.recorders.dataset_filename = args.dataset_name
         patched.recorders.dataset_export_mode = DatasetExportMode.EXPORT_SUCCEEDED_ONLY

@@ -19,7 +19,7 @@ hdf5_name: "handover_toast.hdf5"
 
 # Recorded HDF5 datafield names (see handover_toast_cumotion.py)
 state_name_sim: "joint_pos"
-action_name_sim: "processed_actions"
+action_name_sim: "joint_pos_target"  # applied joint targets, identical for teleop and cuMotion demos
 pov_cam_name_sim: "head_cam_rgb"
 
 # Gr00t-LeRobot datafield names
