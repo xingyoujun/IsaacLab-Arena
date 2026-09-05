@@ -94,7 +94,8 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "_templates", "Thumbs.db", ".DS_Store", "venv_docs", "README.md"]
+# ``agibot/`` holds the Agibot benchmark team's working notes (Markdown), not Sphinx pages.
+exclude_patterns = ["_build", "_templates", "Thumbs.db", ".DS_Store", "venv_docs", "README.md", "agibot"]
 
 # Be picky about missing references
 nitpicky = True  # warns on broken references
