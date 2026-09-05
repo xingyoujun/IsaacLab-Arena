@@ -139,7 +139,14 @@ What it changes for us, verified against the GA tree:
    run **in isolation**: GA's `isaaclab.sim.schemas` touches `pxr.UsdPhysics.Tokens` at import,
    which only exists once Kit is up, so the upstream `background.py` import fails in a Kit-less
    process (also fails on pristine upstream code; in a full Phase 1 run earlier tests start Kit).
-   Phase 1 result: see the status line below.
+   Phase 1 (`-m 'not with_cameras and not with_subprocess'`, 31 min): **1110 passed, 4 failed**.
+   Three of the four are the same Kit-less-child-process import failure in upstream files
+   (`test_arena_env_graph_spec` x2, `test_time_out_truncation`): the child `python -c` imports
+   `isaaclab_arena.assets.background` / `tasks.assembly_task` before any Kit start-up, and GA's
+   lazy exports need Kit's `pxr` (the pre-Kit `pxr` in the uv env has no `UsdPhysics.Tokens`).
+   Reproduces on files byte-identical to upstream; not ours to fix here, but worth raising upstream.
+   The fourth was ours: `bearing_assembly` (two sibling rigid links) trips `detect_object_type`;
+   it lost its `object` tag so the registry-wide test skips it (it stays selectable by name).
 6. Asset URLs now resolve under `Assets/Isaac/6.1/...` in the Lab cache; the Agibot URDF there is
    byte-identical to the 6.0 copy the cuMotion registry reads from `ISAAC_ASSET_ROOT`.
 

@@ -389,7 +389,11 @@ class BearingAssembly(LibraryObject):
     floating-base articulation rather than a rigid body."""
 
     name = "bearing_assembly"
-    tags = ["object", "usdcraft", "finished_part"]
+    # Not tagged "object": its two links are sibling rigid bodies at one depth, which Arena's
+    # detect_object_type rejects ("multiple roots"), so the registry-wide detection test would
+    # fail on it. It stays selectable by name (tidy_workbench's ``finished_part``), but the Agibot
+    # cannot hold it in any tested form -- see docs/agibot/asset_guide.md.
+    tags = ["usdcraft", "finished_part"]
     usd_path = _agibot_asset_usd(
         "rec_create-one-standalone-finished-metal-bearing-ass_20260902_094319_8e29fcfd_0ae7bb99"
     )
