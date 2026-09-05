@@ -196,3 +196,99 @@ and `joint_pos_target` becomes a cross-check.
 
 Until then the standard stays: RMPFlow + target hold + surface guard + ramped gripper, all on
 `cuda:0`, with the frozen actuator config.
+
+## 8. Matrix results (2026-09-05, `agibot_stack_bowls`, cuda:0, no human in the loop)
+
+Probe: `scratchpad/matrix_probe.py` (kept in the session scratchpad; the numbers below are the
+record). Per cell: reset, 20 settle steps, 150 zero-command steps (idle drift); a free-air gripper
+close; then the right arm commanded down at the teleop's full key (-0.03 m per step) until the pads
+would be 110 mm below the table, 150 steps at most, 15 hold steps, and a gripper close while
+pressing. All quantities on the right arm. Gain presets: **stock** = shipped 2e4-1e7 / 0 with the
+task-level effort 300; **k4400** = 4400 with per-joint critical damping (61/57/47/46/17/26/3.6),
+effort 100; **k1000** = 1000 with 29/27/22/22/8/13/1.7, effort 100; **d40** = RoboDojo's 4400 / 40,
+effort 100.
+
+| controller | guard | gains | reset transient peak (mm) | settled offset (mm) | idle drift over 10 s (mm) | holding torque (N m) | pads above table at end of press (mm) | descent torque (N m) | pressed-close pad speed (m/s) | pressed-close torque (N m) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| RMPFlow | on | stock | 172 | 0.2 | 0.0 | 300 (ceiling) | 18.0 | 300 (ceiling) | 0.012 | 281 |
+| RMPFlow | off | stock | 172 | 0.2 | 0.0 | 300 (ceiling) | 14.5 | 300 (ceiling) | 0.236 | 300 |
+| DiffIK (held target) | -- | stock | 180 | 0.3 | 0.1 | 300 (ceiling) | 22.6 | 300 (ceiling) | **1.268** | 300 |
+| RMPFlow | on | k4400 | 163 | 2.8 | 0.0 | 10 | 15.0 | 77 | 0.011 | 39 |
+| RMPFlow | off | k4400 | 163 | 2.8 | 0.0 | 10 | 14.8 | 100 (ceiling) | 0.223 | 96 |
+| DiffIK (held target) | -- | k4400 | 181 | 3.6 | 0.6 | 14 | 20.6 | 100 (ceiling) | 0.874 | 100 |
+| RMPFlow | on | d40 | 160 | 2.5 | 0.0 | 9 | 15.4 | 80 | 0.003 | 32 |
+| RMPFlow | off | d40 | 160 | 2.5 | 0.0 | 9 | 14.5 | 100 (ceiling) | 0.217 | 85 |
+| DiffIK (held target) | -- | d40 | 175 | 3.0 | 0.4 | 11 | 19.1 | 100 (ceiling) | 0.522 | 100 |
+| RMPFlow | on | k1000 | 148 | 8.4 | 0.0 | 7 | 15.2 | 23 | 0.129 | 11 |
+| RMPFlow | off | k1000 | 148 | 8.4 | 0.0 | 7 | 14.5 | 46 | 0.096 | 19 |
+| DiffIK (held target) | -- | k1000 | 147 | 9.6 | 1.4 | 8.5 | 29.8 | 100 (ceiling) | 0.150 | 99 |
+
+Reading the table:
+
+- **Nothing penetrates the table on GA.** Every controller and gain stops with the pad origins at
+  their resting height (+14.5 mm; +18 mm with the guard). The "press" is a sustained push, not a
+  plunge; its size is the torque column.
+- **With the stock drive the arm is at its torque ceiling all the time**, including while merely
+  holding still in free air (300 of 300 N m). A 2e4 stiffness turns 15 mrad of error into the whole
+  budget. With any of the soft presets the holding torque is a physical 7-14 N m (gravity load is
+  4.4), the descent 23-100, and the pressed close 11-100.
+- **The pressed close** (the fling proxy): the surface guard removes it under RMPFlow at every gain
+  (0.003-0.13 m/s). Without the guard, RMPFlow sits at ~0.22 m/s for stock/4400/d40 and 0.10 at
+  k1000. The held-target DiffIK is the worst presser at stiff gains (1.27 m/s stock, 0.87 at 4400):
+  its absolute target stays 30 mm below the pads and the PD pushes with k x 0.03 until the ceiling;
+  RMPFlow's velocity cap and attractors push less. At k1000 all three converge to 0.10-0.15.
+- **Idle drift is solved on both paths** (target hold on RMPFlow; the held-target variant on
+  DiffIK), but every path has a **reset transient of 15-18 cm** on the right arm and 6-10 cm on the
+  left in the first 5-8 steps after `env.reset()`: the joint targets are 15-27 degrees from the
+  measured joints at step 0 and the arm swings out and back. That is a real, separate defect
+  (recording starts on step 0); soft gains settle it with a 2.5-9.6 mm gravity offset.
+- **Soft gains cost nothing in idle precision at 4400** (2.8 mm steady offset) and 8.4 mm at 1000.
+
+### Row 3: joint-space path (cuMotion recording driver), one bowl-stacking demo per seed
+
+`stack_bowls_cumotion.py` with the gain preset injected (`scratchpad/run_cumotion_with_gains.py`),
+seed 777 on the nominal layout, seeds 1001 and 2002 with 40 mm jitter. "slip" = tool-to-bowl
+distance change between grasp and release, i.e. how far the rim-held bowl moved in the fingers.
+
+| gains | seed 777 | seed 1001 | seed 2002 | success |
+| --- | --- | --- | --- | --- |
+| stock | FAIL: left carry slipped 150 mm, bowl 108 mm off axis | success, slip 30 mm | success, slip 30 mm / 6 mm | 2 / 3 |
+| k4400 crit | success, slip 13-22 mm, 2.4 mm off axis | FAIL: both carries slipped 118-149 mm | FAIL: grasp phase went wrong (candidates "reached" 0.9-1.3 m off after three near misses) | 1 / 3 |
+| k1000 crit | FAIL: right carry slipped 145 mm | FAIL: left carry slipped 110 mm | -- | 0 / 2 |
+
+Mid-air pinch + swing (`probe_pinch.py`, billet, joint-space gripper): HELD/HELD at 4400/40 and at
+1000/25, close peaks 0.54-0.55 m/s, swing 0.63-0.67 -- the same as stock. A gentle swing does not
+separate the gains; the planner's carries do.
+
+## 9. Conclusions from the matrix
+
+1. **The stiff drive is not what makes the table contact violent on GA.** No configuration
+   penetrates the table; the pressed close is 0.22 m/s without the guard and ~0.01 with it, at any
+   gain. The surface guard is doing the containment, and soft gains only change how much torque
+   is behind the push (300 at the ceiling vs 20-100). The dramatic numbers in the old memory were
+   measured on the beta stack; they do not reproduce here.
+2. **Soft gains are a net loss on the planner path as it stands.** k4400 with critical damping
+   dropped from 2/3 to 1/3 demos and k1000 to 0/2, all by in-hand slip of the rim-held bowl during
+   the carry (the softer arm lags and sways under the planned trajectory, the pinch does not hold
+   the rim). The one soft success had the smallest slip of the whole set (13-22 mm), so the effect
+   is variance, not a uniform degradation -- but with n = 2-3 the direction is clear enough not to
+   change the default. If soft gains are wanted for teleop feel, the planner path must keep stiff
+   gains, or the carry speeds must be re-tuned for the soft arm.
+3. **The held-target differential IK is a workable teleop controller kinematically** (no idle
+   drift, 0.3 mm settle, the same 14-dim command stream, the left arm needs no rotation offset),
+   but it presses harder than RMPFlow at stiff gains because an absolute target 30 mm under the
+   pads is exactly what a PD pushes against. It would need the surface guard as much as RMPFlow
+   does, and the guard is written for RMPFlow terms. No advantage measured over RMPFlow + hold +
+   guard on this box; the argument for it is architectural (one action family, joint targets
+   native), not a contact-safety one.
+4. **The reset transient is the real open defect found here**: 15-18 cm of right-arm swing in the
+   first half second after every reset, on every controller and every gain. Recording starts at
+   step 0, so every demo begins with it. Cause not yet isolated (joint targets 15-27 deg from the
+   measured joints at step 0: the reset event writes joint positions and targets, but the action
+   terms' first outputs come from a controller state that predates them). Next measurement, not a
+   fix: log `joint_pos_target` for the first 10 steps after reset with the action terms disabled,
+   then with each term alone.
+
+Decision for now (2026-09-05): keep the stock drive with effort 300, RMPFlow + target hold +
+surface guard + ramped gripper, on cuda:0. Reopen gains together with the carry-speed tuning if
+teleop feel demands it. Investigate the reset transient next.
