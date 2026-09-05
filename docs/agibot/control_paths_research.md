@@ -292,3 +292,47 @@ separate the gains; the planner's carries do.
 Decision for now (2026-09-05): keep the stock drive with effort 300, RMPFlow + target hold +
 surface guard + ramped gripper, on cuda:0. Reopen gains together with the carry-speed tuning if
 teleop feel demands it. Investigate the reset transient next.
+
+## 10. The reset transient: root cause (2026-09-05)
+
+Measured with raw physics only (no action manager, `scratchpad/reset_physics_probe.py` and
+`reset_linkage_probe.py`), on `agibot_stack_bowls`, cuda:0:
+
+- With **every joint target pinned to its measured value** the arm still swings 172.9 mm after
+  `env.reset()`. So no controller (RMPFlow, DiffIK, joint-space) is involved.
+- In the first 8 ms substep the gripper linkage joints move 60 deg at 1700 deg/s:
+  `*_Left/Right_Support_Joint` -60, `*_Right_1_Joint` +25, then `*_RevoluteJoint` +57. The
+  impulse walks up the chain (`right_arm_joint6` +27 deg by 67 ms) and dies out after ~0.5 s.
+- Franka (`cube_goal_pose`) shows 0.0 mm / 0.0 deg after reset: it has no closed kinematic loop.
+
+**Cause.** Isaac Lab's stock `AGIBOT_A2D_CFG.init_state.joint_pos` is not a consistent
+configuration of the four-bar gripper linkage. The driver joints are authored open
+(`*_hand_joint1`, `*_Support_Joint` = 0.994 rad = 57 deg) while the coupled joints are authored at
+0 (`*_Right_1_Joint`, `*_Right/Left_RevoluteJoint`). Relaxing the linkage with all targets pinned
+gives the consistent open pose: `Right_1_Joint = -0.994`, `RevoluteJoint = +0.994` (the closed
+pose, all zeros, is consistent, which is why closing never showed the problem). Every reset writes
+the inconsistent pose, PhysX snaps the loop shut in one substep, and the arm takes the momentum.
+
+**Verified fix** (probe-only so far, `scratchpad/reset_fix_verify.py`, applied to the embodiment's
+scene cfg before build): add to `AGIBOT_ARENA_A2D_CFG.init_state.joint_pos`
+
+| joint | stock | consistent |
+|---|---|---|
+| `left_Right_1_Joint`, `right_Right_1_Joint` | 0.0 | -0.994 |
+| `left_Right_RevoluteJoint`, `left_Left_RevoluteJoint`, `right_Right_RevoluteJoint`, `right_Left_RevoluteJoint` | 0.0 | +0.994 |
+
+Result through the normal RMPFlow `env.step` path: swing peak 172.5 mm -> 0.2 mm on the first and
+the second reset, arm |target - q| at step 0 26.8 deg -> 0.0 deg, peak joint velocity 629 -> 19
+deg/s; the gripper still closes to 0 deg and reopens to 56.9 deg. This is an upstream Isaac Lab
+asset bug (`isaaclab_assets/robots/agibot.py`, unchanged since the "Agibot two place tasks"
+commit); Arena's mimic/GR00T configs do not depend on those four defaults (only
+`34dof_joint_space.yaml` names them, as indices).
+
+**Applied** (2026-09-05, user go-ahead) as `CONSISTENT_OPEN_GRIPPER_LINKAGE_JOINT_POS` in
+`isaaclab_arena/embodiments/agibot/agibot.py`. Regression with the repo code: the reset probe
+reads the new defaults and 0.2 mm swing on both resets; Phase 1 1114 passed / 0 failed (same as
+the post-sync baseline); cuMotion `stack_bowls` jittered demos 1/2 (seed 1001 success, both bowls
+within 4 mm; seed 2002 failed by the known left-arm carry slip -- tool-to-bowl grew 117 mm during
+the carry and bowl1 landed 114 mm off -- which is the same failure signature as the pre-fix stock
+runs and starts long after the reset transient window). The fix removes the transient; it does
+not change the carry-slip rate.

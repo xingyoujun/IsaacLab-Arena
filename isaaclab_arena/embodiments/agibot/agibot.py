@@ -50,6 +50,24 @@ tucked over the robot's own body, outside a head-mounted view. The right arm's w
 mirrored onto the left -- not the other way round -- because the right arm's reach band and
 grasp behaviour are the measured ones."""
 
+CONSISTENT_OPEN_GRIPPER_LINKAGE_JOINT_POS = {
+    "left_Right_1_Joint": -0.994,
+    "right_Right_1_Joint": -0.994,
+    "left_Right_RevoluteJoint": 0.994,
+    "left_Left_RevoluteJoint": 0.994,
+    "right_Right_RevoluteJoint": 0.994,
+    "right_Left_RevoluteJoint": 0.994,
+}
+"""Gripper four-bar linkage joints at the pose that matches the shipped open drivers.
+
+The shipped rest pose opens the driver joints (``*_hand_joint1`` and ``*_Support_Joint`` at
+0.994 rad) but leaves the coupled loop joints at 0, which is not a configuration the closed
+linkage can be in. Every reset then writes that pose, PhysX snaps the loop shut within one
+physics substep, and the impulse swings the arm 15-18 cm for half a second -- on every
+controller, at every gain, at the start of every recorded demo. These are the values the
+linkage relaxes to when the drivers are held open; with them the post-reset swing is 0.2 mm
+and the gripper still cycles 0 to 57 degrees."""
+
 _RMPFLOW_DIR = os.path.join(os.path.dirname(__file__), "rmpflow")
 """Local copies of the Agibot lula robot-description yamls, patched to the mirrored rest pose.
 
@@ -64,6 +82,7 @@ the Isaac asset cache on every run, where any edit would be silently overwritten
 # module-level ``AGIBOT_A2D_CFG`` and these edits would leak into every other user of it.
 AGIBOT_ARENA_A2D_CFG = copy.deepcopy(AGIBOT_A2D_CFG)
 AGIBOT_ARENA_A2D_CFG.init_state.joint_pos.update(MIRRORED_LEFT_WRIST_JOINT_POS)
+AGIBOT_ARENA_A2D_CFG.init_state.joint_pos.update(CONSISTENT_OPEN_GRIPPER_LINKAGE_JOINT_POS)
 
 # The grippers ship with identical stiffness/damping but 10x/100x different drive ceilings
 # (left 10 N m / 2 rad/s, support 1 N m; right 100 / 10 / 100), and only the right's behave.

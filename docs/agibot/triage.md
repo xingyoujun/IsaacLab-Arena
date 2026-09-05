@@ -71,6 +71,11 @@ standard stack or the embodiment file was edited.
 - Hands at y = +/-1.12 m after reset, no tracking: the embodiment has no robot-only reset event
   (`reset_joint_position_and_velocity_to_defaults`), so every joint reset to 0 and Lula's fixed
   `joint_lift_body` / `joint_body_pitch` no longer describe the robot.
+- Arm swings 15-18 cm in the first 0.5 s after every reset, on every controller and gain: the
+  gripper four-bar linkage is reset to an inconsistent pose (drivers open at 0.994, coupled
+  `*_Right_1_Joint` / `*_RevoluteJoint` at 0), PhysX snaps it shut in one substep and the impulse
+  goes up the arm. Consistent open pose is `Right_1_Joint = -0.994`, `RevoluteJoint = +0.994`
+  (control_paths_research.md section 10). Franka has no loop and no transient.
 
 ## Refuted fixes -- do not retry without new evidence
 
