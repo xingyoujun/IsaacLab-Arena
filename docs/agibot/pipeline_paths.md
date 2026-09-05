@@ -59,8 +59,17 @@ as the env's demo recorder, and used by the cuMotion drivers). Measured on `agib
 The LeRobot configs (`isaaclab_arena_gr00t/lerobot/config/agibot_*`) now read
 `action_name_sim: joint_pos_target`, so a mixed file converts to one dataset with a 20-dim
 joint-space action for every frame; `observation.state` (34 joints) is unchanged. The raw
-per-path files keep their own `actions` for replay and debugging. End-to-end result of the
-re-render + conversion of the mixed file: see the status line below.
+per-path files keep their own `actions` for replay and debugging. End-to-end result (2026-09-05): the merged file re-rendered its three camera streams from the
+recorded states (`rerender_demo_cameras.py`, both demos) and converted into **one LeRobot dataset
+with 2 episodes, 1148 frames, a 20-dim joint-space action on every frame, 15 fps and 6 videos**
+-- one episode driven through the teleop path, one by cuMotion, indistinguishable downstream.
+
+Standing procedure for a mixed dataset: record human demos with `record_demos.py` (the env's
+recorder writes `joint_pos_target`), collect cuMotion demos with the driver, `merge_demos.py
+--drop_mismatched` the raw files, `rerender_demo_cameras.py` on the merged file, then
+`convert_hdf5_to_lerobot.py`. Recordings made before 2026-09-05 have no `joint_pos_target`:
+cuMotion ones can use `processed_actions` (identical values); teleop ones cannot be converted to
+the joint-space label after the fact and would have to be re-recorded.
 
 ## GPU or CPU?
 
