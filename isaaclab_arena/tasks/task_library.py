@@ -22,7 +22,9 @@ from isaaclab_arena.tasks import (  # noqa: F401
     press_button_task,
     rotate_revolute_joint_task,
     sequential_task_base,
+    sleeve_on_peg_task,
     sorting_task,
     stack_bowls_task,
+    tidy_workbench_task,
     turn_knob_task,
 )

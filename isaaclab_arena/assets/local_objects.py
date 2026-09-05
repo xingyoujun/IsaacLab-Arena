@@ -16,7 +16,7 @@ from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMater
 
 from isaaclab_arena.assets.background_library import LibraryBackground
 from isaaclab_arena.assets.object_base import ObjectType
-from isaaclab_arena.assets.object_library import LibraryObject
+from isaaclab_arena.assets.object_library import LibraryObject, SmallGear
 from isaaclab_arena.assets.register import register_asset
 
 LOCAL_ASSET_DIR = os.environ.get("ARENA_LOCAL_ASSET_DIR", "/home/ubuntu/playground/objects/arena_local")
@@ -220,3 +220,205 @@ class Toaster(LibraryObject):
 
     SLOT_Z_LOCAL_M = -0.051
     """Height of both slots' corner points in the toaster frame -- the bottom of the slot."""
+
+
+@register_asset
+class PegPlatform(LibraryObject):
+    """The platform with its fixed peg, from USDCraft's ``peg_and_sleeve_assembly`` (agibot_assets_v0)."""
+
+    name = "peg_platform"
+    tags = ["object", "usdcraft"]
+    # The generated model.usdc holds the platform and the sleeve as sibling rigid bodies under one
+    # /Asset prim, which Isaac Lab's RigidObject cannot take. peg_platform.usda references the whole
+    # asset (so the /Asset/Looks and /Asset/PhysicsMaterials bindings stay intact) and deactivates
+    # the sleeve. Colliders, mass (1.80 kg via MassAPI) and the rubber-foot physics material
+    # (friction 0.9/0.7) are used exactly as USDCraft authored them.
+    usd_path = f"{LOCAL_ASSET_DIR}/peg_sleeve/peg_platform.usda"
+    object_type = ObjectType.RIGID
+
+    HALF_EXTENTS_XY_M = (0.12, 0.09)
+    """Half the 240 x 180 mm deck footprint, long side along local x."""
+
+    DECK_TOP_Z_M = 0.020
+    """The deck's top face above the origin. The origin is at the underside of the feet, so the
+    platform stands on a surface at exactly ``surface_z``."""
+
+    PEG_RADIUS_M = 0.012
+    PEG_TOP_Z_M = 0.068
+    """The peg is 24 mm across and rises from the deck top to 68 mm above the origin."""
+
+    SLEEVE_SEATED_OFFSET_M = (0.0, 0.0, DECK_TOP_Z_M)
+    """Where the sleeve body sits relative to this body in the authored assembly: centred on the
+    peg, bottom face on the deck."""
+
+    # The platform is the fixture the sleeve is assembled onto. Held kinematic so a jammed insert
+    # cannot shove it across the table; the environment can switch it back to dynamic.
+    spawn_cfg_addon = {
+        "rigid_props": RigidBodyPropertiesCfg(kinematic_enabled=True),
+    }
+
+
+@register_asset
+class PegSleeve(LibraryObject):
+    """The removable sleeve from USDCraft's ``peg_and_sleeve_assembly`` (agibot_assets_v0)."""
+
+    name = "peg_sleeve"
+    tags = ["object", "usdcraft"]
+    # sleeve.usda is the twin of peg_platform.usda: same reference, with the platform deactivated
+    # instead. Mass (61 g via MassAPI), convexDecomposition colliders and the sleeve physics
+    # material (friction 0.9/0.7) are USDCraft's.
+    usd_path = f"{LOCAL_ASSET_DIR}/peg_sleeve/sleeve.usda"
+    object_type = ObjectType.RIGID
+
+    HEIGHT_M = 0.065
+    """The sleeve's origin is at its bottom face, so it stands on a surface at ``surface_z``."""
+
+    OUTER_RADIUS_M = 0.0225
+    """Radius over the two rubber grip bands; the orange shell between them is 20 mm in radius."""
+
+
+AGIBOT_ASSETS_V0_DIR = os.environ.get("ARENA_AGIBOT_ASSETS_V0_DIR", "/home/ubuntu/playground/objects/agibot_assets_v0")
+"""Host directory of the USDCraft ``agibot_assets_v0`` export (one ``rec_*/isaac/model.usdc`` per asset)."""
+
+
+def _agibot_asset_usd(record: str) -> str:
+    """Path of a USDCraft record's PhysX entry inside ``AGIBOT_ASSETS_V0_DIR``."""
+    return f"{AGIBOT_ASSETS_V0_DIR}/{record}/isaac/model.usdc"
+
+
+# The workbench containers are fixtures: kinematic, so a dropped part cannot shove them.
+_FIXTURE_SPAWN_ADDON = {"rigid_props": RigidBodyPropertiesCfg(kinematic_enabled=True)}
+
+
+@register_asset
+class GrayTray(LibraryObject):
+    """Low-profile grey sorting tray from USDCraft's agibot_assets_v0 (320 x 220 x 28 mm)."""
+
+    name = "gray_tray"
+    tags = ["object", "usdcraft", "container"]
+    usd_path = _agibot_asset_usd(
+        "rec_create-one-standalone-low-profile-rectangular-so_20260902_093920_eebb12bf_0470470e"
+    )
+    object_type = ObjectType.RIGID
+
+    HALF_EXTENTS_XY_M = (0.160, 0.110)
+    """Half the outer footprint; the origin is at the centre of the underside."""
+
+    RIM_HEIGHT_M = 0.028
+    """Top of the walls above the origin."""
+
+    WALL_MARGIN_M = 0.025
+    """Shrink of the footprint for the "inside" test, covering the walls and the rim."""
+
+    spawn_cfg_addon = _FIXTURE_SPAWN_ADDON
+
+
+@register_asset
+class GreenTray(LibraryObject):
+    """Shallow green parts tray from USDCraft's agibot_assets_v0 (328 x 228 x 45 mm).
+
+    Its colliders are authored as primitive floor and wall pieces, so the interior is exact."""
+
+    name = "green_tray"
+    tags = ["object", "usdcraft", "container"]
+    usd_path = _agibot_asset_usd(
+        "rec_create-one-standalone-shallow-rectangular-parts_20260902_094317_6f04a73d_ef0edf84"
+    )
+    object_type = ObjectType.RIGID
+
+    HALF_EXTENTS_XY_M = (0.164, 0.114)
+    RIM_HEIGHT_M = 0.045
+    WALL_MARGIN_M = 0.025
+    spawn_cfg_addon = _FIXTURE_SPAWN_ADDON
+
+
+@register_asset
+class BlueBin(LibraryObject):
+    """Deep blue storage bin from USDCraft's agibot_assets_v0 (408 x 298 x 200 mm, tapered walls)."""
+
+    name = "blue_bin"
+    tags = ["object", "usdcraft", "container"]
+    usd_path = _agibot_asset_usd(
+        "rec_create-one-standalone-deep-rectangular-storage-b_20260902_094833_a40972a0_f2587215"
+    )
+    object_type = ObjectType.RIGID
+
+    HALF_EXTENTS_XY_M = (0.204, 0.149)
+    RIM_HEIGHT_M = 0.200
+    WALL_MARGIN_M = 0.040
+    """Wider than the trays': the walls taper inwards towards the floor."""
+
+    spawn_cfg_addon = _FIXTURE_SPAWN_ADDON
+
+
+@register_asset
+class Wrench(LibraryObject):
+    """Combination wrench from USDCraft's agibot_assets_v0 (169 x 33 x 6 mm, 124 g)."""
+
+    name = "wrench"
+    tags = ["object", "usdcraft", "tool"]
+    usd_path = _agibot_asset_usd(
+        "rec_create-one-standalone-compact-combination-wrench_20260902_094027_0e2a7fd4_9db90af6"
+    )
+    object_type = ObjectType.RIGID
+
+    HALF_EXTENTS_M = (0.0845, 0.0165, 0.003)
+    """Origin at the centre of the underside; it lies flat, 6 mm thick."""
+
+
+@register_asset
+class MetalBillet(LibraryObject):
+    """Rectangular metal billet from USDCraft's agibot_assets_v0 (80 x 40 x 20 mm, 173 g)."""
+
+    name = "metal_billet"
+    tags = ["object", "usdcraft", "raw_material"]
+    usd_path = _agibot_asset_usd(
+        "rec_create-one-standalone-small-rectangular-metal-bi_20260902_093519_2ae80357_28c77f8c"
+    )
+    object_type = ObjectType.RIGID
+
+    HALF_EXTENTS_M = (0.040, 0.020, 0.010)
+    """Origin at the centre of the underside."""
+
+
+@register_asset
+class BearingAssembly(LibraryObject):
+    """Finished bearing assembly from USDCraft's agibot_assets_v0 (72 mm across, 35 mm tall, 520 g).
+
+    Two links -- the housing (root) and a freely spinning inner race -- so it loads as a
+    floating-base articulation rather than a rigid body."""
+
+    name = "bearing_assembly"
+    tags = ["object", "usdcraft", "finished_part"]
+    usd_path = _agibot_asset_usd(
+        "rec_create-one-standalone-finished-metal-bearing-ass_20260902_094319_8e29fcfd_0ae7bb99"
+    )
+    object_type = ObjectType.ARTICULATION
+
+    RADIUS_M = 0.036
+    HEIGHT_M = 0.035
+    """Origin at the centre of the flange's underside."""
+
+
+@register_asset
+class SmallGearCentred(LibraryObject):
+    """Arena's Factory small gear with its geometry re-centred on the body origin.
+
+    The library ``small_gear`` is authored in the gear base's shaft frame -- 50.75 mm off its own
+    origin -- which breaks origin-based placement and membership tests. The local layer shifts the
+    meshes so the axis passes through the origin and the underside is at z = 0, and drops the
+    articulation-root API so the single-link gear loads as a plain rigid body (a zero-joint
+    articulation cannot be built on the CPU device). SDF collider, 50 g and Arena's spawn add-ons
+    are the library's. Unscaled it is 22 mm across and 25 mm tall; use it at the library's scale
+    of 2.0 (44 x 50 mm).
+    """
+
+    name = "small_gear_centred"
+    tags = ["object", "factory", "finished_part"]
+    usd_path = f"{LOCAL_ASSET_DIR}/factory/small_gear_centred.usda"
+    object_type = ObjectType.RIGID
+    spawn_cfg_addon = SmallGear.spawn_cfg_addon
+
+    RADIUS_M = 0.0109
+    HEIGHT_M = 0.025
+    """Unscaled; the origin is at the centre of the underside."""
