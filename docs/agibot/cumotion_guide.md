@@ -116,3 +116,18 @@ absolute joint targets -- a user-accepted convention. `*_with_ee_pose` variants 
 offline). The rotations in the colleague-generated variant were scrambled by the quaternion-order
 bug and repaired by `fix_eef_9d_rotations.py`. Rounds 1-2 of the first 50 handover demos were
 recorded under the pulsing-grip bug (constant grip since); noted, not re-collected.
+
+## sleeve_on_peg on the 0.15-0.30 work band (2026-09-06)
+
+Peg at x 0.225, sleeve spawn in the band. The driver's shipped grasp tilts (75/65/80/55 deg,
+jaws nearly horizontal) knocked the sleeve over on the first grasp 3/3 here. With `--tilt 35 45 55`:
+3/10 full successes, every one of them seating the sleeve 0.4-0.7 mm off the peg axis at 0 deg
+(the alignment stage -- 60 mm stand-off, measured-offset retarget, 0.08 descent -- is not the
+problem). The 7 failures were all at the pick: the first grasp lifts the sleeve hanging 20-39 deg
+(it lies against the pads at the tool's lean), the driver puts it back, and every later grasp
+"comes up with nothing" because the put-back knocked the sleeve over and nothing checks that.
+Grasping the upper grip band (`--grasp-height 0.067`) tips the sleeve over outright: 0/4.
+The human demo (replayed) grasped the mid shell (47-53 mm up, pad gap 45 mm) with the jaws nearly
+horizontal (tool tilt 80-86 deg) and the sleeve hung 4-11 deg: the old tilt family, but approached
+from the robot's side. To do: try the near-horizontal grasps with headings from the robot's side
+only, and make the driver stop after a put-back instead of retrying blind.
