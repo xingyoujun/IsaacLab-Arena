@@ -265,8 +265,12 @@ class PegSleeve(LibraryObject):
     name = "peg_sleeve"
     tags = ["object", "usdcraft"]
     # sleeve.usda is the twin of peg_platform.usda: same reference, with the platform deactivated
-    # instead. Mass (61 g via MassAPI), convexDecomposition colliders and the sleeve physics
-    # material (friction 0.9/0.7) are USDCraft's.
+    # instead. Mass (61 g via MassAPI) and the sleeve physics material (friction 0.9/0.7) are
+    # USDCraft's. The shell collider is overridden in that layer to an SDF (resolution 256):
+    # USDCraft's convexDecomposition of the hollow shell bulged into the bore to r 9.06 mm, so the
+    # 12 mm peg could not enter. The two grip bands keep their convex hulls (that is what the pads
+    # pinch). Verified 2026-09-06: the SDF layer reaches PhysX -- dropped concentric or 6 mm off
+    # axis the sleeve seats on the peg to 0.0 mm with 0.5 mm radial play.
     usd_path = f"{LOCAL_ASSET_DIR}/peg_sleeve/sleeve.usda"
     object_type = ObjectType.RIGID
 

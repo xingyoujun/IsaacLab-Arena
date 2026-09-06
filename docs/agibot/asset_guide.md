@@ -130,7 +130,8 @@ that must mate or nest to within a few millimetres) use an `sdf` collider, autho
 USD override layer -- not via `collision_props`, which does not reach the cooked collider here
 (verified: the bowl keeps its 75.2 g collider-derived mass and 23.2 mm nesting with the override
 set). Solid convex-ish objects keep their authored convex hulls / decompositions. The sleeve
-(`peg_sleeve`, USDCraft convexDecomposition) is the first conversion on the list.**
+shell is already done this way (`sleeve.usda`, SDF 256; its grip bands and the peg stay convex),
+and it is the proof that a USD-layer override reaches PhysX: the sleeve seats on the peg to 0.0 mm.**
 
 **Measure colliders with object-against-object contacts, never with the gripper.** The clean
 measurement for the bowl is nesting: a dropped bowl rests 23.2 mm above the one below, the visual
