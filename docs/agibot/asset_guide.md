@@ -125,6 +125,13 @@ asset's authored approximation; on this host it authored `physics:approximation 
 stage but the simulated contacts were bit-identical to stock, so it does not reach PhysX cooking
 as used here. A collider change therefore means a USD override layer (or re-export), not config.
 
+**Rule (user decision 2026-09-06): thin-walled parts and assembly parts (sleeve, peg bore, anything
+that must mate or nest to within a few millimetres) use an `sdf` collider, authored in the asset's
+USD override layer -- not via `collision_props`, which does not reach the cooked collider here
+(verified: the bowl keeps its 75.2 g collider-derived mass and 23.2 mm nesting with the override
+set). Solid convex-ish objects keep their authored convex hulls / decompositions. The sleeve
+(`peg_sleeve`, USDCraft convexDecomposition) is the first conversion on the list.**
+
 **Measure colliders with object-against-object contacts, never with the gripper.** The clean
 measurement for the bowl is nesting: a dropped bowl rests 23.2 mm above the one below, the visual
 mesh predicts 22.5 mm, so the wall collider is right to within 1 mm despite its coarse parameters.

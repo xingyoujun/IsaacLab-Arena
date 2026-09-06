@@ -289,8 +289,9 @@ separate the gains; the planner's carries do.
    fix: log `joint_pos_target` for the first 10 steps after reset with the action terms disabled,
    then with each term alone.
 
-Decision for now (2026-09-05): keep the stock drive with effort 300, RMPFlow + target hold +
-surface guard + ramped gripper, on cuda:0. Reopen gains together with the carry-speed tuning if
+Decision (2026-09-05, amended 2026-09-06): keep the stock drive at its shipped effort limits
+(the task-level 300 N m ceiling is gone -- every path runs the embodiment defaults), RMPFlow +
+target hold + surface guard + ramped gripper confirmed as the teleop controller, on cuda:0. Reopen gains together with the carry-speed tuning if
 teleop feel demands it. Investigate the reset transient next.
 
 ## 10. The reset transient: root cause (2026-09-05)

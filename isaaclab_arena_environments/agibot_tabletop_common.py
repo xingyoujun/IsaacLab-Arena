@@ -53,9 +53,12 @@ table nearly unreadable from the head view (mean pixel 25/255 against 113/255 he
 
 # --- The controller stack ---------------------------------------------------------------------
 
-DEFAULT_ARM_EFFORT_LIMIT = 300.0
-"""Torque ceiling for both arms, in N m, applied at the task level (the embodiment keeps the
-shipped 1000-2000). See ``AgibotTabletopEnvironmentCfg.arm_effort_limit``."""
+DEFAULT_ARM_EFFORT_LIMIT: float | None = None
+"""Task-level torque ceiling for both arms, in N m; None keeps the embodiment's shipped 1000-2000.
+
+Was 300 until 2026-09-06 (user decision: every path runs the robot's default configuration, no
+task-level actuator knobs). See ``AgibotTabletopEnvironmentCfg.arm_effort_limit`` for the
+measurements behind the old value."""
 
 DEFAULT_GRIPPER_RAMP_SECONDS = 200 / 120
 """Full open-to-closed travel time of the teleop grippers' target; equals the cuMotion executor's
@@ -68,8 +71,8 @@ class AgibotTabletopEnvironmentCfg(ArenaEnvironmentCfg):
 
     The values are the standard, not suggestions: they were each measured (see ``docs/agibot``),
     and a task that needs to move one should say why in its own field docstring. In particular
-    the robot itself is never tuned per task -- ``arm_effort_limit`` is the one sanctioned knob,
-    and its default is the same for all tasks.
+    the robot itself is never tuned per task: the actuator fields below default to None and exist
+    for measurement only.
     """
 
     background: str = "robodojo_table"
@@ -123,7 +126,9 @@ class AgibotTabletopEnvironmentCfg(ArenaEnvironmentCfg):
     the executor ramps those itself."""
 
     arm_effort_limit: float | None = DEFAULT_ARM_EFFORT_LIMIT
-    """Torque ceiling for both arms, in N m. None keeps the shipped 1000-2000.
+    """Torque ceiling for both arms, in N m. None (the default since 2026-09-06) keeps the shipped
+    1000-2000; every path -- teleop, recording, cuMotion -- runs the robot as configured in the
+    embodiment. The measurements below are kept for reference.
 
     The Agibot arms have damping 0 and stiffness 2e4-1e7, so they do not yield when the gripper
     reaches the table -- they hold position and saturate torque instead. Measured pressing into
@@ -131,7 +136,7 @@ class AgibotTabletopEnvironmentCfg(ArenaEnvironmentCfg):
 
         stock (1000-2000)   2000 N m saturated   settles 0.2 mm   rebound 0.107 m/s
         500                  500 N m             0.2 mm           0.057 m/s
-        300  (this default)  300 N m             0.2 mm           0.093 m/s
+        300  (2026-09-05 default) 300 N m         0.2 mm           0.093 m/s
         200                  200 N m             0.2 mm           0.153 m/s
         100                  100 N m             ARM COLLAPSES -- droops 332 mm and stays there
 

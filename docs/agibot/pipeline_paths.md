@@ -11,7 +11,7 @@ session scratchpad; the table below is the durable record).
 | item | value |
 | --- | --- |
 | physics | dt 1/120 s, decimation 8, control 15 Hz, render interval 2, Fabric on, TGS solver, same iteration counts |
-| robot | same actuator config everywhere: arms `joint_effort_limit` 300, stock stiffness/damping; grippers 100 N m / 10 rad/s both sides; same rest pose (lift 0.1995, pitch 0.6025) |
+| robot | same actuator config everywhere: arms at the shipped `joint_effort_limit` 1000-2000 (task-level 300 removed 2026-09-06), stock stiffness/damping; grippers 100 N m / 10 rad/s both sides; same rest pose (lift 0.1995, pitch 0.6025) |
 | reset events | `bowl0..2`, `jitter_bowls`, `reset_robot_to_default_pose`, `robot_reset_pose`, plus upstream's new `reset_background_physics` (a no-op on our table and room) |
 | observations | `policy`: actions, joint_pos, joint_vel, eef_pos, eef_quat, left/right_gripper_pos |
 | recorded state | `states/` and `initial_state/` for the robot and every object, `obs/*` as above, one row per control step |

@@ -72,7 +72,7 @@ branch `chuanruiz/feature/robodojo-tasks` (pre-baseline code; the Agibot config 
 
 ## Open decisions for the user
 
-- Control architecture: run the experiment plan in [control_paths_research.md](control_paths_research.md) (RMPFlow vs joint-space teleop, soft gains) before changing anything.
+- Gripper closing speed: teleop and cuMotion ramp 1.67 s (measured 1.53 s to 95 %), Franka closes in 0.20 s; one constant should live in the embodiment -- value to decide.
 - make_toast step 2: choose the chest handover point, then resume `make_toast_cumotion.py`.
 - Push the prepared Arena bug-fix branch (`chuanruiz/fix/agibot_left_arm_and_env_cfg_callback`)
   upstream, or fold it into the team baseline PR.

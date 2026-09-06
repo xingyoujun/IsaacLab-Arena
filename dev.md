@@ -8,8 +8,8 @@ It answers two questions:
    improvements upstream does not have and we must apply every time.
 
 The detailed process documents live in `docs/agibot/` (start at `docs/agibot/README.md`); this file
-is the map. Last updated 2026-09-05, after the Isaac Lab 3.0 GA sync (`b93d614d2`) and the reset
-transient fix (`01eb41fdd`).
+is the map. Last updated 2026-09-06, after the Isaac Lab 3.0 GA sync (`b93d614d2`), the reset
+transient fix (`01eb41fdd`) and the removal of the task-level arm effort limit.
 
 ---
 
@@ -38,9 +38,10 @@ upstream (user decision: hold).
 | No robot-only reset event; the generic one reset **all** articulation joints to 0. | Hands at y = +/-1.12 m after reset, RMPFlow unusable (Lula's fixed `joint_lift_body` / `joint_body_pitch` no longer describe the robot). | `AgibotEventCfg.reset_robot_to_default_pose` -> `reset_joint_position_and_velocity_to_defaults` (positions **and** drive targets). |
 | `OffsetCfg.rot` for the left arm written wxyz in an xyzw field. | Left arm runs 270-450 mm after reset. | `_LEFT_ARM_BODY_OFFSET_ROT_XYZW = (0, -0.7071, 0, 0.7071)`. Isaac Lab 3.0 quaternions are **xyzw** everywhere in Arena; cuMotion's API is wxyz. |
 
-The arm PD is the stock USD drive (stiffness 1e7, damping 0) with `joint_effort_limit` 300
-applied per task by `apply_arm_gains`. A full gains x controller matrix (2026-09-05) showed soft
-gains lose cuMotion demos to in-hand slip, so the stock drive stays. **The robot is frozen;
+The arm PD and effort limits are the stock Isaac Lab values (stiffness 1e7 / 2e4, damping 0,
+effort 1000-2000). A gains x controller matrix (2026-09-05) showed soft gains lose cuMotion demos
+to in-hand slip, and on 2026-09-06 the task-level 300 N m ceiling was dropped as well: every
+path runs the embodiment defaults, `apply_arm_gains` is a no-op unless a measurement sets a knob. **The robot is frozen;
 tasks adapt to it.** See `docs/agibot/agibot_embodiment.md` for the refuted-fixes list.
 
 ### 1.3 The standard control stack (teleop and recording)
@@ -58,7 +59,7 @@ shipped. Every Agibot environment installs, in this order, via
    not a physics bug, and damping makes it 4x worse.
 3. `install_ramped_gripper` (`isaaclab_arena/utils/ramped_gripper.py`) -- rate-limits the binary
    open/close so the pinch does not fling the object (one of four measured fling causes).
-4. `apply_arm_gains` -- task-level arm effort ceiling (300 N m).
+4. `apply_arm_gains` -- no-op by default since 2026-09-06 (measurement knob only).
 
 It also sets `env_cfg.demo_recorder_config = agibot_demo_recorder_cfg(...)` (section 1.5).
 
