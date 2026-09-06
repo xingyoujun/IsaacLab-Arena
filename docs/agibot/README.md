@@ -65,7 +65,7 @@ gripper limit or a controller flag. Every gripper- or arm-side "fix" we tried ma
 | handover toast | `agibot_handover_toast` | done | done (stack installed 09-05) | 3 | done, ~55-60 % | 200 demos | `agibot_arena_v0/handover_toast` (+ eef_9d, fixed) | rounds 1-2 of the first 50 recorded under a pulsing grip |
 | make toast (full) | `agibot_make_toast` | done | done (stack installed 09-05) | -- | step 1 (pick) stable; step 2 (chest handover) **paused** | -- | -- | **user decision pending**: handover point (`--chest-x/--chest-z`) |
 | sleeve on peg | `agibot_sleeve_on_peg` | done, peg moved to x 0.225 (09-06) | done | 1 on the new layout (09-06) + 1 (09-03) | grasps like the human (pitched 55-80 deg); insertion not yet reliable | -- | -- | SDF sleeve kept; convex/ring variants beside it |
-| tidy workbench | `agibot_tidy_workbench` | done (uncommitted) | done | in progress (`tidy_workbench_teleop/`) | wrench lift 3/5 (IK-limited); no full driver | -- | -- | bearing replaced by `small_gear_centred`; far-side containers need the 75-deg wrist |
+| tidy workbench | `agibot_tidy_workbench` | done, re-laid-out 09-06: two parts (billet 1.2, gear 2.0) in the work band, trays flanking at (0.22, +/-0.45); wrench + bin dropped | done | recording 09-06 (`tidy_workbench_teleop/`) | no full driver | -- | -- | 150 % parts fail the pinch gate (ejected 3-5 m/s); 1.2 / 2.0 are the largest that hold |
 
 Archived, not on `main`: `push_T`, `press_button`, `store_laptop_and_headphones` ports live on the
 branch `chuanruiz/feature/robodojo-tasks` (pre-baseline code; the Agibot config there is stale).

@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from isaaclab_arena.assets.register import register_environment
 from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentFactory
 from isaaclab_arena_environments.agibot_tabletop_common import (
+    REACH_X_BAND_M,
     TABLE_TOP_Z,
     AgibotTabletopEnvironmentCfg,
     build_agibot,
@@ -24,33 +25,34 @@ if TYPE_CHECKING:
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
 
 # Which loose part goes into which container, by asset name.
-ASSIGNMENTS = (("wrench", "blue_bin"), ("metal_billet", "green_tray"), ("bearing_assembly", "gray_tray"))
+ASSIGNMENTS = (("metal_billet", "green_tray"), ("bearing_assembly", "gray_tray"))
+"""Raw stock into the green parts tray, finished parts into the grey sorting tray. The wrench and its
+blue storage bin were dropped on 2026-09-06 (user): a 6 mm-thick wrench is too thin for a reliable
+teleoperated pinch."""
 FINISHED_PART_ALTERNATIVES = ("bearing_assembly", "small_gear_centred")
 """Assets that may stand in for the finished part. The USDCraft bearing is not graspable by the
 Agibot (a 9 mm grip band over a wide flange; see the memory notes), so Arena's Factory small gear
 -- 44 mm across at its library scale, SDF collider, 50 g -- is offered instead (re-centred as
 ``small_gear_centred``, since the library asset's origin is 50 mm off its geometry)."""
-"""Tools into the blue storage bin, raw stock into the green parts tray, finished parts into the
-grey sorting tray. The bin is the tool container because at the configured scales (parts 1.5,
-containers 0.7) the 254 mm wrench does not fit inside either tray (224 x 154 / 230 x 160 mm
-inside the walls): dropped into the grey tray it lay across the rim and never settled."""
 
-# Containers along the far side of the table, loose parts on the near side (user's layout). At
-# 70 % the containers are 224 x 154 (grey), 230 x 160 (green) and 286 x 209 x 140 mm (bin), so a
-# row at x 0.52 fits between the parts and the table's far edge (x 0.735). NOTE: an IK scan of
-# release poses found the far side hard for the Agibot -- 0 poses at x >= 0.50 for most leans;
-# see the validation output for the numbers at this layout.
+# Layout (2026-09-06, work-band review): loose parts scatter in the 0.15-0.30 work band across
+# y +/-0.22; the containers flank it. Release points were IK-scanned on this date (poses out of
+# 48 per lean, tilts 30/50/75): a side container at (0.22, +/-0.45, z 0.77-0.85) gives the arm on
+# its side 16-18 poses and the other arm none, so each side container is served by its own arm,
+# which can still fetch a part from the far half of the band (10 poses at (0.18, -/+0.20)). The
+# grey tray sits beyond the band at x 0.42 where both arms have ~10 poses at lean 50-75. The old
+# far-side row at x 0.52 had 0 release poses for most leans. At 70 % the containers are 224 x 154
+# (grey), 230 x 160 (green) and 286 x 209 x 140 mm (bin); yaw 90 turns a long side along y, so
+# the trays' inner edges stay >= 85 mm clear of the part band (the scatter's keep-out rejects any
+# part footprint that reaches them).
 _CONTAINER_LAYOUT = {
     # name: (x, y, yaw_deg); yaw 90 turns a container's long side along y
-    "green_tray": (0.52, 0.0, 90.0),
-    "blue_bin": (0.52, 0.30, 90.0),
-    "gray_tray": (0.52, -0.29, 0.0),
+    "green_tray": (0.22, 0.45, 90.0),  # raw stock, robot's left
+    "gray_tray": (0.22, -0.45, 90.0),  # finished parts, robot's right
 }
 
-_PART_X_BAND_M = (0.28, 0.38)
-"""Where the loose parts may land along x: the near side of the work area, in front of the
-containers. The arm's measured reach band at table height starts at 0.35, so the inner part of
-this band is a stretch for a grasp."""
+_PART_X_BAND_M = REACH_X_BAND_M
+"""Where the loose parts may land along x: the work band."""
 
 _PART_Y_BAND_M = (-0.22, 0.22)
 """Where the loose parts may land along y."""
@@ -135,13 +137,14 @@ class AgibotTidyWorkbenchEnvironmentCfg(AgibotTabletopEnvironmentCfg):
     to make a simpler task. (A plain string because the CLI bridge cannot parse tuple fields.)"""
 
     container_scale: float = 0.7
-    """Uniform scale of the three containers (user's choice: the stock ones dwarf the parts)."""
+    """Uniform scale of the containers (user's choice: the stock ones dwarf the parts)."""
 
-    billet_scale: float = 1.0
-    """Scale of the metal billet (80 x 40 x 20 mm at 1.0). Measured in a mid-air ramped pinch: 1.0 is
-    held 3/3 (peak 0.13 m/s); 1.2 slips out when the arm swings; 1.5 (120 mm long) is struck by the
-    scissor finger linkage before the pads reach it and shot out at 5 m/s. The Agibot's pads cover
-    roughly 80-100 mm, and a part longer than that is hit by the linkage."""
+    billet_scale: float = 1.2
+    """Scale of the metal billet (80 x 40 x 20 mm at 1.0; 96 x 48 x 24 at this default).
+
+    User decision 2026-09-06 after the mid-air pinch gate (3 repeats, right arm, 0.5 s ramp):
+    1.0 held 3/3 (close peak 0.55 m/s), 1.2 held 3/3 (0.66 m/s), 1.5 (120 x 60 x 30) was ejected
+    3/3 at 3.4-4.6 m/s whichever side was pinched. 1.2 is the largest that passes."""
 
     bearing_scale: float = 1.0
     """Scale of the bearing assembly (72 mm across at 1.0). 1.0 is held 3/3 (the fingers cradle
@@ -155,7 +158,10 @@ class AgibotTidyWorkbenchEnvironmentCfg(AgibotTabletopEnvironmentCfg):
 
     finished_part_scale: float = 2.0
     """Scale of the small gear when it is the finished part; 2.0 is Arena's library scale
-    (44 mm across, 50 mm tall)."""
+    (44 mm across, 50 mm tall). Mid-air pinch gate 2026-09-06 (right arm, 0.5 s ramp): 2.0 held
+    3/3 (close peak 1.6 m/s at 1.67, 1.0 and 0.5 s ramps alike -- the SDF gear takes a harder kick
+    than the convex billet but stays in the pads), 2.5 held 1/3, 3.0 (the 150 % the user asked for) was ejected 3/3 at 2-5
+    m/s. 2.0 is the largest that holds."""
 
     wrench_scale: float = 1.2
     """Scale of the wrench: 203 x 40 x 7 mm. At 1.5 it is 254 mm long and does not lie flat inside any
@@ -219,7 +225,7 @@ class AgibotTidyWorkbenchEnvironment(ArenaEnvironmentFactory[AgibotTidyWorkbench
             part = self.asset_registry.get_asset_by_name(part_name)(scale=(scale,) * 3)
             # Nominal spots along the band; the scatter event re-places them on every reset.
             part.set_initial_pose(
-                Pose(position_xyz=(0.33, -0.18 + 0.18 * index, part_z), rotation_xyzw=(0.0, 0.0, 0.0, 1.0))
+                Pose(position_xyz=(0.22, -0.18 + 0.18 * index, part_z), rotation_xyzw=(0.0, 0.0, 0.0, 1.0))
             )
             parts[part_name] = part
 
