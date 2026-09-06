@@ -43,6 +43,34 @@ Every installer skips joint-space terms, so the recording path (joint actions + 
 unaffected. `record_demos.py`, teleop, replay and closed-loop eval all build through the same
 callback, so they all get the stack.
 
+## Gripper anatomy versus Franka and RoboDojo's X5 (measured 2026-09-06)
+
+| | Agibot A2D hand | Franka Panda hand | RoboDojo ARX X5 |
+| --- | --- | --- | --- |
+| mechanism | four-bar linkage per finger: 11 links, 1 driven joint (`hand_joint1`), 1 mimic joint (`Right_1_Joint`), 2 loop-closing joints (`*_2_Joint`, `excludeFromArticulation`, maximal-coordinate), passive `*_0_Joint` (+/-10 deg) and `*_RevoluteJoint` (free) | 2 prismatic fingers | 2 prismatic fingers |
+| open span / pad | 105 mm; pad 3 x 40 x 23 mm flat plate | 80 mm; finger 21 x 26 x 54 | 88 mm; finger 86 x 37 x 61 |
+| pad motion while closing | pads stay parallel (<= 0.1 deg) but **advance 18 mm along the finger axis** (hand-frame z 189 -> 207 mm): a top-down pinch plunges 18 mm deeper as it closes | pure lateral | pure lateral |
+| loop closure under a pinch | anchor gap <= 0.3 mm: effectively rigid | n/a | n/a |
+| open width of the finger structure | support arms at x = +/-75 mm, 26 mm thick -> ~175 mm overall; a hand centred over a 106 mm bowl mouth lands the arms on the rim | 80 mm | 88 mm |
+| colliders | every link `convexHull`; pads exact (fill 1.00), finger links 74-88 % fill, housing 62 % | `convexHull`; fingers 60 % fill, hand 90 % | `convexHull`; fingers 85 %, link6 62 % |
+| visual geometry without any collider | 14 meshes per hand (D405 wrist camera, adapter shell, flange, screws): x[-44, 41] y[-125, 43] z[-41, 100] mm in the hand frame, i.e. up to 85 mm outside the 80 x 80 x 131 mm housing collider, all >= 90 mm above the pads | none | none |
+| left/right authoring | USD differs in `hand_joint1` maxForce (1 vs 2), a 1e-4 stiffness on `left_Left_Support_Joint`, missing drive attrs on `left_Right_RevoluteJoint`; all overridden by Arena's actuator groups, kinematics identical | -- | -- |
+
+What this means for a bowl:
+
+- A rim pinch is collider-accurate: closing on a bowl held in place blocks at a 6.0 mm pad-origin
+  gap, i.e. ~3 mm between the pad faces on a 3.7 mm wall. (The 14 mm figure quoted earlier came
+  from a bowl that was falling while pinned.)
+- A flat 40 mm pad against a 50 mm-radius inner wall touches at its centre while its ends sit
+  ~4 mm into the visual wall (chord vs arc); the bowl's 16-vertex wall hulls are near-flat facets,
+  so nothing stops it. That is what an "inner pad face stuck in the inner wall" looks like; the
+  Franka and X5 fingers are narrower tangentially and show ~2 mm.
+- The 18 mm plunge during closing and the 175 mm open finger structure are the Agibot-specific
+  kinematic traits: closing over a bowl drives the pads deeper, and descending centred lands the
+  support arms on the rim (measured: the bowl tilts 18 deg before the pads touch anything).
+- The collider-less camera and shell only matter when the wrist itself comes within ~90 mm of an
+  object (tilted wrist, tall objects, the robot's own body), not in a tabletop pinch.
+
 ## Rate
 
 Control runs at Arena's default **15 Hz** (sim dt 1/120, decimation 8). That is a training-side

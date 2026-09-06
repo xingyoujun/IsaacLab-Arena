@@ -132,9 +132,10 @@ Three pad-based scans that said "the inner wall is 10-20 mm inboard" were all ar
 
 - a dynamic object re-pinned every 15 Hz step still falls 22 mm inside the step;
 - a kinematic object teleported into place sweeps through the pads on the way;
-- the Agibot's open span (105 mm) equals the bowl's mouth (106 mm) and its finger links are wider
-  than the pads, so the links hit the rim before the pads reach the wall -- every "contact at the
-  inner wall" was the gripper body.
+- the Agibot's open span (105 mm) equals the bowl's mouth (106 mm) and its support arms sit at
+  +/-75 mm, so a hand centred over the bowl lands the arms on the rim before the pads reach the
+  wall -- every "contact at the inner wall" in those scans was the gripper body (see
+  agibot_embodiment.md, gripper anatomy).
 
 What a rim pinch actually does to this bowl: the open finger links tilt it 18 deg before the
 pads close, the pinch closes on a 45-55 deg tilted bowl, and the pad visuals enter the wall
