@@ -22,7 +22,7 @@ session scratchpad; the table below is the durable record).
 | item | teleop (`teleop_se3_agent`) | record (`record_demos`) | cuMotion (`*_cumotion.py --record-dir`) |
 | --- | --- | --- | --- |
 | arm action term | `SurfaceGuardedRMPFlowAction` x2 (relative EE delta, dim 6, target hold + surface guard) | same | `SmoothJointPositionAction` x2 (absolute joint targets, dim 7, first-order hold) |
-| gripper action term | `RampedBinaryJointPositionAction` (dim 1, 1.67 s ramp) | same | `JointPositionAction` (dim 3, constant target; the executor ramps it over 1.67 s) |
+| gripper action term | `RampedBinaryJointPositionAction` (dim 1, 0.5 s ramp from `AGIBOT_GRIPPER_RAMP_SECONDS`) | same | `JointPositionAction` (dim 3, constant target; the executor ramps it over 1.67 s) |
 | action vector | 14 (`[L pose 6, L grip 1, R pose 6, R grip 1]`) | 14 | 20 (`[L arm 7, L grip 3, R arm 7, R grip 3]`) |
 | who drives | human keys -> device -> `env.step` | same | planner -> `EnvActionExecutor` -> `env.step` (or `ArmExecutor` direct joint writes when not recording) |
 | terminations | `success` only (time_out removed) -> success auto-resets the scene | none (success held aside and judged by the script; time_out removed) | `time_out` at 600 s (success judged by the script) |

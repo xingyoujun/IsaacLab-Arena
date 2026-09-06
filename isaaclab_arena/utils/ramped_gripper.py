@@ -10,8 +10,8 @@ position. On the Agibot that drives the fingers at about 0.9 m/s into whatever t
 pinch, and a light, thin-walled part is spat out rather than held (measured on the SDF-collided
 sleeve of ``agibot_sleeve_on_peg``: 0/5 controlled grasps held). The cuMotion recording pipeline
 never had this problem because its executor ramps every gripper command over
-``DEFAULT_GRIPPER_RAMP_SECONDS`` (1.67 s) and then holds the target constant; with that ramp the
-same grasp held 5/5. This term gives the teleoperation path the same behaviour: the target moves
+``AGIBOT_GRIPPER_RAMP_SECONDS`` and then holds the target constant; with that ramp the same grasp
+held 5/5. This term gives the teleoperation path the same behaviour: the target moves
 towards the commanded state at a constant rate and, once there, stays put.
 """
 
@@ -25,8 +25,10 @@ from isaaclab.envs.mdp.actions.actions_cfg import BinaryJointPositionActionCfg
 from isaaclab.envs.mdp.actions.binary_joint_actions import BinaryJointPositionAction
 from isaaclab.utils.configclass import configclass
 
-DEFAULT_GRIPPER_RAMP_SECONDS = 200 / 120
-"""Time a full open-to-closed travel is spread over; the cuMotion executor's value."""
+from isaaclab_arena.utils.agibot_gripper import AGIBOT_GRIPPER_RAMP_SECONDS
+
+DEFAULT_GRIPPER_RAMP_SECONDS = AGIBOT_GRIPPER_RAMP_SECONDS
+"""Time a full open-to-closed travel is spread over; the one value shared with the cuMotion executor."""
 
 
 class RampedBinaryJointPositionAction(BinaryJointPositionAction):

@@ -43,7 +43,9 @@ parser.add_argument(
     "--centre_offset", type=float, default=0.0, help="Object origin -> pinch point, along object z (m)."
 )
 parser.add_argument("--object_roll_deg", type=float, default=0.0, help="Roll of the object about the approach axis.")
-parser.add_argument("--ramp_seconds", type=float, default=200 / 120, help="Open-to-closed target ramp time.")
+parser.add_argument(
+    "--ramp_seconds", type=float, default=None, help="Open-to-closed target ramp time; default the embodiment's."
+)
 parser.add_argument("--close_target", type=float, default=None, help="Closed gripper target; default fully closed.")
 parser.add_argument("--repeats", type=int, default=3)
 parser.add_argument("--swing_rad", type=float, default=0.2, help="Shoulder swing applied after the close.")
@@ -102,6 +104,10 @@ term_joint_ids = {
 }
 gripper_term, arm_term = f"{args.arm}_gripper_action", f"{args.arm}_arm_action"
 hand_joint = term_joint_ids[gripper_term][0]
+from isaaclab_arena.utils.agibot_gripper import AGIBOT_GRIPPER_RAMP_SECONDS  # noqa: E402
+
+if args.ramp_seconds is None:
+    args.ramp_seconds = AGIBOT_GRIPPER_RAMP_SECONDS
 ramp_steps = max(1, round(args.ramp_seconds / env.step_dt))
 print(
     f"[pinch] {args.object} in the {args.arm} hand: ramp {ramp_steps} steps ({args.ramp_seconds:.2f} s), target"

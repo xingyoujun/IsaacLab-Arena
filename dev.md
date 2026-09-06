@@ -58,7 +58,9 @@ shipped. Every Agibot environment installs, in this order, via
    the pads being commanded below the work surface; the gripper-table collision was **commanded**,
    not a physics bug, and damping makes it 4x worse.
 3. `install_ramped_gripper` (`isaaclab_arena/utils/ramped_gripper.py`) -- rate-limits the binary
-   open/close so the pinch does not fling the object (one of four measured fling causes).
+   open/close so the pinch does not fling the object (one of four measured fling causes). The ramp
+   time is the embodiment's `AGIBOT_GRIPPER_RAMP_SECONDS` (0.5 s since 2026-09-06), shared with the
+   cuMotion executor.
 4. `apply_arm_gains` -- no-op by default since 2026-09-06 (measurement knob only).
 
 It also sets `env_cfg.demo_recorder_config = agibot_demo_recorder_cfg(...)` (section 1.5).

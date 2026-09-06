@@ -29,6 +29,8 @@ from typing import TYPE_CHECKING
 
 import warp as wp
 
+from isaaclab_arena.utils.agibot_gripper import AGIBOT_GRIPPER_RAMP_SECONDS
+
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
 
@@ -37,10 +39,10 @@ if TYPE_CHECKING:
 DEFAULT_TRAJECTORY_SPEED = 0.35
 """Fraction of cuMotion's time-optimal speed. Above ~0.5 the stiff arm cannot keep up."""
 
-DEFAULT_GRIPPER_RAMP_SECONDS = 200 / 120
+DEFAULT_GRIPPER_RAMP_SECONDS = AGIBOT_GRIPPER_RAMP_SECONDS
 """Time a gripper command is ramped over, rather than stepped. Stated in seconds so the ramp is
-the same wall-clock impulse at any control or physics rate; the value is the original 200 steps
-at the 1/120 s physics dt the grasps were tuned at."""
+the same wall-clock impulse at any control or physics rate; the value is the embodiment's, shared
+with the teleoperation path's ramped gripper action."""
 
 DEFAULT_SETTLE_SECONDS = 40 / 120
 """Time a followed path holds its final configuration for; 40 steps at the original 1/120 s dt."""

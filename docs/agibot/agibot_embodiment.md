@@ -34,7 +34,7 @@ Installed, in this order, by `install_agibot_control_stack(env_cfg, cfg, surface
    finger speeds; the clamp brings every descent condition back to the free-close baseline.
    Rotation and lateral motion keep full authority; it is not a containment volume.
 3. `install_ramped_gripper(ramp_seconds)` -- the binary gripper target ramps open -> closed over
-   1.67 s (the executor's ramp), then holds. The stock action steps the target and drives the
+   0.5 s (`AGIBOT_GRIPPER_RAMP_SECONDS`, the one value shared with the executor; 1.67 s until 2026-09-06), then holds. The stock action steps the target and drives the
    fingers in at ~0.9 m/s (an SDF sleeve was spat out 5/5; ramped, held 5/5 at 0.35 m/s).
 4. `apply_arm_gains` -- the effort limit above, on `env_cfg.scene.robot.actuators` (patching PhysX
    at run time leaves Isaac Lab's `ImplicitActuator` with stale gains and `applied_torque` lying).

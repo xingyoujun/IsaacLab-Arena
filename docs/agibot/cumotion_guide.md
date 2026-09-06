@@ -17,7 +17,7 @@ the name):
 | `planner.py` | `CumotionArmPlanner`: world/obstacle model, `plan_pose`, `plan_best_pose`, `ik_reachable`, candidate filtering on joint-limit margin (>= 0.30 rad) and travel (<= 2.6 rad), and the measured left tool-frame correction |
 | `grasps.py` | grasp generators: `rim_grasps` (bodies of revolution), `slab_grasps` (boxes/slices, from a **bounding box**), `annotated_point_grasps`; canonical `DOWN_FACING_ROTATION`; quaternions here are **wxyz** |
 | `pick_place.py` | `PickAndPlace.pick / place`: candidate ordering, pregrasp gap, attempts, retargeted release |
-| `executor.py` | `ArmExecutor` (direct joint writes + `env.sim.step`) and `EnvActionExecutor` (drives through `env.step` with `AgibotDualArmJointActionsCfg` so recorders see every step); gripper ramp 1.67 s, settles in **seconds** |
+| `executor.py` | `ArmExecutor` (direct joint writes + `env.sim.step`) and `EnvActionExecutor` (drives through `env.step` with `AgibotDualArmJointActionsCfg` so recorders see every step); gripper ramp 0.5 s (`AGIBOT_GRIPPER_RAMP_SECONDS`), settles in **seconds** |
 
 ## Facts a grasp author must know
 

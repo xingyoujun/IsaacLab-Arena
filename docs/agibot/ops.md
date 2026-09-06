@@ -43,6 +43,11 @@ x11vnc -display :99 -forever -shared -localhost -rfbauth ~/.vnc/passwd -rfbport 
 websockify --web=/usr/share/novnc 6080 localhost:5900
 ```
 
+Viewport choice for the operator (recording is unaffected -- demos come from the camera sensors):
+`ARENA_AGIBOT_VIEWER=third_person` gives a fixed view from in front of the table (eye
+`THIRD_PERSON_VIEWER_EYE_XYZ` in `agibot_tabletop_common.py`); unset or `head` keeps the head view.
+Set it on the teleop command only.
+
 Then `DISPLAY=:99 ... --viz kit --device cuda:0` (no `--viz` means headless since Isaac Lab 3.0 GA; the old `--headless` flag is gone). **Everything runs on `cuda:0`** (user decision 2026-09-05): teleop, recording, cuMotion, probes. `--device cpu` is a debugging mode only -- it surfaces errors the GPU pipeline swallows. Arena's own teleop/record
 scripts were deleted upstream; use Isaac Lab's with Arena's registration callback and **both**
 device flags (`--arena_teleop_device` configures, `--teleop_device` instantiates; giving only the

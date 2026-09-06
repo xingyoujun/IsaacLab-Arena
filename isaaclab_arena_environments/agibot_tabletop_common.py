@@ -18,10 +18,12 @@ The process these defaults come out of is written up in ``docs/agibot/``.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentCfg, ArenaEnvironmentFactory
+from isaaclab_arena.utils.agibot_gripper import AGIBOT_GRIPPER_RAMP_SECONDS
 
 if TYPE_CHECKING:
     from isaaclab_arena.assets.object_base import ObjectBase
@@ -60,9 +62,10 @@ Was 300 until 2026-09-06 (user decision: every path runs the robot's default con
 task-level actuator knobs). See ``AgibotTabletopEnvironmentCfg.arm_effort_limit`` for the
 measurements behind the old value."""
 
-DEFAULT_GRIPPER_RAMP_SECONDS = 200 / 120
-"""Full open-to-closed travel time of the teleop grippers' target; equals the cuMotion executor's
-ramp so a teleoperated close and a scripted close load the object the same way."""
+DEFAULT_GRIPPER_RAMP_SECONDS = AGIBOT_GRIPPER_RAMP_SECONDS
+"""Full open-to-closed travel time of the teleop grippers' target: the embodiment's one value,
+shared with the cuMotion executor, so a teleoperated close and a scripted close load the object
+the same way."""
 
 
 @dataclass
@@ -260,6 +263,36 @@ def apply_arm_gains(env_cfg, cfg: AgibotTabletopEnvironmentCfg) -> None:
         print(f"[arm gains] {name}: " + ", ".join(f"{k}={v:g}" for k, v in overrides.items()))
 
 
+THIRD_PERSON_VIEWER_EYE_XYZ = (1.55, -1.35, 1.55)
+"""Kit viewport eye for ``ARENA_AGIBOT_VIEWER=third_person``: in front of the table on the robot's
+right, elevated, so the whole table, both arms and the head are in frame."""
+
+THIRD_PERSON_VIEWER_LOOKAT_XYZ = (0.15, 0.0, 0.70)
+"""Gaze point for the third-person viewport: the table centre just above the work surface."""
+
+
+def apply_viewer_override(env_cfg) -> None:
+    """Swap the Kit viewport camera when ``ARENA_AGIBOT_VIEWER`` asks for it.
+
+    Only the interactive viewport changes. Recorded demonstrations come from the camera sensors
+    (head and wrist cameras) and are untouched, so the same environment records the same data
+    whichever view the operator is looking at.
+
+    ``ARENA_AGIBOT_VIEWER=third_person`` gives a fixed world-frame view from in front of the table;
+    ``head`` (or unset) keeps the environment's own choice.
+    """
+    mode = os.environ.get("ARENA_AGIBOT_VIEWER", "head").strip().lower()
+    if mode == "third_person":
+        from isaaclab.envs.common import ViewerCfg
+
+        env_cfg.viewer = ViewerCfg(
+            eye=THIRD_PERSON_VIEWER_EYE_XYZ, lookat=THIRD_PERSON_VIEWER_LOOKAT_XYZ, origin_type="world"
+        )
+        print("[viewer] ARENA_AGIBOT_VIEWER=third_person: viewport from the front of the table")
+    elif mode != "head":
+        raise ValueError(f"ARENA_AGIBOT_VIEWER must be 'head' or 'third_person', got {mode!r}")
+
+
 def install_agibot_control_stack(env_cfg, cfg: AgibotTabletopEnvironmentCfg, surface_z: float = TABLE_TOP_Z) -> None:
     """Install the standard Agibot controller stack on a compiled environment config.
 
@@ -281,6 +314,7 @@ def install_agibot_control_stack(env_cfg, cfg: AgibotTabletopEnvironmentCfg, sur
     from isaaclab_arena.utils.surface_guard import install_surface_guard
 
     install_arm_target_hold(env_cfg)
+    apply_viewer_override(env_cfg)
     if cfg.surface_guard:
         install_surface_guard(env_cfg, surface_z)
     if cfg.gripper_ramp_seconds > 0:
