@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from isaaclab_arena.assets.register import register_environment
 from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentFactory
 from isaaclab_arena_environments.agibot_tabletop_common import (
+    REACH_X_BAND_M,
     TABLE_TOP_Z,
     AgibotTabletopEnvironmentCfg,
     build_agibot,
@@ -23,15 +24,15 @@ from isaaclab_arena_environments.agibot_tabletop_common import (
 if TYPE_CHECKING:
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
 
-# The platform straddles the table centre with its peg at x 0.40, the middle of the 0.35-0.45
-# band the arm was measured to reach at table height (see agibot_stack_bowls). Its long side runs
-# along x, so it spans 0.28-0.52 by +/-0.09 in y, and both arms can reach the peg.
-_PLATFORM_POSITION_XY = (0.40, 0.0)
+# The platform stands with its peg at x 0.225, the middle of the 0.15-0.30 work band
+# (``REACH_X_BAND_M``, re-measured 2026-09-06). Its long side runs along x, so the deck spans
+# 0.105-0.345 by +/-0.09 in y; the deck's far end pokes past the band, which is fine -- only the
+# peg is a grasp/release point. Until 2026-09-06 the peg sat at 0.40, on the far third of the
+# table, because of a stale reach measurement.
+_PLATFORM_POSITION_XY = (0.225, 0.0)
 
-_SLEEVE_X_BAND_M = (0.35, 0.45)
-"""Kept at the pre-2026-09-06 band on purpose: this scene has not been re-laid-out yet (the
-platform sits at x 0.40). Move platform and sleeve into ``REACH_X_BAND_M`` in its own review."""
-"""Where the sleeve may land along x: the arm's measured reach band at table height."""
+_SLEEVE_X_BAND_M = REACH_X_BAND_M
+"""Where the sleeve may land along x: the work band."""
 
 _SLEEVE_ABS_Y_BAND_M = (0.135, 0.21)
 """Where the sleeve may land in |y|: outside the platform's 90 mm half-depth plus the sleeve's

@@ -144,6 +144,7 @@ from isaaclab_arena_cumotion.grasps import (  # noqa: E402
 )
 from isaaclab_arena_cumotion.pick_place import PickAndPlace  # noqa: E402
 from isaaclab_arena_cumotion.planner import CumotionArmPlanner  # noqa: E402
+from isaaclab_arena_environments.agibot_sleeve_on_peg_environment import _PLATFORM_POSITION_XY  # noqa: E402
 
 NUM_HEADINGS = 24
 """Horizontal approach directions to try around the sleeve."""
@@ -225,7 +226,7 @@ env.reset()
 if camera is not None:
     camera.set_world_poses_from_view(
         eyes=torch.tensor([[1.20, 0.85, 1.15]], device=env.device),
-        targets=torch.tensor([[0.40, 0.00, 0.68]], device=env.device),
+        targets=torch.tensor([[_PLATFORM_POSITION_XY[0], _PLATFORM_POSITION_XY[1], 0.68]], device=env.device),
     )
 
 step_counter = [0]
