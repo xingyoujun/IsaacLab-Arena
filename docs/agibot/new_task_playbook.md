@@ -81,7 +81,7 @@ run this probe.
 
 Lay the scene out from the shared constants in `agibot_tabletop_common.py`: robot at
 `ROBOT_POSITION_XYZ`, work surface at `TABLE_TOP_Z` (0.6232, measured), graspable objects inside
-`REACH_X_BAND_M` (0.35-0.45). Then run the reach scan on every grasp point and every release point:
+`REACH_X_BAND_M` (0.15-0.30, the main work band since 2026-09-06; the old 0.35-0.45 was a stale measurement). Then run the reach scan on every grasp point and every release point:
 
 ```bash
 .venv/bin/python isaaclab_arena_cumotion/scripts/probe_reach.py --env <env> \
@@ -140,16 +140,10 @@ The environment subclasses `AgibotTabletopEnvironmentCfg`, builds its stage with
 gains, in that order. That stack is the standard; every task has it (a template is the
 `agibot_stack_bowls` environment). Then add the task's own events after it.
 
-Teleop through Isaac Lab's script with **both** device flags
-(see [ops.md](ops.md) for the display set-up):
-
-```bash
-DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y \
-  .venv/bin/python submodules/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py \
-  --viz kit --device cuda:0 \
-  --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
-  --task <env> --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard
-```
+Every operator session is a recording session (user rule 2026-09-06): launch `record_demos.py`
+with **both** device flags and a dataset path under `/home/ubuntu/playground/datasets/<env>_teleop/`
+(see [ops.md](ops.md) for the display set-up and the full command). Isaac Lab's
+`teleop_se3_agent.py` drives but records nothing; do not use it.
 
 Gate: three clean solves in a row by a person, from the head view, with no object thrown. If an
 object flies, go to [triage.md](triage.md) -- run the pinch probe first, do not touch the gripper.
@@ -157,7 +151,7 @@ object flies, go to [triage.md](triage.md) -- run the pinch probe first, do not 
 ## Stage 5 -- human recording
 
 `record_demos.py` builds the env through the same callback, so the control stack carries over;
-it removes the success termination itself. `teleop_se3_agent.py` records nothing.
+it removes the success termination itself.
 
 ```bash
 DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y \

@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 from isaaclab_arena.assets.register import register_environment
 from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentFactory
 from isaaclab_arena_environments.agibot_tabletop_common import (
-    REACH_X_BAND_M,
     TABLE_TOP_Z,
     AgibotTabletopEnvironmentCfg,
     build_agibot,
@@ -29,7 +28,9 @@ if TYPE_CHECKING:
 # along x, so it spans 0.28-0.52 by +/-0.09 in y, and both arms can reach the peg.
 _PLATFORM_POSITION_XY = (0.40, 0.0)
 
-_SLEEVE_X_BAND_M = REACH_X_BAND_M
+_SLEEVE_X_BAND_M = (0.35, 0.45)
+"""Kept at the pre-2026-09-06 band on purpose: this scene has not been re-laid-out yet (the
+platform sits at x 0.40). Move platform and sleeve into ``REACH_X_BAND_M`` in its own review."""
 """Where the sleeve may land along x: the arm's measured reach band at table height."""
 
 _SLEEVE_ABS_Y_BAND_M = (0.135, 0.21)

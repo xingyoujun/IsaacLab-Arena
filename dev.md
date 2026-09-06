@@ -68,7 +68,7 @@ It also sets `env_cfg.demo_recorder_config = agibot_demo_recorder_cfg(...)` (sec
 ### 1.4 Teleoperation device and display
 
 - Upstream deleted Arena's own teleop/record scripts (`4a97a0cce`, `0ed4b3f2a`) with no migration
-  note. Use Isaac Lab's `teleop_se3_agent.py` / `record_demos.py` with the Arena registration
+  note. Use Isaac Lab's `record_demos.py` (every operator session records; `teleop_se3_agent.py` is a driver that writes nothing) with the Arena registration
   callback and **both** device flags (`--arena_teleop_device dual_arm_keyboard --teleop_device
   dual_arm_keyboard`); giving only the Arena one silently falls back to the 7-value keyboard and
   dies with `Invalid action shape, expected: 14, received: 7`.
@@ -109,6 +109,8 @@ are not obvious from the code:
 - Asset origins are not geometry centres; pads sit 17 mm behind the tool frame; grasps default to
   the flipped wrist.
 - Success terminations auto-reset the env: a "flung" object one step after staging is the harness.
+- Graspable objects sit in the work band x 0.15-0.30 (`REACH_X_BAND_M`, re-measured 2026-09-06);
+  the robot cannot get closer to the table, so layouts move to it.
 - Control rate stays 15 Hz (matches the training data; upstream #1016).
 - Triage by layer before touching anything: `docs/agibot/triage.md`.
 

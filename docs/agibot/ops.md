@@ -43,6 +43,10 @@ x11vnc -display :99 -forever -shared -localhost -rfbauth ~/.vnc/passwd -rfbport 
 websockify --web=/usr/share/novnc 6080 localhost:5900
 ```
 
+**Teleoperation is recording.** Launch `record_demos.py` for every operator session (below); Isaac
+Lab's `teleop_se3_agent.py` is a driver that writes nothing and is not used here. (The split into
+two scripts is Isaac Lab's; Arena removed its own teleop runner in `4a97a0cce`.)
+
 Viewport choice for the operator (recording is unaffected -- demos come from the camera sensors):
 `ARENA_AGIBOT_VIEWER=third_person` gives a fixed view from in front of the table (eye
 `THIRD_PERSON_VIEWER_EYE_XYZ` in `agibot_tabletop_common.py`); unset or `head` keeps the head view.
@@ -54,15 +58,10 @@ device flags (`--arena_teleop_device` configures, `--teleop_device` instantiates
 first silently falls back to the 7-value keyboard and dies with `expected: 14, received: 7`):
 
 ```bash
-# drive only (records nothing). ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 works around the
-# Isaac Lab 3.0 GA issue of a blank Kit viewport (RTX per-env scene partitioning).
-DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
-  submodules/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py --viz kit --device cuda:0 \
-  --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
-  --task agibot_tidy_workbench --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard
-
-# record
-DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
+# ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 works around the Isaac Lab 3.0 GA issue of a
+# blank Kit viewport (RTX per-env scene partitioning). ARENA_AGIBOT_VIEWER=third_person is the operator view.
+# record (every operator session)
+DISPLAY=:99 ARENA_AGIBOT_VIEWER=third_person ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y .venv/bin/python \
   submodules/IsaacLab/scripts/tools/record_demos.py --viz kit --device cuda:0 \
   --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
   --task agibot_tidy_workbench --arena_teleop_device dual_arm_keyboard --teleop_device dual_arm_keyboard \
@@ -73,7 +72,7 @@ DISPLAY=:99 ISAAC_LAB_ENABLE_ISAAC_RTX_PER_ENV_SCENE_PARTITION=0 OMNI_KIT_ACCEPT
 Dual-arm keyboard: Tab switches the driven arm; each arm has its own gripper latch. The CPU device
 is what exposes the zero-joint-articulation crash (see the asset guide).
 
-Kill teleop with `pkill -f teleop_se3_agent` / `pkill -f record_demos`, never `head -1 | xargs
+Kill a session with `pkill -f record_demos`, never `head -1 | xargs
 kill`: zombie instances have silently eaten 6 cores and 10 GB of VRAM. The WebRTC livestream path
 (needs `libxt6 libxaw7 libxmu6`) works but noVNC is preferred.
 

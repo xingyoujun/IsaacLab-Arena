@@ -149,6 +149,16 @@ pads close, the pinch closes on a 45-55 deg tilted bowl, and the pad visuals ent
 material by at most 1.8 mm (pad thickness 3 mm, contact offset). A pad "stuck to the inner wall"
 is the bulky gripper wedged in a mouth it barely fits, not a collider defect.
 
+## Where objects go: the work band
+
+Graspable objects live at world x 0.15-0.30 (`REACH_X_BAND_M`, user decision 2026-09-06), y within
+about +/-0.3. Measured 2026-09-06 with the fixed embodiment: IK finds 12-20 leaned top-down poses per
+point there and RMPFlow settles within 5 mm in 11-16 steps; reach degrades beyond 0.43 and is gone
+at 0.50. The robot cannot come closer to the table (torso 3.5 cm from the near edge), so layouts
+move to it. RoboDojo keeps its objects 0.2-0.5 m from the arm bases; this band is the Agibot's
+equivalent. The earlier 0.35-0.45 band was measured before the embodiment fixes and was wrong;
+`agibot_sleeve_on_peg` still uses it until that scene is reviewed.
+
 ## Scale rules
 
 - Pick the scale from the gripper envelope, then check looks -- not the other way round.

@@ -27,19 +27,19 @@ if TYPE_CHECKING:
 # A bowl's origin is at its geometry centre, 30.1 mm above its base.
 _BOWL_Z = TABLE_TOP_Z + 0.0301
 
-# A triangle straddling the table centre, matching how RoboDojo's demo spreads the bowls across
-# the space in front of the robot rather than off to one side.
+# A triangle in front of the robot, matching how RoboDojo's demo spreads the bowls across the
+# space in front of the arms rather than off to one side.
 #
-# Every x stays in 0.35 to 0.46, the band the arm was measured to reach at table height. The band
-# has an inner limit as well as an outer one -- an earlier layout put the near bowl at 0.30, which
-# the arm cannot fold in far enough to reach -- so with the +/-0.02 jitter nothing here is placed
-# outside 0.35 to 0.45.
+# Every x stays inside ``REACH_X_BAND_M`` (0.15-0.30, the main work band) after the +/-0.02
+# jitter: near bowl at 0.19 (0.17-0.21), far pair at 0.27 (0.25-0.29). Until 2026-09-06 the
+# triangle sat at 0.37-0.43, on the far third of the table, because of a stale reach measurement;
+# the re-measured reach is better here (see ``REACH_X_BAND_M``).
 #
 # Spacing has to beat the measured 0.11 m bowl diameter *after* jitter, not before it. The first
 # two were 0.14 m apart, which the jitter can close to 0.10 -- so some resets spawned two bowls
 # already interpenetrating, which pre-loads a contact and makes them spring apart at the first
-# touch. The closest pair here is 0.171 m, so the worst case is 0.131 m.
-_BOWL_POSITIONS_XY = ((0.43, -0.16), (0.43, 0.16), (0.37, 0.00))
+# touch. The closest pair here is 0.179 m, so the worst case is 0.139 m.
+_BOWL_POSITIONS_XY = ((0.27, -0.16), (0.27, 0.16), (0.19, 0.00))
 
 _BOWL_X_BAND_M = REACH_X_BAND_M
 """The x band the arm was measured to reach at table height; jittered bowls are clamped into it."""

@@ -43,10 +43,18 @@ TABLE_POSITION_X = -0.365 + 0.5 * 1.1
 """x of the table's centre: the near edge sits at -0.365, where the robot is known to clear it,
 and the slab is 1.1 m deep."""
 
-REACH_X_BAND_M = (0.35, 0.45)
-"""The x band both arms were measured to reach at table height with a leaned top-down grasp.
-The band has an inner limit as well as an outer one: an object at 0.30 is too close for the arm
-to fold in onto. Lay graspable objects out inside it, and clamp jitter into it."""
+REACH_X_BAND_M = (0.15, 0.30)
+"""The main work band, in world x, for graspable objects on the table (user decision 2026-09-06).
+
+Both arms were re-measured on 2026-09-06 with the fixed default configuration: cuRobo IK finds
+12-20 leaned top-down poses per point at x 0.20-0.30 and RMPFlow drives the pads to within 5 mm
+of any point from x 0.15 to 0.43 in 11-16 steps; reach then falls off (0.43: 4-10 poses, 0.50:
+none). The earlier band (0.35-0.45) and its "0.30 is too close to fold in onto" note came from
+measurements taken before the embodiment fixes and were wrong; they put every object on the far
+third of the table, ~0.85 m from the shoulders, against RoboDojo's 0.2-0.5 m. The robot itself
+cannot move closer -- its torso sits 3.5 cm from the table's near edge -- so the objects come to
+it. Lay graspable objects out inside this band and clamp jitter into it; the head view already
+looks at its centre (x ~0.21)."""
 
 DOME_LIGHT_HDR = "brown_photostudio_robolab"
 DOME_LIGHT_INTENSITY = 1000.0
