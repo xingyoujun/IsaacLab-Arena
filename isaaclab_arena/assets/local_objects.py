@@ -386,6 +386,19 @@ class MetalBillet(LibraryObject):
 
 
 @register_asset
+class MetalBlock(LibraryObject):
+    """Raw-stock cube for the workbench: a 48 mm block (Isaac's dex cube at Arena's 0.8 scale) with the
+    USDCraft billet's matte machined-aluminium look, authored locally (2026-09-06)."""
+
+    name = "metal_block"
+    tags = ["object"]
+    usd_path = f"{LOCAL_ASSET_DIR}/metal_block/metal_block.usda"
+    object_type = ObjectType.RIGID
+    HALF_EXTENTS_M = (0.024, 0.024, 0.024)
+    """Origin at the centre of the underside; 48 mm cube, exact Cube collider, 0.30 kg."""
+
+
+@register_asset
 class BearingAssembly(LibraryObject):
     """Finished bearing assembly from USDCraft's agibot_assets_v0 (72 mm across, 35 mm tall, 520 g).
 

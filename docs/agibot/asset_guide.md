@@ -171,6 +171,11 @@ equivalent. The earlier 0.35-0.45 band was measured before the embodiment fixes 
 
 ## Local asset inventory
 
+- `metal_block` (2026-09-06): 48 mm cube authored locally in `metal_block.usda` -- Isaac's dex cube
+  size at Arena's 0.8 scale, with the USDCraft billet's matte machined-aluminium PreviewSurface and
+  aluminium contact material, exact Cube collider, 0.30 kg. The instanceable dex cube cannot take a
+  material override, hence the local copy. Pinch gate 3/3 both arms (0.2-0.33 m/s).
+
 | name | source | role | notes |
 | --- | --- | --- | --- |
 | `robodojo_simple_room`, `robodojo_table` | RoboDojo room; authored slab (1.1 x 1.4 x 0.05, Mahogany MDL, friction 0.8) | stage | table long axis on y |

@@ -25,10 +25,11 @@ if TYPE_CHECKING:
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
 
 # Which loose part goes into which container, by asset name.
-ASSIGNMENTS = (("metal_billet", "green_tray"), ("bearing_assembly", "gray_tray"))
+ASSIGNMENTS = (("metal_block", "green_tray"), ("bearing_assembly", "gray_tray"))
 """Raw stock into the green parts tray, finished parts into the grey sorting tray. The wrench and its
 blue storage bin were dropped on 2026-09-06 (user): a 6 mm-thick wrench is too thin for a reliable
-teleoperated pinch."""
+teleoperated pinch. The raw stock is the 48 mm ``metal_block`` (dex cube with the billet's look);
+the flat 24 mm billet was too low to see and pinch from the operator view."""
 FINISHED_PART_ALTERNATIVES = ("bearing_assembly", "small_gear_centred")
 """Assets that may stand in for the finished part. The USDCraft bearing is not graspable by the
 Agibot (a 9 mm grip band over a wide flange; see the memory notes), so Arena's Factory small gear
@@ -125,6 +126,8 @@ def _part_scale(cfg, part_name: str) -> float:
         return cfg.wrench_scale
     if part_name == "metal_billet":
         return cfg.billet_scale
+    if part_name == "metal_block":
+        return cfg.block_scale
     return cfg.finished_part_scale if part_name == "small_gear_centred" else cfg.bearing_scale
 
 
@@ -145,6 +148,10 @@ class AgibotTidyWorkbenchEnvironmentCfg(AgibotTabletopEnvironmentCfg):
     User decision 2026-09-06 after the mid-air pinch gate (3 repeats, right arm, 0.5 s ramp):
     1.0 held 3/3 (close peak 0.55 m/s), 1.2 held 3/3 (0.66 m/s), 1.5 (120 x 60 x 30) was ejected
     3/3 at 3.4-4.6 m/s whichever side was pinched. 1.2 is the largest that passes."""
+
+    block_scale: float = 1.0
+    """Scale of the raw-stock cube (48 mm at 1.0). The gripper's usable object width tops out near
+    55-60 mm (billet 60 mm wide: ejected 3/3), so keep this at or below ~1.15."""
 
     bearing_scale: float = 1.0
     """Scale of the bearing assembly (72 mm across at 1.0). 1.0 is held 3/3 (the fingers cradle
