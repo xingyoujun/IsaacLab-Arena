@@ -68,6 +68,10 @@ What this means for a bowl:
 - The 18 mm plunge during closing and the 175 mm open finger structure are the Agibot-specific
   kinematic traits: closing over a bowl drives the pads deeper, and descending centred lands the
   support arms on the rim (measured: the bowl tilts 18 deg before the pads touch anything).
+- Side grasps at table height are marginal for the same reasons: measured on the 48 mm block, a
+  pad midpoint at the block's mid-height shoves it 14-31 mm then holds, 11 mm higher the pads' lower
+  edge and the 18 mm plunge pop it out (flung 0.2-1.8 m at 0.5 and 1.0 s ramps), and RMPFlow pitches
+  the tool 16-23 deg nose-down while translating. Grasp blocks top-down.
 - The collider-less camera and shell only matter when the wrist itself comes within ~90 mm of an
   object (tilted wrist, tall objects, the robot's own body), not in a tabletop pinch.
 
