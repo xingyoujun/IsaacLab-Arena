@@ -67,6 +67,9 @@ gripper limit or a controller flag. Every gripper- or arm-side "fix" we tried ma
 | sleeve on peg | `agibot_sleeve_on_peg` | done, peg moved to x 0.225 (09-06) | done | 1 on the new layout (09-06) + 1 (09-03) | grasps like the human (pitched 55-80 deg); insertion not yet reliable | -- | -- | SDF sleeve kept; convex/ring variants beside it |
 | tidy workbench | `agibot_tidy_workbench` | done, re-laid-out 09-06: metal_block (48 mm cube, billet look) + gear 2.0 in the work band, trays flanking at (0.22, +/-0.45); wrench, bin and the flat billet dropped | done | recording 09-06 (`tidy_workbench_teleop/`) | no full driver | -- | -- | parts wider than ~55 mm fail the pinch gate; metal_block held 3/3 at 0.2-0.3 m/s |
 
+| microwave bowl | `agibot_microwave_bowl` | done 09-06: Lightwheel microwave on the robot's left (door facing the table centre, starts ajar 20 %), RoboDojo bowl at (0.20, -0.30); composite open -> put -> close verified by staging | recording session up 09-06 | -- | -- | -- | -- | door handle (6 mm proud) and slab (67 mm) are not pinchable: the door is pushed, as in Arena's own door tasks |
+| turn mixer knob | `agibot_turn_mixer_knob` | built 09-06, **paused** | -- | -- | -- | -- | -- | Lightwheel knob is a zero-friction free wheel with a 2.65 mm disc collider; not usable for a precise-angle task without an asset fix or our own knob fixture (user decision pending) |
+
 Archived, not on `main`: `push_T`, `press_button`, `store_laptop_and_headphones` ports live on the
 branch `chuanruiz/feature/robodojo-tasks` (pre-baseline code; the Agibot config there is stale).
 
