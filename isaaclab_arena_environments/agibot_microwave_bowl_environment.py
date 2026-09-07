@@ -35,29 +35,40 @@ if TYPE_CHECKING:
 MICROWAVE_ORIGIN_ABOVE_BASE_M = 0.170
 """Microwave039's origin is at its centre; the body spans z -0.170..+0.170 (340 mm tall)."""
 
-MICROWAVE_POSITION_XY = (0.20, 0.35)
-"""Microwave centre. The body is 586 wide (x) by 475 deep (y); with yaw 0 its door face (frame -y)
-is at world y 0.096, facing the table centre, and the opening spans x -0.09..+0.38. The turntable
-disc centre lands at (0.14, 0.37), 132 mm below the origin: an object on it sits at z ~0.66. The
-hinge is at the far-from-robot end of the opening (x -0.075); the door swings toward -y."""
+MICROWAVE_SCALE = 1.0
+"""Must stay 1.0: Microwave039's colliders are SDF meshes and PhysX does not re-cook them for a
+scaled prim -- at 0.7 the bowl rested 8 cm above the scaled top, fell through the scaled turntable and
+the door left its joint limits (measured 2026-09-06). The full-size microwave is 586 wide (x), 475
+deep (y) and 340 mm tall; on the 0.62 m table its top (0.96 m) runs through the Agibot's resting
+hands (z 0.93-0.95 at y 0.03-0.46, x up to 0.31), so every placement that keeps the door within
+reach collides with a resting hand. UNRESOLVED layout -- see docs/agibot/README.md."""
+
+MICROWAVE_POSITION_XY = (0.20, 0.50)
+"""Microwave centre (door face at world y 0.26, facing the table centre; body x -0.09..0.49,
+y 0.26..0.74, 4 cm over the table's left edge). The resting left hand (pads at x 0.25-0.31,
+y 0.19-0.30, z 0.94) is inside this body -- kept only as the starting point for the layout review."""
 
 MICROWAVE_ROTATION_XYZW = (0.0, 0.0, 0.0, 1.0)
 
 DISC_OFFSET_M = (-0.060, 0.021, -0.132)
 """Turntable disc centre in the microwave frame (its joint anchor, top face at z -0.132)."""
 
-_BOWL_POSITION_XY = (0.20, -0.30)
-"""The bowl starts in the work band on the robot's right. Measured door swing: the door body's centre
-moves from (0.25, 0.26) ajar through (0.24, 0.01) at 60 deg to (0.13, -0.13) fully open, i.e. the
-door sweeps the table centre out to about y -0.2, so the bowl waits beyond that."""
+_BOWL_POSITION_XY = (0.15, -0.08)
+"""The bowl starts in the work band just right of centre, where both arms reach it (left 20/12/14
+leaned poses, right 24/10/16) and outside the door's swing: the 330 mm door pivots at (0.01, 0.32)
+and sweeps the quarter-disc toward -y, so anything farther than 0.33 m from the hinge is safe (this
+spot is 0.42 m away). Only the left arm reaches into the cavity, so the bowl must be where the left
+arm can take it."""
 
 
-def disc_world_position(table_top_z: float = TABLE_TOP_Z) -> tuple[float, float, float]:
-    """World position of the turntable's centre (top face) for the default layout."""
+def disc_world_position(
+    table_top_z: float = TABLE_TOP_Z, xy: tuple[float, float] = MICROWAVE_POSITION_XY, scale: float = MICROWAVE_SCALE
+) -> tuple[float, float, float]:
+    """World position of the turntable's centre (top face) for a microwave at ``xy`` and ``scale``."""
     return (
-        MICROWAVE_POSITION_XY[0] + DISC_OFFSET_M[0],
-        MICROWAVE_POSITION_XY[1] + DISC_OFFSET_M[1],
-        table_top_z + MICROWAVE_ORIGIN_ABOVE_BASE_M + DISC_OFFSET_M[2],
+        xy[0] + scale * DISC_OFFSET_M[0],
+        xy[1] + scale * DISC_OFFSET_M[1],
+        table_top_z + scale * (MICROWAVE_ORIGIN_ABOVE_BASE_M + DISC_OFFSET_M[2]),
     )
 
 
@@ -66,6 +77,13 @@ class AgibotMicrowaveBowlEnvironmentCfg(AgibotTabletopEnvironmentCfg):
     """Configure the Agibot microwave environment."""
 
     arm_mode: str = "dual"
+
+    microwave_scale: float = MICROWAVE_SCALE
+    """Uniform scale of the microwave (see ``MICROWAVE_SCALE`` for why not 1.0)."""
+
+    microwave_x: float = MICROWAVE_POSITION_XY[0]
+    microwave_y: float = MICROWAVE_POSITION_XY[1]
+    """Microwave centre on the table (its door faces -y)."""
 
     object: str = "bowl"
     """Asset that goes into the microwave. The RoboDojo bowl (110 x 60 mm, rim pinch) by default."""
@@ -103,9 +121,14 @@ class AgibotMicrowaveBowlEnvironment(ArenaEnvironmentFactory[AgibotMicrowaveBowl
 
         background, surroundings, light = build_tabletop_stage(self, cfg, TABLE_TOP_Z)
         microwave = self.asset_registry.get_asset_by_name("microwave")()
+        microwave.scale = (cfg.microwave_scale,) * 3  # Microwave.__init__ takes no scale argument
         microwave.set_initial_pose(
             Pose(
-                position_xyz=(*MICROWAVE_POSITION_XY, TABLE_TOP_Z + MICROWAVE_ORIGIN_ABOVE_BASE_M),
+                position_xyz=(
+                    cfg.microwave_x,
+                    cfg.microwave_y,
+                    TABLE_TOP_Z + cfg.microwave_scale * MICROWAVE_ORIGIN_ABOVE_BASE_M,
+                ),
                 rotation_xyzw=MICROWAVE_ROTATION_XYZW,
             )
         )
