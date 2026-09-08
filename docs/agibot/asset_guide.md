@@ -76,6 +76,9 @@ parts built to a prompt that says so come out right (the trays, the billet at 1.
    env-overridable directory constant, `object_type`, and measured constants with attribute
    docstrings (half extents, rim height, origin offset, wall margin). Fixtures (platform, trays,
    bin) take `spawn_cfg_addon = {"rigid_props": RigidBodyPropertiesCfg(kinematic_enabled=True)}`.
+   An *articulated* fixture (drawer cabinet, knob panel) takes `{"fix_root_link": True}` instead:
+   the kinematic flag would freeze every link, and the fixed joint pins only the root. Isaac Lab
+   reports it as `is_fixed_base`, so `_velocity_is_writable` and the probes treat it as a fixture.
 5. **Mass**: `MassPropertiesCfg` in a `spawn_cfg_addon` only modifies an existing
    `UsdPhysics.MassAPI`; without it the change is a silent no-op (a warning in the log). Add the
    API in an override layer (`bread_massed.usda`, `t_block_fixed.usda`) and verify with
@@ -186,8 +189,10 @@ equivalent. The earlier 0.35-0.45 band was measured before the embodiment fixes 
 | `wrench`, `metal_billet` | USDCraft `agibot_assets_v0` | tidy_workbench parts | steel friction only 0.25/0.18 (authored) |
 | `bearing_assembly` | USDCraft `agibot_assets_v0` | tidy_workbench (not graspable) | kept selectable; replaced by the gear |
 | `small_gear_centred` | Arena Factory gear, re-centred layer | tidy_workbench finished part | scale 2.0 = 44 x 50 mm |
+| `drawer_cabinet` | USDCraft `assets_0907` (2026-09-07) | drawer_block fixture | 2-link articulation, root pinned via `fix_root_link` (a kinematic flag would freeze the drawer too); joint `cabinet_to_drawer` limits [-0.096, 0.064], +joint = drawer out; `Openable` reads the measured polarity, not the normalised joint (which flips for a negative lower limit); interior collider exact (block rests on the floor at the visual height) |
+| `rotary_knob` | USDCraft `assets_0907` (2026-09-07) | turn_knob fixture, pinned in mid-air | 3-link articulation (panel root, 75 mm knob 0..270 deg, detent plunger); the plunger's 320 N/m spring on the 51-valley cam is what holds the knob (joint itself nearly free); collider exact (drop test 0.0 mm on the face, 0.5 mm on the panel); `Turnable` with ten 27-deg levels |
 | `t_block*`, `t_pad`, `headset*`, `laptop*`, `spring_button*`, `toaster_oven_*` | earlier ports (push_T, press_button, store_laptop, kitchen) | **not used on main** | on branch `chuanruiz/feature/robodojo-tasks`; archive candidates |
 
 All `usd_path`s resolve under `ARENA_LOCAL_ASSET_DIR` (default
-`/home/ubuntu/playground/objects/arena_local`) and `ARENA_AGIBOT_ASSETS_V0_DIR` -- host-specific;
-another machine sets the two environment variables.
+`/home/ubuntu/playground/objects/arena_local`), `ARENA_AGIBOT_ASSETS_V0_DIR` and
+`ARENA_AGIBOT_ASSETS_0907_DIR` -- host-specific; another machine sets the environment variables.

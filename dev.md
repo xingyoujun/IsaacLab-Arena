@@ -150,9 +150,9 @@ listed first).
 | robot | `embodiments/agibot/rmpflow/agibot_{left,right}_arm_gripper.yaml` (patched Lula descriptions), `embodiments/agibot/demo_recorders.py`, `embodiments/common/smooth_joint_actions.py` (first-order hold for joint targets) |
 | control stack | `utils/arm_target_hold.py`, `utils/surface_guard.py`, `utils/ramped_gripper.py` |
 | teleop device | `devices/__init__.py`, `devices/dual_arm_keyboard.py`, `devices/dual_arm_keyboard_cfg.py` |
-| assets | `assets/local_objects.py` (RoboDojo ports, USDCraft `agibot_assets_v0`, re-centred Factory gear, peg/sleeve); USDs live outside the repo in `/home/ubuntu/playground/objects/` |
-| tasks | `tasks/{stack_bowls,make_toast,handover_toast,sleeve_on_peg,tidy_workbench}_task.py`, `tasks/predicates/joints.py`, `tasks/stack_bowls_trace.py` (diagnostic CSV) |
-| environments | `isaaclab_arena_environments/agibot_tabletop_common.py` (shared stage, `AgibotTabletopEnvironmentCfg`, `install_agibot_control_stack`), `agibot_{stack_bowls,make_toast,handover_toast,sleeve_on_peg,tidy_workbench}_environment.py` |
+| assets | `assets/local_objects.py` (RoboDojo ports, USDCraft `agibot_assets_v0` and `assets_0907` -- drawer cabinet and detent knob as fixed-base articulations with `Openable` / `Turnable`, re-centred Factory gear, peg/sleeve); USDs live outside the repo in `/home/ubuntu/playground/objects/` |
+| tasks | `tasks/{stack_bowls,make_toast,handover_toast,sleeve_on_peg,tidy_workbench}_task.py`, `tasks/sequential_composite_tasks/agibot_open_put_close_door_task.py`, `tasks/predicates/joints.py`, `tasks/stack_bowls_trace.py` (diagnostic CSV) |
+| environments | `isaaclab_arena_environments/agibot_tabletop_common.py` (shared stage, `AgibotTabletopEnvironmentCfg`, `install_agibot_control_stack`), `agibot_{stack_bowls,make_toast,handover_toast,sleeve_on_peg,tidy_workbench,drawer_block,turn_knob}_environment.py` |
 | cuMotion package | `isaaclab_arena_cumotion/` -- `planner.py`, `grasps.py`, `pick_place.py`, `executor.py`, `robot_description.py` (XRDF from the Lula files), `cumotion_embodiment_cfg.py`, `embodiment_cumotion_registry.py` |
 | drivers and tools | `isaaclab_arena_cumotion/scripts/{stack_bowls,handover_toast,make_toast,sleeve_on_peg}_cumotion.py`, `merge_demos.py`, `rerender_demo_cameras.py`, `fix_eef_9d_rotations.py` |
 | probes | `isaaclab_arena_cumotion/scripts/probe_{common,pinch,reach,drop_settle,staged_success,gripper_axes,gripper_span,tool_orientation,make_toast}.py` |

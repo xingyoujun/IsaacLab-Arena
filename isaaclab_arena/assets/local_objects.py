@@ -14,10 +14,13 @@ import os
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMaterialCfg
 
+from isaaclab_arena.affordances.openable import Openable
+from isaaclab_arena.affordances.turnable import Turnable
 from isaaclab_arena.assets.background_library import LibraryBackground
 from isaaclab_arena.assets.object_base import ObjectType
 from isaaclab_arena.assets.object_library import LibraryObject, SmallGear
 from isaaclab_arena.assets.register import register_asset
+from isaaclab_arena.utils.pose import Pose
 
 LOCAL_ASSET_DIR = os.environ.get("ARENA_LOCAL_ASSET_DIR", "/home/ubuntu/playground/objects/arena_local")
 """Host directory holding the local USD assets. Override with ``ARENA_LOCAL_ASSET_DIR``."""
@@ -443,3 +446,161 @@ class SmallGearCentred(LibraryObject):
     RADIUS_M = 0.0109
     HEIGHT_M = 0.025
     """Unscaled; the origin is at the centre of the underside."""
+
+
+# --- USDCraft export of 2026-09-07: the drawer cabinet and the detent knob ---------------------
+
+AGIBOT_ASSETS_0907_DIR = os.environ.get("ARENA_AGIBOT_ASSETS_0907_DIR", "/home/ubuntu/playground/objects/assets_0907")
+"""Host directory of the USDCraft export of 2026-09-07 (one ``rec_*/isaac/model.usdc`` per asset)."""
+
+
+def _agibot_asset_0907_usd(record: str) -> str:
+    """Path of a USDCraft record's PhysX entry inside ``AGIBOT_ASSETS_0907_DIR``."""
+    return f"{AGIBOT_ASSETS_0907_DIR}/{record}/isaac/model.usdc"
+
+
+# Articulated fixtures are pinned by a fixed joint from their root link to the world (Isaac Lab's
+# spawner-level ``fix_root_link``): a kinematic flag would freeze every link, the drawer and the
+# knob included.
+_FIXED_BASE_SPAWN_ADDON = {"fix_root_link": True}
+
+
+@register_asset
+class DrawerCabinet(LibraryObject, Openable):
+    """Compact walnut tabletop cabinet with one prismatic drawer, from USDCraft (2026-09-07).
+
+    Two links: the carcass (root, 300 wide x 230 deep x 185 mm tall, 2.0 kg, pinned to the world)
+    and the drawer (274 x 200 x 153 mm box with a bar handle, 1.14 kg). The asset's drawer front is
+    on its -y side; the origin is at the centre of the carcass's underside. The ``Openable``
+    affordance reads the drawer's travel with the polarity measured in simulation (see
+    ``DRAWER_CLOSED_JOINT_POS_M`` / ``DRAWER_OPEN_JOINT_POS_M``), not Isaac Lab's normalised
+    joint position, whose sign flips for a joint with a negative lower limit.
+    """
+
+    name = "drawer_cabinet"
+    # Not tagged "object": its links are sibling rigid bodies at one depth, which Arena's
+    # detect_object_type rejects ("multiple roots"), like the bearing assembly.
+    tags = ["usdcraft", "openable", "fixture"]
+    usd_path = _agibot_asset_0907_usd(
+        "rec_create-a-simulator-ready-compact-wooden-tabletop_20260907_070639_95b890ae_7db5d872"
+    )
+    object_type = ObjectType.ARTICULATION
+    spawn_cfg_addon = _FIXED_BASE_SPAWN_ADDON
+
+    openable_joint_name = "cabinet_to_drawer"
+    openable_threshold = 0.5
+
+    HALF_WIDTH_M = 0.150
+    HALF_DEPTH_M = 0.115
+    HEIGHT_M = 0.185
+    """Carcass extents; the origin is at the centre of the underside, the drawer slides along -y."""
+
+    DRAWER_CLOSED_JOINT_POS_M = -0.096
+    DRAWER_OPEN_JOINT_POS_M = 0.064
+    """Joint positions of ``cabinet_to_drawer`` (limits [-0.096, 0.064]) at which the drawer front is
+    flush with the carcass (closed) and pulled out by its full 160 mm of travel (open). The asset
+    rests at joint 0 with the drawer 96 mm out. Positive joint travel moves the drawer toward -y,
+    i.e. out of the cabinet -- measured on the spawned articulation, 2026-09-07."""
+
+    DRAWER_FRONT_Y_AT_JOINT_ZERO_M = -0.218
+    """The drawer's front face (asset frame) at joint position 0; it moves by minus the joint position."""
+
+    HANDLE_CENTRE_AT_JOINT_ZERO_M = (0.0, -0.244, 0.099)
+    """Centre of the 112 mm bar handle at joint 0: an 11 x 11 mm bar standing 20.5 mm proud of the
+    drawer front on two posts 80 mm apart, so a pad fits behind it for a top-down pinch."""
+
+    DRAWER_INTERIOR_LOCAL_M = ((-0.125, 0.125), (-0.206, -0.027), (0.0255, 0.14))
+    """``(x, y, z)`` ranges of the drawer's inner cavity in the asset frame at joint 0 (250 x 179 mm
+    floor at z 25.5 mm, walls 114 mm tall); shift y by minus the joint position."""
+
+    def __init__(
+        self, instance_name: str | None = None, prim_path: str | None = None, initial_pose: Pose | None = None
+    ):
+        super().__init__(
+            instance_name=instance_name,
+            prim_path=prim_path,
+            initial_pose=initial_pose,
+            openable_joint_name=self.openable_joint_name,
+            openable_threshold=self.openable_threshold,
+        )
+
+    def get_openness(self, env, asset_cfg=None):
+        """Openness 0 (drawer flush) .. 1 (drawer fully out), from the measured joint polarity."""
+        from isaaclab.managers import SceneEntityCfg
+
+        from isaaclab_arena.utils.joint_utils import get_unnormalized_joint_position, normalize_value
+
+        if asset_cfg is None:
+            asset_cfg = SceneEntityCfg(self.name)
+        asset_cfg = self._add_joint_name_to_scene_entity_cfg(asset_cfg)
+        joint_pos = get_unnormalized_joint_position(env, asset_cfg)
+        return normalize_value(joint_pos, self.DRAWER_CLOSED_JOINT_POS_M, self.DRAWER_OPEN_JOINT_POS_M)
+
+    def rotate_revolute_joint(self, env, env_ids, asset_cfg=None, percentage: float = 0.0):
+        """Slide the drawer to the given openness (0 closed .. 1 fully out); the name is Openable's."""
+        from isaaclab.managers import SceneEntityCfg
+
+        from isaaclab_arena.utils.joint_utils import set_unnormalized_joint_position, unnormalize_value
+
+        assert 0.0 <= percentage <= 1.0, "Percentage must be between 0.0 and 1.0"
+        if asset_cfg is None:
+            asset_cfg = SceneEntityCfg(self.name)
+        asset_cfg = self._add_joint_name_to_scene_entity_cfg(asset_cfg)
+        joint_pos = unnormalize_value(percentage, self.DRAWER_CLOSED_JOINT_POS_M, self.DRAWER_OPEN_JOINT_POS_M)
+        set_unnormalized_joint_position(env, asset_cfg, joint_pos, env_ids)
+
+
+@register_asset
+class RotaryKnob(LibraryObject, Turnable):
+    """Industrial 0-100 rotary control knob on a fixed dial panel, from USDCraft (2026-09-07).
+
+    Three links: the panel (root, a 130 x 130 x 7 mm plate in the asset's x-z plane, pinned to the
+    world), the ridged knob (75 mm across, 30 mm proud of the panel's -y face, 0.11 kg, turning
+    about the asset's y axis through 0..270 degrees) and a spring-loaded detent plunger that clicks
+    into the knob's 51-valley cam. The knob joint itself is nearly free (damping 1.7e-4, no
+    Coulomb friction): whatever holds an angle is the detent. The origin is the knob's axis point
+    on the panel's mid-plane.
+    """
+
+    name = "rotary_knob"
+    # Not tagged "object" for the same reason as the drawer cabinet (sibling links).
+    tags = ["usdcraft", "turnable", "fixture"]
+    usd_path = _agibot_asset_0907_usd(
+        "rec_create-a-simulator-ready-industrial-rotary-contr_20260907_070836_bb674e43_2843401c"
+    )
+    object_type = ObjectType.ARTICULATION
+    spawn_cfg_addon = _FIXED_BASE_SPAWN_ADDON
+
+    turnable_joint_name = "panel_to_knob"
+    min_level_angle_deg = 27.0
+    max_level_angle_deg = 270.0
+    num_levels = 10
+    """Ten 27-degree levels over the 270-degree dial (a 0-100 scale: level k is the reading
+    10 k .. 10 (k + 1)); the first 27 degrees are the dead zone (level -1), where the knob is put at
+    reset. Level k spans [27 + 27 k, 27 + 27 (k + 1)) degrees -- a +/- 13.5 degree window."""
+
+    PANEL_HALF_SIZE_M = 0.065
+    PANEL_HALF_THICKNESS_M = 0.0035
+    KNOB_RADIUS_M = 0.0375
+    KNOB_FACE_Y_M = -0.033
+    """The knob's front face lies 33 mm along the asset's -y axis from the origin."""
+
+    def __init__(
+        self,
+        instance_name: str | None = None,
+        prim_path: str | None = None,
+        initial_pose: Pose | None = None,
+        scale: tuple[float, float, float] = (1.0, 1.0, 1.0),
+    ):
+        # Scale must come in here: the spawn config is generated during construction, so setting
+        # ``.scale`` afterwards changes nothing in the simulation.
+        super().__init__(
+            instance_name=instance_name,
+            prim_path=prim_path,
+            initial_pose=initial_pose,
+            scale=scale,
+            turnable_joint_name=self.turnable_joint_name,
+            min_level_angle_deg=self.min_level_angle_deg,
+            max_level_angle_deg=self.max_level_angle_deg,
+            num_levels=self.num_levels,
+        )
