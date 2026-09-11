@@ -111,3 +111,64 @@ def test_foo():  # pytest-visible outer function
 - **Never** add AI-attribution lines to commits (no `Co-Authored-By: Claude…`, no `Generated with…`). **Instead**, sign off with `git commit -s` — DCO is the only required trailer.
 - **Never** commit models, datasets, or secrets. **Instead**, keep them on the host and mount them via `./docker/run_docker.sh -d <datasets> -m <models> -e <eval>`.
 - **Ask first** before changing `docker/`, `.github/workflows/`, `.pre-commit-config.yaml`, or `submodules/` — these affect every contributor. **Instead** of pushing directly, open a draft PR or raise it in the relevant channel before merging.
+
+## RR sim2real branch and agent handoff
+
+Read `docs/rr_sim2real/README.md` before continuing UR7e work. It covers external
+assets, data contracts, collection, DP training/evaluation, measured results and
+cross-machine setup. `tools/rr_sim2real/` contains only small migration references,
+not datasets, checkpoints or a standalone simulator installation.
+
+The user authorized publishing this work on 2026-09-11 to the fork
+`git@github.com:xingyoujun/IsaacLab-Arena.git`, branch `chuanruiz/rr_sim2real`.
+This explicit branch name is an exception to the generic naming convention.
+Do not push to upstream `origin`, force-push, or create a PR unless requested.
+For parallel development, create separate topic branches/worktrees from this
+branch, coordinate shared-file changes, and merge with ordinary commits.
+
+## Source host: the `IsaacLab-Arena-tasks` worktree
+
+`/home/ubuntu/code/IsaacLab-Arena-tasks` is a git worktree of the main clone at `/home/ubuntu/code/IsaacLab-Arena`, originally on `chuanruiz/feature/task-configs` and now on `chuanruiz/rr_sim2real`. It exists for **task-configuration work that is unrelated to the Agibot benchmark work in the main clone**. Treat the two checkouts as separate projects that happen to share a `.git` and a Python environment.
+
+- **Different task, different context.** Do not carry Agibot assumptions, gates, or pending decisions from the main clone into this worktree, and do not touch the main clone's working tree from here. Only the code in this directory is in scope.
+- **Publication exception.** The original local branch `chuanruiz/feature/task-configs` is retained. RR sim2real development is now shared through the explicit fork branch above. Never touch the main clone's working tree or its active branch.
+- **Shared environment, not a shared install.** `.venv` is a symlink to the main clone's `.venv` (excluded via `.git/info/exclude`). The editable install of `isaaclab_arena` resolves to the main clone, so every run from this worktree must set:
+
+  ```bash
+  cd /home/ubuntu/code/IsaacLab-Arena-tasks
+  export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y
+  export PYTHONPATH=/home/ubuntu/code/IsaacLab-Arena-tasks:/home/ubuntu/code/IsaacLab-Arena/submodules/IsaacLab/source/isaaclab
+  ```
+
+  Without `PYTHONPATH`, scripts import the main clone's Arena code instead of this one. Run natively from `.venv`; the Docker section above does not apply on this host.
+- **Don't modify the shared environment.** No `uv sync`, `pip install`, or submodule updates from this worktree; they would change the main clone's environment. `isaaclab` always comes from the main clone's `submodules/IsaacLab`.
+- **Git hygiene.** The stash stack is shared with the main clone; prefer a WIP commit over `git stash`. Remove the worktree with `git worktree remove`, never `rm -rf`.
+
+### Work in this worktree: the UR7e workcell
+
+- Embodiments `ur7e_robotiq_joint_pos` (default) and `ur7e_robotiq_ik` live in `isaaclab_arena/embodiments/ur7e/`; the environment `ur7e_workcell` (table, lights, calibrated D435, robot in `pose_a`, no task) is `isaaclab_arena_environments/ur7e_workcell_environment.py`. Source of truth for the layout and camera is `/home/ubuntu/playground/rr_ur/scene.py`.
+- The robot USD is `/home/ubuntu/playground/rr_ur/ur7e_usd/ur7e_gripper/Collected_ur7e_gripper/ur7e_gripper.usd` (the *collected* copy, whose sub-layers and Robotiq asset are local). `select_ur_robot_spec()` falls back to the Isaac UR5e + Robotiq 2F-85 asset with a warning if that file or its sub-layers go missing; `ARENA_UR7E_USD` overrides the path.
+- This host has no display. Do not use `environment_runner.py`/`--viz kit`; `--record_viewport_video` also yields nothing headless (Isaac Lab 3.0 `render()` returns None). Record the two sensor cameras instead (D435 + the third-person `scene_cam`), on `cuda:0` (the default device):
+
+  ```bash
+  .venv/bin/python isaaclab_arena/evaluation/experiment_runner.py \
+      --eval_jobs_config isaaclab_arena_environments/eval_jobs_configs/ur7e_workcell_hold_pose.json \
+      --output_base_dir /home/ubuntu/playground/experiments/ur7e_workcell --enable_cameras --record_camera_video
+  ```
+
+  Camera clips are only flushed when an episode ends, so jobs must set `enable_cameras: true` in `arena_env_args` and run at least one full episode (`episode_length_s`, default 6 s = 90 steps at 15 Hz). `policy_runner.py` is broken on this host for every environment (pxr 0.25.5 in the venv shadows Isaac Sim's 0.25.11 at import time); use the experiment runner.
+- Run headless smoke checks the way the tests do; for the GUI use `environment_runner.py ur7e_workcell` (add `--enable_cameras` for the D435 observation).
+
+### Press-toaster task (rr_sim2real)
+
+- Environment `ur7e_press_toaster` (`isaaclab_arena_environments/ur7e_press_toaster_environment.py`): the toaster `toast_rr` stands on the closed drawer unit (`pedestal=True`, +78 mm) at the lower-left of the D435 image (x -0.22..-0.10, y 0.10..0.14, yaw 0 ± 10°, paddle facing the robot); one reset event places both objects from a single sample. Success = `carriage_slide` joint > 75 % of its 47 mm travel. Gravity is disabled on the toaster bodies so the lever stays where it is left (the asset has no return spring).
+- The env spawns `/home/ubuntu/playground/rr_ur/toast_rr_arena.usda`, an overlay that hides two decals whose textures are missing (they rendered black) and lightens the metallic materials.
+- Driver: `isaaclab_arena_cumotion/scripts/ur7e_press_toaster_cumotion.py` (closed gripper, tool tilted 50-60° towards the toaster, straight vertical press; candidates over tilt x wrist spin are filtered with cuMotion's self-collision inspector and planned to the IK *configuration*, least joint travel wins). Measured constraints, do not re-derive: paddle facing the camera hides the toaster behind the wrist; paddle closer than ~0.43 m to the base has no self-collision-free press; 80-90° (horizontal) tilts self-collide everywhere in the reachable band; planning to a pose target let cuMotion pick a folded IK branch that pressed with the shoulder alone (10 mm).
+- Concurrent training has caused RTX crashes inside `ensure_isaac_rtx_render_update`; reserve the GPU for simulation rather than diagnosing these as asset failures. A single local DP inference server plus one simulator was successfully evaluated on 2026-09-11; do not generalize this to arbitrary concurrent CUDA workloads.
+
+### Open-drawer data collection (rr_sim2real)
+
+- Driver: `isaaclab_arena_cumotion/scripts/ur7e_open_drawer_cumotion.py` (top-down knob grasp, `--record-dir` enables states-only HDF5 recording with `Ur7eJointRecordingActionsCfg` + `embodiments/ur7e/demo_recorders.py`; `--init-joint-std` jitters the start pose, the drawer pose is randomised by the env).
+- Orchestration: `/home/ubuntu/playground/datasets/collect_ur7e_open_drawer.sh` (2 workers per round, merge, trim, `rerender_embodiment_cameras.py` for the D435 at its configured 640x480, `convert_hdf5_to_lerobot.py --yaml_file isaaclab_arena_gr00t/lerobot/config/ur7e_open_drawer_config.yaml`, `add_ur7e_eef_9d.py`, publish). Raw under `datasets/rr_sim2real_raw/open_drawer`, final LeRobot v2.1 under `datasets/rr_sim2real/open_drawer` (converted output only).
+- The drawer env spawns `/home/ubuntu/playground/rr_ur/drawer_rr_arena.usda`, an overlay of the user's `drawer_rr.usdc` that filters collisions between the sliding links and the carcass (the 1 mm clearance otherwise jams the slide at many placements). Diagnose a drawer that will not open with `ur7e_open_drawer_cumotion.py --probe-only --drawer-pose X Y YAW` before touching the grasp.
+- Dataset conventions: `observation.state`/`action` = 7 absolute joints `[6 arm, finger_joint]` (rad); `observation.eef_9d`/`action.eef_9d` = TCP xyz + first two rotation-matrix COLUMNS in the UR `base` frame, from URDF FK (`meta/eef_9d.json`); one video `observation.images.realsense_d435` 640x480 h264 at 15 fps. Do not resize the video: it must match the real D435 configuration. `lerobot_to_diffusion_policy_zarr.py` produces the diffusion_policy replay buffer (rot6d rows, 10-dim action with the gripper last).

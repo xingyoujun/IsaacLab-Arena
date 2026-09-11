@@ -22,9 +22,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from isaaclab_arena_cumotion.cumotion_embodiment_cfg import CumotionEmbodimentCfg
 
-CUMOTION_PYTHON_PATH = (
-    "{isaac_sim_root}/exts/isaacsim.robot_motion.cumotion/pip_prebundle"
-)
+CUMOTION_PYTHON_PATH = "{isaac_sim_root}/exts/isaacsim.robot_motion.cumotion/pip_prebundle"
 """The native ``cumotion`` wheel is prebundled inside the extension rather than site-packages."""
 
 

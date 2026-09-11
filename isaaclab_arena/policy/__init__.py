@@ -5,4 +5,5 @@
 
 from .replay_action_policy import *
 from .rsl_rl_action_policy import *
+from .ur7e_diffusion_policy_remote import *
 from .zero_action_policy import *

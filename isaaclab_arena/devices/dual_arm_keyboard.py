@@ -79,7 +79,8 @@ class DualArmSe3Keyboard(Se3Keyboard):
     def advance(self) -> torch.Tensor:
         """Return the two-arm command: live values for the active arm, hold for the other."""
         command = super().advance()
-        self._gripper_closed[self._active_arm] = bool(command[ARM_ACTION_DIM] < 0)
+        # Convert the scalar tensor to a Python bool for the keyboard's toggle state.
+        self._gripper_closed[self._active_arm] = bool(command[ARM_ACTION_DIM] < 0)  # noqa: SIM901
 
         both = torch.zeros(2 * ARM_SLICE_DIM, dtype=command.dtype, device=command.device)
         # Zero delta pose means "stay put" for a relative-mode arm term, so only the grippers

@@ -103,7 +103,8 @@ class CumotionArmPlanner:
         self.robot = env.scene.articulations[robot_scene_name]
         self.arm_joint_ids, _ = self.robot.find_joints(self.cfg.arm_joint_names, preserve_order=True)
         self.gripper_joint_ids, _ = self.robot.find_joints(self.cfg.gripper_joint_names)
-        self.tool_body_index = list(self.robot.data.body_names).index(self.cfg.tool_frame)
+        sim_tool_body = self.cfg.sim_tool_body or self.cfg.tool_frame
+        self.tool_body_index = list(self.robot.data.body_names).index(sim_tool_body)
 
         self.robot_description = load_robot_description(self.cfg)
         self.kinematics = self.robot_description.kinematics()
@@ -258,9 +259,8 @@ class CumotionArmPlanner:
         pose exactly while the jaws point somewhere else. Measuring it here rather than taking it
         from a configured axis name means the two descriptions cannot silently disagree.
         """
-        import warp as wp
-
         import isaaclab.utils.math as math_utils
+        import warp as wp
 
         quat_xyzw = wp.to_torch(self.robot.data.body_quat_w)[0, self.tool_body_index].detach().cpu()
         tool_in_world = math_utils.matrix_from_quat(quat_xyzw.float().unsqueeze(0))[0].numpy()

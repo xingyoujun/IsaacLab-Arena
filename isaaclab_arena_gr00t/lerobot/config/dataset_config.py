@@ -69,9 +69,7 @@ class Gr00tDatasetConfig:
     )
     sidecar_camera_dir: Path | None = field(
         default=None,
-        metadata={
-            "description": ("Directory holding the sidecar camera mp4s. Defaults to '<hdf5_file_path>.cameras'.")
-        },
+        metadata={"description": "Directory holding the sidecar camera mp4s. Defaults to '<hdf5_file_path>.cameras'."},
     )
     # Gr00t-LeRobot datafield
     state_name_lerobot: str = field(

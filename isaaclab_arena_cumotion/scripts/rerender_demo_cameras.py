@@ -55,11 +55,11 @@ app_launcher = AppLauncher(args)
 simulation_app = app_launcher.app
 
 import h5py  # noqa: E402
-import imageio.v2 as iio  # noqa: E402
 import numpy as np  # noqa: E402
 import pathlib  # noqa: E402
 import torch  # noqa: E402
 
+import imageio.v2 as iio  # noqa: E402
 import isaaclab.sim as sim_utils  # noqa: E402
 import isaaclab.utils.math as math_utils  # noqa: E402
 from isaaclab.sensors import Camera, CameraCfg  # noqa: E402

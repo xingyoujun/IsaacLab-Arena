@@ -1,0 +1,21 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Simulated articulation joint order of the UR7e + Robotiq 2F-85 (obs/robot_joint_pos).
+joints:
+  "shoulder_pan_joint": 0
+  "shoulder_lift_joint": 1
+  "elbow_joint": 2
+  "wrist_1_joint": 3
+  "wrist_2_joint": 4
+  "wrist_3_joint": 5
+  "finger_joint": 6
+  "right_outer_knuckle_joint": 7
+  "left_inner_finger_joint": 8
+  "right_inner_finger_joint": 9
+  "left_inner_finger_knuckle_joint": 10
+  "right_inner_finger_knuckle_joint": 11
+
+total_joints: 12

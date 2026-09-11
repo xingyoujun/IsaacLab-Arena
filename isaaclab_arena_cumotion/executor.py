@@ -29,8 +29,6 @@ from typing import TYPE_CHECKING
 
 import warp as wp
 
-from isaaclab_arena.utils.agibot_gripper import AGIBOT_GRIPPER_RAMP_SECONDS
-
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
 
@@ -39,10 +37,11 @@ if TYPE_CHECKING:
 DEFAULT_TRAJECTORY_SPEED = 0.35
 """Fraction of cuMotion's time-optimal speed. Above ~0.5 the stiff arm cannot keep up."""
 
-DEFAULT_GRIPPER_RAMP_SECONDS = AGIBOT_GRIPPER_RAMP_SECONDS
+DEFAULT_GRIPPER_RAMP_SECONDS = 0.5
 """Time a gripper command is ramped over, rather than stepped. Stated in seconds so the ramp is
-the same wall-clock impulse at any control or physics rate; the value is the embodiment's, shared
-with the teleoperation path's ramped gripper action."""
+the same wall-clock impulse at any control or physics rate. The value actually used is the
+embodiment's ``CumotionEmbodimentCfg.gripper_ramp_seconds`` (the Agibot's equals this default and
+is shared with its teleoperation path's ramped gripper action)."""
 
 DEFAULT_SETTLE_SECONDS = 40 / 120
 """Time a followed path holds its final configuration for; 40 steps at the original 1/120 s dt."""
@@ -88,7 +87,7 @@ class ArmExecutor:
         self.dt = env.sim.get_physics_dt()
         self.on_step = on_step
         self._gripper_target = planner.cfg.gripper_open_pos
-        self.gripper_ramp_steps = max(1, round(DEFAULT_GRIPPER_RAMP_SECONDS / self.dt))
+        self.gripper_ramp_steps = max(1, round(planner.cfg.gripper_ramp_seconds / self.dt))
         """Default steps a gripper ramp is spread over, one per ``step`` call."""
         self.settle_steps = max(1, round(DEFAULT_SETTLE_SECONDS / self.dt))
         """Default steps a followed path holds its final configuration for."""
@@ -284,7 +283,7 @@ class EnvActionExecutor(ArmExecutor):
         self.interface = interface
         # One step here is one control step; re-derive the second-based pacing at that rate.
         self.dt = float(env.step_dt)
-        self.gripper_ramp_steps = max(1, round(DEFAULT_GRIPPER_RAMP_SECONDS / self.dt))
+        self.gripper_ramp_steps = max(1, round(planner.cfg.gripper_ramp_seconds / self.dt))
         self.settle_steps = max(1, round(DEFAULT_SETTLE_SECONDS / self.dt))
         self._arm_term = arm_term
         self._gripper_term = gripper_term

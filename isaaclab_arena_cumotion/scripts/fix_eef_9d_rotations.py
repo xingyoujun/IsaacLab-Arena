@@ -46,14 +46,14 @@ Repair, grafting the corrected columns into a sibling dataset (e.g. the joint-on
 
 import argparse
 import json
+import numpy as np
 import pathlib
 import sys
 import urllib.request
 from collections import deque
-
-import numpy as np
-import pandas as pd
 from scipy.spatial.transform import Rotation
+
+import pandas as pd
 
 A2D_USD_URL = (
     "https://omniverse-content-production.s3-us-west-2.amazonaws.com"

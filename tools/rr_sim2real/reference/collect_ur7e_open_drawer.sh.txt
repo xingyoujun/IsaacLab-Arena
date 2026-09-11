@@ -1,0 +1,148 @@
+# Archived reference only; not a runnable launcher. Original interpreter: /usr/bin/env bash
+# Detached collection driver for the UR7e open-drawer demonstrations (rr_sim2real):
+# rounds of 2 parallel cuMotion workers until TARGET_SUCCESS demos exist, then
+# merge -> trim -> re-render the D435 -> LeRobot convert -> add eef_9d -> publish.
+# Two Isaac Sim processes is this host's ceiling; every stage is fault-isolated and raw demos
+# accumulate in per-round run_* directories that are never overwritten.
+#
+# Launch DETACHED so it survives the SSH session:
+#   setsid nohup bash /home/ubuntu/playground/datasets/collect_ur7e_open_drawer.sh \
+#       > /home/ubuntu/playground/logs/collect_ur7e_open_drawer.log 2>&1 < /dev/null &
+#
+# Final layout: /home/ubuntu/playground/datasets/rr_sim2real/open_drawer (LeRobot v2.1: data/ videos/ meta/ only).
+# Raw HDF5 + camera sidecars: /home/ubuntu/playground/datasets/rr_sim2real_raw/open_drawer.
+set -uo pipefail
+
+TARGET_SUCCESS="${TARGET_SUCCESS:-100}"
+DEMOS_PER_WORKER="${DEMOS_PER_WORKER:-8}"
+SEED_BASE="${SEED_BASE:-$(date +%s)}"
+MAX_ROUNDS="${MAX_ROUNDS:-40}"  # backstop so a broken task cannot loop forever
+DRIVER_ARGS="${DRIVER_ARGS:-}"  # extra ur7e_open_drawer_cumotion.py flags, e.g. "--pull-distance 0.10"
+
+TASK=open_drawer
+REPO=/home/ubuntu/code/IsaacLab-Arena-tasks
+DATASETS=/home/ubuntu/playground/datasets
+RAW="$DATASETS/rr_sim2real_raw/$TASK"
+FINAL="$DATASETS/rr_sim2real/$TASK"
+LOGDIR=/home/ubuntu/playground/logs
+SCRIPT=isaaclab_arena_cumotion/scripts/ur7e_open_drawer_cumotion.py
+ENV_NAME=ur7e_open_drawer
+CONFIG=isaaclab_arena_gr00t/lerobot/config/ur7e_open_drawer_config.yaml
+
+cd "$REPO"
+export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y PYTHONPATH="$REPO" PYTHONUNBUFFERED=1
+mkdir -p "$RAW" "$LOGDIR"
+
+count_successes() {
+    .venv/bin/python - "$RAW" "$TASK" << 'PY'
+import glob
+import sys
+
+import h5py
+
+raw, prefix = sys.argv[1], sys.argv[2]
+total = 0
+for path in glob.glob(f"{raw}/run_*/worker_*/{prefix}_*.hdf5"):
+    try:
+        with h5py.File(path) as handle:
+            total += len(handle["data"])
+    except OSError:
+        pass  # a worker may still be writing; count it next round
+print(total)
+PY
+}
+
+round=0
+while true; do
+    have=$(count_successes)
+    echo "[driver] successes so far: $have / $TARGET_SUCCESS"
+    if [ "$have" -ge "$TARGET_SUCCESS" ]; then break; fi
+    round=$((round + 1))
+    if [ "$round" -gt "$MAX_ROUNDS" ]; then
+        echo "[driver] MAX_ROUNDS reached with $have successes; moving on"
+        break
+    fi
+    remaining=$((TARGET_SUCCESS - have))
+    per_worker=$(((remaining + 1) / 2))
+    if [ "$per_worker" -gt "$DEMOS_PER_WORKER" ]; then per_worker=$DEMOS_PER_WORKER; fi
+    stamp="$(date +%m%d_%H%M)_r${round}"
+    run="$RAW/run_${stamp}"
+    seed_a=$((SEED_BASE + round * 100))
+    seed_b=$((SEED_BASE + round * 100 + 1))  # two workers with one seed would produce byte-identical demos
+    mkdir -p "$run/worker_a" "$run/worker_b"
+    echo "[driver] round $round: demos/worker=$per_worker seeds=$seed_a/$seed_b run=$run"
+    # shellcheck disable=SC2086 -- DRIVER_ARGS is intentionally word-split
+    .venv/bin/python "$SCRIPT" $DRIVER_ARGS --num-demos "$per_worker" --seed "$seed_a" \
+        --record-dir "$run/worker_a" --dataset-name "${TASK}_a" > "$LOGDIR/collect_${TASK}_${stamp}_worker_a.log" 2>&1 &
+    pid_a=$!
+    sleep 20
+    # shellcheck disable=SC2086
+    .venv/bin/python "$SCRIPT" $DRIVER_ARGS --num-demos "$per_worker" --seed "$seed_b" \
+        --record-dir "$run/worker_b" --dataset-name "${TASK}_b" > "$LOGDIR/collect_${TASK}_${stamp}_worker_b.log" 2>&1 &
+    pid_b=$!
+    wait "$pid_a"; echo "[driver] worker_a exit $?"
+    wait "$pid_b"; echo "[driver] worker_b exit $?"
+done
+
+# Merge every run's READABLE exports (a worker killed mid-write can leave an unreadable file).
+mapfile -t inputs < <(
+    ls "$RAW"/run_*/worker_*/"${TASK}"_*.hdf5 2>/dev/null | while read -r f; do
+        .venv/bin/python -c "import h5py,sys; h5py.File(sys.argv[1]).close()" "$f" 2>/dev/null \
+            && echo "$f" || echo "[driver] skipping unreadable $f" >&2
+    done
+)
+if [ "${#inputs[@]}" -eq 0 ]; then echo "[driver] NO DEMOS COLLECTED"; exit 1; fi
+echo "[driver] merging ${#inputs[@]} files"
+.venv/bin/python isaaclab_arena_cumotion/scripts/merge_demos.py "${inputs[@]}" -o "$RAW/${TASK}_all.hdf5" --overwrite \
+    || { echo "[driver] MERGE FAILED"; exit 1; }
+
+# Ship exactly TARGET_SUCCESS demos (the last round can overshoot).
+.venv/bin/python - "$RAW/${TASK}_all.hdf5" "$RAW/${TASK}.hdf5" "$TARGET_SUCCESS" << 'PY' || { echo "[driver] TRIM FAILED"; exit 1; }
+import sys
+
+import h5py
+
+source_path, output_path, target = sys.argv[1], sys.argv[2], int(sys.argv[3])
+with h5py.File(source_path) as source, h5py.File(output_path, "w") as output:
+    for key, value in source.attrs.items():
+        output.attrs[key] = value  # keep format_version: without it the loader assumes legacy quaternions
+    data = output.create_group("data")
+    kept = 0
+    names = sorted(source["data"], key=lambda name: int(name.split("_")[1]))[:target]
+    for name in names:
+        source.copy(source[f"data/{name}"], data, name=name)
+        kept += int(source[f"data/{name}"].attrs["num_samples"])
+    for key, value in source["data"].attrs.items():
+        data.attrs[key] = value
+    data.attrs["total"] = kept
+    print(f"kept {len(names)}/{len(source['data'])} demos, {kept} steps")
+PY
+rm -f "$RAW/${TASK}_all.hdf5"
+
+# Re-render the calibrated D435 (640x480) for the TRIMMED file; merging renumbers demos, so sidecars must be
+# rendered after it. Two workers split the demo range; finished demos are skipped on relaunch.
+n_demos=$(.venv/bin/python -c "import h5py,sys; print(len(h5py.File(sys.argv[1])['data']))" "$RAW/${TASK}.hdf5")
+half=$((n_demos / 2))
+rm -rf "$RAW/${TASK}.hdf5.cameras"
+.venv/bin/python isaaclab_arena_cumotion/scripts/rerender_embodiment_cameras.py --env "$ENV_NAME" \
+    --hdf5 "$RAW/${TASK}.hdf5" --streams realsense_d435_rgb --demo-range 0 "$half" \
+    > "$LOGDIR/rerender_${TASK}_worker_a.log" 2>&1 &
+rr_a=$!
+sleep 20
+.venv/bin/python isaaclab_arena_cumotion/scripts/rerender_embodiment_cameras.py --env "$ENV_NAME" \
+    --hdf5 "$RAW/${TASK}.hdf5" --streams realsense_d435_rgb --demo-range "$half" "$n_demos" \
+    > "$LOGDIR/rerender_${TASK}_worker_b.log" 2>&1 &
+rr_b=$!
+wait "$rr_a" || { echo "[driver] RERENDER worker_a FAILED"; exit 1; }
+wait "$rr_b" || { echo "[driver] RERENDER worker_b FAILED"; exit 1; }
+
+rm -rf "$RAW/${TASK}/lerobot"  # the converter prompts interactively if it exists
+.venv/bin/python isaaclab_arena_gr00t/lerobot/convert_hdf5_to_lerobot.py --yaml_file "$CONFIG" < /dev/null \
+    || { echo "[driver] CONVERT FAILED"; exit 1; }
+.venv/bin/python isaaclab_arena_gr00t/lerobot/add_ur7e_eef_9d.py --hdf5 "$RAW/${TASK}.hdf5" --lerobot "$RAW/${TASK}/lerobot" \
+    || { echo "[driver] EEF_9D FAILED"; exit 1; }
+
+rm -rf "$FINAL"
+mkdir -p "$FINAL"
+cp -r "$RAW/${TASK}/lerobot/data" "$RAW/${TASK}/lerobot/videos" "$RAW/${TASK}/lerobot/meta" "$FINAL/"
+echo "[driver] DONE: $(find "$FINAL" -name '*.parquet' | wc -l) episodes in $FINAL"

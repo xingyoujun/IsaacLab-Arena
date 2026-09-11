@@ -16,6 +16,11 @@
 
 </div>
 
+This fork's `chuanruiz/rr_sim2real` branch contains the UR7e real-to-sim workcell,
+drawer ablations and press-toaster pipeline. Start with the
+[RR sim2real development handoff](docs/rr_sim2real/README.md). Assets, datasets
+and checkpoints are transferred separately, not stored in Git.
+
 ---
 
 > [!WARNING]

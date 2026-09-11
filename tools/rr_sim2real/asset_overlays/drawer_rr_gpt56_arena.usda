@@ -1,0 +1,26 @@
+#usda 1.0
+(
+    defaultPrim = "DrawerBox"
+    doc = "drawer_rr_gpt56_sol_high_image_mesh.usd prepared for Isaac Lab-Arena: the asset's own PhysicsScene is deactivated (the stage already has one) and the articulation root moves from the plain Xform root onto the fixed carcass body, so ArticulationRootPropertiesCfg(fix_root_link=True) can anchor it. Geometry, joint and materials are untouched."
+)
+
+def Xform "DrawerBox" (
+    delete apiSchemas = ["PhysicsArticulationRootAPI", "PhysxArticulationAPI"]
+    prepend references = @./drawer_rr_gpt56_sol_high_image_mesh.usd@</DrawerBox>
+)
+{
+    over "PhysicsScene" (
+        active = false
+    )
+    {
+    }
+
+    over "Body" (
+        prepend apiSchemas = ["PhysicsArticulationRootAPI", "PhysxArticulationAPI"]
+    )
+    {
+        bool physxArticulation:enabledSelfCollisions = 0
+        int physxArticulation:solverPositionIterationCount = 16
+        int physxArticulation:solverVelocityIterationCount = 4
+    }
+}

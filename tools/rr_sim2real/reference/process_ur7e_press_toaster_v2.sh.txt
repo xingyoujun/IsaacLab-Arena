@@ -1,0 +1,93 @@
+# Archived reference only; not a runnable launcher. Original interpreter: /usr/bin/env bash
+# Re-process the UR7e press-toaster demonstrations (rr_sim2real) into dataset v2 -- no new collection:
+#   1. re-render the D435 with per-demo visual randomization (lights, HDRI dome, table/floor materials,
+#      distractors) -- 2 Isaac Sim workers, resumable (finished demos are skipped),
+#   2. LeRobot v2.1 convert + eef_9d, publish to rr_sim2real/press_toaster_v2,
+#   3. diffusion_policy zarr + a preview contact sheet.
+# The demos already end with the lever pressed, so no truncation step (unlike open_drawer v2).
+#
+# Launch in tmux (or detached):
+#   bash /home/ubuntu/playground/datasets/process_ur7e_press_toaster_v2.sh 2>&1 | tee /home/ubuntu/playground/logs/process_press_toaster_v2.log
+#
+# Env knobs: RANDOMIZE_SEED (default 0), FORCE_RERENDER=1 (discard existing sidecars), SKIP_RERENDER=1.
+set -uo pipefail
+
+REPO=/home/ubuntu/code/IsaacLab-Arena-tasks
+DATASETS=/home/ubuntu/playground/datasets
+RAW="$DATASETS/rr_sim2real_raw/press_toaster"
+FINAL="$DATASETS/rr_sim2real/press_toaster_v2"
+ZARR="$DATASETS/rr_sim2real/press_toaster_v2_dp.zarr"
+LOGDIR=/home/ubuntu/playground/logs
+SKIES=/home/ubuntu/playground/assets/skies
+ENV_NAME=ur7e_press_toaster
+CONFIG=isaaclab_arena_gr00t/lerobot/config/ur7e_press_toaster_v2_config.yaml
+SRC="$RAW/press_toaster.hdf5"
+V2="$RAW/press_toaster_v2.hdf5"
+RANDOMIZE_SEED="${RANDOMIZE_SEED:-0}"
+DP_PYTHON="${DP_PYTHON:-/home/ubuntu/miniconda3/envs/robodiff/bin/python}"
+
+cd "$REPO"
+export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y PYTHONPATH="$REPO" PYTHONUNBUFFERED=1
+mkdir -p "$LOGDIR"
+[ -f "$SRC" ] || { echo "[v2] missing $SRC"; exit 1; }
+[ -n "$(ls "$SKIES"/*.hdr 2>/dev/null)" ] || echo "[v2] WARNING: no .hdr in $SKIES, dome stays untextured"
+# Same demos under a v2 name so the randomized sidecars and the LeRobot output do not collide with v1.
+[ -f "$V2" ] || cp "$SRC" "$V2"
+
+if [ "${SKIP_RERENDER:-0}" != "1" ]; then
+    n_demos=$(.venv/bin/python -c "import h5py,sys; print(len(h5py.File(sys.argv[1])['data']))" "$V2")
+    half=$((n_demos / 2))
+    [ "${FORCE_RERENDER:-0}" = "1" ] && rm -rf "$V2.cameras"
+    echo "[v2] 1/3 re-render $n_demos demos with randomization (seed $RANDOMIZE_SEED), 2 workers"
+    .venv/bin/python isaaclab_arena_cumotion/scripts/rerender_embodiment_cameras.py --env "$ENV_NAME" \
+        --hdf5 "$V2" --streams realsense_d435_rgb --demo-range 0 "$half" \
+        --randomize --randomize-seed "$RANDOMIZE_SEED" --skies-dir "$SKIES" \
+        > "$LOGDIR/rerender_press_toaster_v2_worker_a.log" 2>&1 &
+    rr_a=$!
+    sleep 20
+    .venv/bin/python isaaclab_arena_cumotion/scripts/rerender_embodiment_cameras.py --env "$ENV_NAME" \
+        --hdf5 "$V2" --streams realsense_d435_rgb --demo-range "$half" "$n_demos" \
+        --randomize --randomize-seed "$RANDOMIZE_SEED" --skies-dir "$SKIES" \
+        > "$LOGDIR/rerender_press_toaster_v2_worker_b.log" 2>&1 &
+    rr_b=$!
+    wait "$rr_a" || { echo "[v2] RERENDER worker_a FAILED (see $LOGDIR/rerender_press_toaster_v2_worker_a.log)"; exit 1; }
+    wait "$rr_b" || { echo "[v2] RERENDER worker_b FAILED (see $LOGDIR/rerender_press_toaster_v2_worker_b.log)"; exit 1; }
+    rendered=$(ls "$V2.cameras"/demo_*_realsense_d435_rgb.mp4 2>/dev/null | wc -l)
+    [ "$rendered" -eq "$n_demos" ] || { echo "[v2] only $rendered/$n_demos videos rendered; relaunch to resume"; exit 1; }
+fi
+
+echo "[v2] 2/3 LeRobot convert + eef_9d"
+rm -rf "$RAW/press_toaster_v2/lerobot"  # the converter prompts interactively if it exists
+.venv/bin/python isaaclab_arena_gr00t/lerobot/convert_hdf5_to_lerobot.py --yaml_file "$CONFIG" < /dev/null \
+    || { echo "[v2] CONVERT FAILED"; exit 1; }
+.venv/bin/python isaaclab_arena_gr00t/lerobot/add_ur7e_eef_9d.py --hdf5 "$V2" --lerobot "$RAW/press_toaster_v2/lerobot" \
+    || { echo "[v2] EEF_9D FAILED"; exit 1; }
+
+rm -rf "$FINAL"
+mkdir -p "$FINAL"
+cp -r "$RAW/press_toaster_v2/lerobot/data" "$RAW/press_toaster_v2/lerobot/videos" "$RAW/press_toaster_v2/lerobot/meta" "$FINAL/"
+echo "[v2] published $(find "$FINAL" -name '*.parquet' | wc -l) episodes to $FINAL"
+
+echo "[v2] 3/3 diffusion_policy zarr + preview"
+rm -rf "$ZARR"
+# zarr / numcodecs / imagecodecs live in the diffusion_policy conda env, not in Arena's .venv.
+"$DP_PYTHON" isaaclab_arena_gr00t/lerobot/lerobot_to_diffusion_policy_zarr.py --lerobot "$FINAL" --out "$ZARR" \
+    || { echo "[v2] ZARR FAILED"; exit 1; }
+.venv/bin/python - "$FINAL" "$DATASETS/rr_sim2real/press_toaster_v2_preview.png" << 'PY'
+import sys
+from pathlib import Path
+
+import imageio.v2 as iio
+import numpy as np
+
+root, out = Path(sys.argv[1]), sys.argv[2]
+videos = sorted((root / "videos").rglob("*.mp4"))[::max(1, len(list((root / "videos").rglob("*.mp4"))) // 12)][:12]
+rows = []
+for video in videos:
+    reader = iio.get_reader(video)
+    n = reader.count_frames()
+    rows.append(np.concatenate([reader.get_data(i)[::2, ::2] for i in (0, n // 2, n - 1)], axis=1))
+iio.imwrite(out, np.concatenate(rows, axis=0))
+print(f"preview: {out}")
+PY
+echo "[v2] DONE"

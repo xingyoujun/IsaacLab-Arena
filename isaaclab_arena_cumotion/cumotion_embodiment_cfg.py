@@ -56,6 +56,17 @@ class CumotionEmbodimentCfg:
     from the approach axis -- measure it with ``scripts/probe_gripper_axes.py``.
     """
 
+    sim_tool_body: str | None = None
+    """Articulation body that coincides with ``tool_frame`` in the simulator, when named differently.
+
+    cuMotion plans against a URDF frame while the kinematics cross-check and tool-pose readings
+    come from the simulated articulation. The UR7e's URDF ends at ``tool0`` but the Robotiq asset
+    assembled onto it names that same body ``base_link``. Defaults to ``tool_frame``.
+    """
+
+    gripper_ramp_seconds: float = 0.5
+    """Time a gripper command is ramped over rather than stepped (see ``executor.py``)."""
+
     joint_limits: list[tuple[float, float]] = field(default_factory=list)
     """Arm joint limits, used to score how much room a planned configuration leaves.
 

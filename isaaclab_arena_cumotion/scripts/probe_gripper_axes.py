@@ -60,8 +60,9 @@ for name in body_names:
     if any(token in name for token in ("gripper", "Left", "Right", "hand", "base_link")):
         print(f"  {name:<32} {np.round(positions[body_names.index(name)], 4)}")
 
-import isaaclab.utils.math as math_utils  # noqa: E402
 import torch  # noqa: E402
+
+import isaaclab.utils.math as math_utils  # noqa: E402
 
 for side, tool, wrist in (
     ("left", "gripper_center", "left_base_link"),

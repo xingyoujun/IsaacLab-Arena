@@ -102,3 +102,16 @@ core.*
 
 # uv venv (Arena native install)
 .venv*/
+
+# RR sim2real host-only artifacts (never publish training/collection payloads).
+/rr_sim2real_local/
+*.hdf5
+*.h5
+*.ckpt
+*.zarr/
+*.zarr.zip
+*.hdf5.cameras/
+*.mp4
+*.log
+.env
+.env.*
