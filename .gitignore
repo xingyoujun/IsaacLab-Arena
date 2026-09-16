@@ -78,6 +78,10 @@ TAGS
 # Local planning files
 /CONTEXT.md
 /CONTEXT-MAP.md
+/mm/
+
+# NVIDIA streaming runtime traces
+NvStreamer-*.etli
 
 # Datasets
 *datasets/

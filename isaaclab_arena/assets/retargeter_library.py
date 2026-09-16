@@ -146,3 +146,15 @@ class GalbotKeyboardRetargeter(RetargetterBase):
 
     def get_pipeline_builder(self, embodiment: object) -> Callable | None:
         return None
+
+
+@register_retargeter
+class G2KeyboardRetargeter(RetargetterBase):
+    device = "keyboard"
+    embodiment = "g2"
+
+    def __init__(self):
+        pass
+
+    def get_pipeline_builder(self, embodiment: object) -> Callable | None:
+        return None

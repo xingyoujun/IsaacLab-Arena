@@ -72,6 +72,16 @@ class KeyboardCfg(TeleopDeviceBase):
     def get_device_cfg(
         self, pipeline_builder: Callable | None = None, embodiment: object | None = None
     ) -> Se3KeyboardCfg:
+        from isaaclab_arena.embodiments.common.arm_mode import ArmMode
+
+        if embodiment is not None and embodiment.name == "g2" and embodiment.arm_mode == ArmMode.DUAL_ARM:
+            from isaaclab_arena.embodiments.g2.keyboard import G2DualArmKeyboard
+
+            return Se3KeyboardCfg(
+                class_type=G2DualArmKeyboard,
+                pos_sensitivity=self.pos_sensitivity,
+                rot_sensitivity=self.rot_sensitivity,
+            )
         return Se3KeyboardCfg(
             pos_sensitivity=self.pos_sensitivity,
             rot_sensitivity=self.rot_sensitivity,

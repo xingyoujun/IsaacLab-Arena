@@ -261,6 +261,9 @@ include = [
 ]
 namespaces = false
 
+[tool.setuptools.package-data]
+"isaaclab_arena.embodiments.g2" = ["assets/*.usda"]
+
 # ----------------------------------------------------------------------------
 # Existing tool configuration (migrated unchanged from the previous pyproject)
 # ----------------------------------------------------------------------------

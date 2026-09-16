@@ -1,0 +1,90 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "World"
+{
+    def Cube "back_wall" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.72, 0.77, 0.78)]
+        double3 xformOp:translate = (1.8, 0, 1.5)
+        double3 xformOp:scale = (0.12, 5, 3)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+    def Cube "left_wall" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.79, 0.82, 0.79)]
+        double3 xformOp:translate = (-0.2, 2.5, 1.5)
+        double3 xformOp:scale = (4, 0.12, 3)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+    def Cube "floor" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.34, 0.38, 0.4)]
+        double3 xformOp:translate = (-0.2, 0, -0.04)
+        double3 xformOp:scale = (4, 5, 0.08)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+    def Cube "cabinet" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.23, 0.32, 0.34)]
+        double3 xformOp:translate = (1.35, 0, 0.45)
+        double3 xformOp:scale = (0.65, 1.8, 0.9)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+    def Cube "counter" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.73, 0.65, 0.51)]
+        double3 xformOp:translate = (1.35, 0, 0.93)
+        double3 xformOp:scale = (0.75, 1.9, 0.06)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+    def Cube "shelf" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.73, 0.65, 0.51)]
+        double3 xformOp:translate = (1.4, 0, 1.65)
+        double3 xformOp:scale = (0.55, 1.9, 0.05)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+    def Cube "shelf_back" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.23, 0.32, 0.34)]
+        double3 xformOp:translate = (1.7, 0, 1.4)
+        double3 xformOp:scale = (0.05, 1.9, 0.55)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+    def Cube "sideboard" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.23, 0.32, 0.34)]
+        double3 xformOp:translate = (0.9, 1.95, 0.45)
+        double3 xformOp:scale = (1.3, 0.55, 0.9)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+}
