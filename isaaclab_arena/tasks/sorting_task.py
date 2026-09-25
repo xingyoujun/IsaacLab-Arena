@@ -4,21 +4,21 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import numpy as np
-from dataclasses import MISSING
+from functools import partial
 
-import isaaclab.envs.mdp as mdp_isaac_lab
 from isaaclab.envs.common import ViewerCfg
 from isaaclab.managers import SceneEntityCfg, TerminationTermCfg
 from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
-from isaaclab.utils.configclass import configclass
 
 from isaaclab_arena.assets.asset import Asset
 from isaaclab_arena.assets.register import register_task
 from isaaclab_arena.metrics.metric_base import MetricBase
 from isaaclab_arena.metrics.success_rate import SuccessRateMetric
-from isaaclab_arena.tasks.predicates.spatial import objects_on_destinations
+from isaaclab_arena.progress_tracking.progress_objective import ProgressObjective
+from isaaclab_arena.tasks.predicates.spatial import object_on_destination
 from isaaclab_arena.tasks.task_base import TaskBase
-from isaaclab_arena.tasks.terminations import root_height_below_minimum_multi_objects
+from isaaclab_arena.tasks.task_termination_cfg import TaskTerminationCfg
+from isaaclab_arena.tasks.terminations import SuccessMode, check_success, root_height_below_minimum_multi_objects
 from isaaclab_arena.utils.cameras import get_viewer_cfg_look_at_object
 from isaaclab_arena.utils.configclass import make_configclass
 
@@ -32,6 +32,7 @@ class SortMultiObjectTask(TaskBase):
         destination_location_list: list[Asset],
         background_scene: Asset,
         episode_length_s: float | None = None,
+        force_threshold: float = 1.0,
     ):
         super().__init__(episode_length_s=episode_length_s)
         assert len(pick_up_object_list) == len(destination_location_list)
@@ -39,6 +40,8 @@ class SortMultiObjectTask(TaskBase):
         self.pick_up_object_list = pick_up_object_list
         self.destination_location_list = destination_location_list
         self.background_scene = background_scene
+        assert force_threshold >= 0.0, f"force_threshold must be non-negative, got {force_threshold}"
+        self.force_threshold = force_threshold
 
         self.pick_up_object_contact_sensor_list = []
         self.contact_sensor_name_list = []
@@ -50,7 +53,6 @@ class SortMultiObjectTask(TaskBase):
 
         self.events_cfg = None
         self.scene_config = self.make_scene_cfg()
-        self.termination_cfg = self.make_termination_cfg()
 
     def make_scene_cfg(self):
 
@@ -67,22 +69,31 @@ class SortMultiObjectTask(TaskBase):
     def get_scene_cfg(self):
         return self.scene_config
 
-    def get_termination_cfg(self):
-        return self.termination_cfg
-
-    def make_termination_cfg(self):
+    def get_termination_cfg(self) -> TaskTerminationCfg:
         object_cfg_list = [SceneEntityCfg(pick_up_object.name) for pick_up_object in self.pick_up_object_list]
+        destination_cfg_list = [
+            SceneEntityCfg(destination_location.name) for destination_location in self.destination_location_list
+        ]
         contact_sensor_cfg_list = [SceneEntityCfg(name) for name in self.contact_sensor_name_list]
 
-        success = TerminationTermCfg(
-            func=objects_on_destinations,
-            params={
-                "object_cfg_list": object_cfg_list,
-                "contact_sensor_cfg_list": contact_sensor_cfg_list,
-                "force_threshold": 1.0,
-                "velocity_threshold": 0.1,
-            },
-        )
+        object_on_destination_terms = [
+            TerminationTermCfg(
+                func=object_on_destination,
+                params={
+                    "object_cfg": object_cfg,
+                    "destination_cfg": destination_cfg,
+                    "contact_sensor_cfg": contact_sensor_cfg,
+                    "force_threshold": self.force_threshold,
+                    "velocity_threshold": 0.1,
+                },
+            )
+            for object_cfg, destination_cfg, contact_sensor_cfg in zip(
+                object_cfg_list,
+                destination_cfg_list,
+                contact_sensor_cfg_list,
+                strict=True,
+            )
+        ]
         object_dropped = TerminationTermCfg(
             func=root_height_below_minimum_multi_objects,
             params={
@@ -90,9 +101,21 @@ class SortMultiObjectTask(TaskBase):
                 "asset_cfg_list": [SceneEntityCfg(pick_up_object.name) for pick_up_object in self.pick_up_object_list],
             },
         )
-        return TerminationsCfg(
-            success=success,
-            object_dropped=object_dropped,
+        return TaskTerminationCfg(
+            timeout_s=self.episode_length_s,
+            success=[
+                ProgressObjective(
+                    name="sort_objects",
+                    predicate_sequence=[
+                        partial(
+                            check_success,
+                            predicates=object_on_destination_terms,
+                            mode=SuccessMode.ALL,
+                        )
+                    ],
+                ),
+            ],
+            failures={"object_dropped": object_dropped},
         )
 
     def get_events_cfg(self):
@@ -112,12 +135,3 @@ class SortMultiObjectTask(TaskBase):
             lookat_object=self.pick_up_object_list[0],
             offset=np.array([-1.5, -1.5, 1.5]),
         )
-
-
-@configclass
-class TerminationsCfg:
-    """Termination terms for the MDP."""
-
-    time_out: TerminationTermCfg = TerminationTermCfg(func=mdp_isaac_lab.time_out, time_out=True)
-    success: TerminationTermCfg = MISSING
-    object_dropped: TerminationTermCfg = MISSING

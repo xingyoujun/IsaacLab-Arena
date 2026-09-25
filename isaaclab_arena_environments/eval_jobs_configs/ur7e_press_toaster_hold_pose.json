@@ -1,0 +1,16 @@
+{
+    "jobs": [
+        {
+            "name": "ur7e_press_toaster_hold_pose_a",
+            "arena_env_args": {
+                "environment": "ur7e_press_toaster",
+                "embodiment": "ur7e_robotiq_ik",
+                "enable_cameras": true,
+                "episode_length_s": 3.0
+            },
+            "num_steps": 135,
+            "policy_type": "zero_action",
+            "policy_config_dict": {}
+        }
+    ]
+}

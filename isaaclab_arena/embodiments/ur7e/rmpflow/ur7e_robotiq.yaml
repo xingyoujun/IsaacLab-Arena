@@ -1,0 +1,96 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Lula robot description of the UR7e + Robotiq 2F-85 for cuMotion (see isaaclab_arena_cumotion/robot_description.py).
+#
+# Arm collision spheres are copied from the Lula description generated for the real workcell
+# (/home/ubuntu/playground/rr_ur/ur7e_usd/ur7e_gripper/ur7e_gripper.yaml); its gripper spheres were keyed by USD
+# prim paths that do not exist in the URDF, so the gripper is approximated here by four spheres on tool0.
+api_version: 1.0
+cspace: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint,
+  wrist_3_joint]
+default_q: [1.4309711456298828, -1.95, 2.05, -1.67, -1.5249694029437464, -0.06301623979677373]
+acceleration_limits: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+jerk_limits: [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+cspace_to_urdf_rules: []
+collision_spheres:
+- wrist_3_link:
+  - center: [-0.0, 0.004, -0.04]
+    radius: 0.04325
+  - center: [0.005, 0.001, -0.039]
+    radius: 0.04233
+  - center: [-0.006, -0.001, -0.038]
+    radius: 0.04141
+- wrist_2_link:
+  - center: [0.0, -0.01, -0.001]
+    radius: 0.05736
+  - center: [0.0, 0.008, -0.001]
+    radius: 0.05736
+  - center: [0.001, -0.001, -0.036]
+    radius: 0.05674
+- wrist_1_link:
+  - center: [-0.0, 0.0, -0.009]
+    radius: 0.05695
+  - center: [-0.0, 0.0, -0.052]
+    radius: 0.05695
+  - center: [-0.002, 0.021, -0.001]
+    radius: 0.05491
+- forearm_link:
+  - center: [-0.01, 0.002, 0.031]
+    radius: 0.07208
+  - center: [-0.387, 0.0, 0.014]
+    radius: 0.05706
+  - center: [-0.057, 0.003, 0.008]
+    radius: 0.06507
+  - center: [-0.194, 0.0, 0.007]
+    radius: 0.05706
+  - center: [-0.306, -0.001, 0.006]
+    radius: 0.05656
+  - center: [-0.135, -0.0, 0.006]
+    radius: 0.05656
+  - center: [-0.245, -0.002, 0.007]
+    radius: 0.05555
+  - center: [-0.394, -0.003, -0.016]
+    radius: 0.05305
+- upper_arm_link:
+  - center: [-0.39, -0.0, 0.138]
+    radius: 0.08781
+  - center: [-0.015, 0.0, 0.134]
+    radius: 0.08725
+  - center: [-0.276, 0.0, 0.138]
+    radius: 0.07206
+  - center: [-0.169, 0.001, 0.138]
+    radius: 0.0715
+  - center: [-0.427, 0.001, 0.131]
+    radius: 0.08556
+  - center: [-0.106, -0.001, 0.139]
+    radius: 0.0715
+  - center: [-0.221, 0.0, 0.137]
+    radius: 0.0715
+  - center: [-0.001, -0.002, 0.143]
+    radius: 0.08556
+- shoulder_link:
+  - center: [-0.0, -0.004, 0.0]
+    radius: 0.08776
+  - center: [-0.0, -0.013, 0.004]
+    radius: 0.08776
+  - center: [0.004, -0.024, -0.013]
+    radius: 0.0799
+- base_link_inertia:
+  - center: [0.01, 0.001, 0.05]
+    radius: 0.08933
+  - center: [-0.012, 0.001, 0.05]
+    radius: 0.08933
+  - center: [-0.002, -0.03, 0.039]
+    radius: 0.07747
+- tool0:
+  - center: [0.0, 0.0, 0.02]
+    radius: 0.045
+  - center: [0.0, 0.0, 0.06]
+    radius: 0.042
+  - center: [0.0, 0.0, 0.1]
+    radius: 0.035
+  - center: [0.0, 0.0, 0.135]
+    radius: 0.025

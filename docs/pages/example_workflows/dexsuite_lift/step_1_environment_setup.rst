@@ -10,9 +10,9 @@ Environment Description
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``dexsuite_lift`` Arena environment wraps the Isaac Lab
-``Isaac-Dexsuite-Kuka-Allegro-Lift-v0`` MDP for evaluation.
-The physics backend defaults to PhysX and can be switched to Newton by passing
-``--presets newton`` on the command line.
+``Isaac-Lift-KukaAllegro`` MDP for evaluation.
+The physics backend defaults to Newton. Pass ``--presets physx`` to override
+that environment default.
 
 The environment is defined in
 ``isaaclab_arena_environments/dexsuite_lift_environment.py``:
@@ -29,11 +29,12 @@ The environment is defined in
           def get_env(self, args_cli: argparse.Namespace):
               import math
 
-              import isaaclab_tasks.manager_based.manipulation.dexsuite  # noqa: F401
+              import isaaclab_tasks.core.lift  # noqa: F401
 
               from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
               from isaaclab_arena.scene.scene import Scene
               from isaaclab_arena.tasks.lift_object_task import DexsuiteLiftTask
+              from isaaclab_arena.utils.physics_backend import PhysicsBackend
               from isaaclab_arena.utils.pose import Pose, PoseRange
 
               dexsuite_table = self.asset_registry.get_asset_by_name("procedural_table")()
@@ -58,8 +59,8 @@ The environment is defined in
               task = DexsuiteLiftTask(lift_object=manip_object, background_scene=dexsuite_table)
 
               dexsuite_rl_cfg_entry = (
-                  "isaaclab_tasks.manager_based.manipulation.dexsuite.config.kuka_allegro.agents."
-                  "rsl_rl_ppo_cfg:DexsuiteKukaAllegroPPORunnerCfg"
+                  "isaaclab_tasks.core.lift.config.kuka_allegro.agents."
+                  "rsl_rl_ppo_cfg:KukaAllegroPPORunnerCfg"
               )
 
               return IsaacLabArenaEnvironment(
@@ -70,14 +71,13 @@ The environment is defined in
                   teleop_device=None,
                   rl_framework_entry_point="rsl_rl_cfg_entry_point",
                   rl_policy_cfg=dexsuite_rl_cfg_entry,
+                  default_physics_backend=PhysicsBackend.NEWTON,
               )
 
 .. note::
 
-   The environment does not contain a physics-specific callback.
-   Physics backend selection is handled globally by the ``--presets`` CLI flag
-   (e.g. ``--presets newton``), which is applied by ``ArenaEnvBuilder``
-   after all environment-specific configuration.
+   The environment declares Newton as its default backend. The common
+   ``--presets`` CLI flag can override that default.
 
 
 Step-by-Step Breakdown
@@ -116,13 +116,12 @@ a success termination at 5 cm position tolerance, and a time-out termination.
 
 **3. Physics Backend Selection**
 
-The physics backend is selected via the common ``--presets`` CLI flag, handled
-by ``ArenaEnvBuilder``:
+The physics backend is selected by ``ArenaEnvBuilder``:
 
-- **Default (PhysX)**: no extra flag needed.
-- **Newton**: pass ``--presets newton`` to ``policy_runner.py``.
+- **Default (Newton)**: no extra flag needed.
+- **PhysX override**: pass ``--presets physx`` to ``policy_runner.py``.
 
-When ``--presets newton`` is set, the builder automatically:
+When Newton is resolved, the builder automatically:
 
 1. Applies the ``ArenaPhysicsCfg().newton`` configuration (MuJoCo-Warp solver
    with tuned parameters for dexterous manipulation).
@@ -136,17 +135,17 @@ Verify the environment loads correctly with a zero-action policy:
 
 .. code-block:: bash
 
-   # PhysX (default):
+   # PhysX override:
    python isaaclab_arena/evaluation/policy_runner.py \
      --viz kit \
+     --presets physx \
      --policy_type zero_action \
      --num_steps 100 \
      dexsuite_lift
 
-   # Newton:
+   # Newton (environment default):
    python isaaclab_arena/evaluation/policy_runner.py \
      --viz newton \
-     --presets newton \
      --policy_type zero_action \
      --num_steps 100 \
      dexsuite_lift

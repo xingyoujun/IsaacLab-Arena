@@ -35,8 +35,8 @@ from isaaclab.markers.config import FRAME_MARKER_CFG
 from isaaclab.sensors import CameraCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
 from isaaclab.utils.configclass import configclass
-from isaaclab_tasks.manager_based.manipulation.pick_place.mdp import get_robot_joint_state
-from isaaclab_tasks.manager_based.manipulation.stack.mdp import ee_frame_pose_in_base_frame, franka_stack_events
+from isaaclab_tasks.contrib.pick_place.mdp import get_robot_joint_state
+from isaaclab_tasks.contrib.stack.mdp import ee_frame_pose_in_base_frame, franka_stack_events
 
 from isaaclab_arena.assets.geniesim import GENIESIM_ASSETS_DIR
 from isaaclab_arena.assets.register import register_asset
@@ -210,6 +210,9 @@ class G2Embodiment(EmbodimentBase):
 
     def get_ee_frame_name(self, arm_mode: ArmMode) -> str:
         return "left_end_effector" if arm_mode == ArmMode.LEFT else "right_end_effector"
+
+    def get_ee_frame_transformer_names(self) -> list[str]:
+        return ["ee_frame", "left_ee_frame"] if self.arm_mode == ArmMode.DUAL_ARM else ["ee_frame"]
 
     def get_teleop_target_frame_prim_path(self) -> str | None:
         return "{ENV_REGEX_NS}/Robot/base_link"

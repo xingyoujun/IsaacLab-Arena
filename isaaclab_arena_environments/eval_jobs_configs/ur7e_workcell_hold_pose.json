@@ -1,0 +1,15 @@
+{
+    "jobs": [
+        {
+            "name": "ur7e_workcell_hold_pose_a",
+            "arena_env_args": {
+                "environment": "ur7e_workcell",
+                "embodiment": "ur7e_robotiq_ik",
+                "enable_cameras": true
+            },
+            "num_steps": 90,
+            "policy_type": "zero_action",
+            "policy_config_dict": {}
+        }
+    ]
+}

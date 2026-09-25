@@ -8,32 +8,23 @@ from __future__ import annotations
 import torch
 from abc import ABC, abstractmethod
 
-import warp as wp
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.envs import ManagerBasedEnv
 from isaaclab.managers import EventTermCfg, SceneEntityCfg
 from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
-from isaaclab_tasks.manager_based.manipulation.stack.mdp.franka_stack_events import randomize_object_pose
+from isaaclab_tasks.contrib.stack.mdp.franka_stack_events import randomize_object_pose
 
-# Re-export ObjectType from the lightweight module so existing
-# `from isaaclab_arena.assets.object_base import ObjectType` consumers keep working,
-# while pure-Python spec modules can import from `object_type` directly without
-# pulling in isaaclab/omni/pxr at module-load time.
 from isaaclab_arena.assets.object_type import ObjectType
 from isaaclab_arena.relations.placement_asset import PlaceableAsset
 from isaaclab_arena.terms.events import set_object_pose, set_object_pose_per_env
 from isaaclab_arena.utils.pose import Pose, PosePerEnv, PoseRange
 from isaaclab_arena.utils.velocity import Velocity
+from isaaclab_arena.variations.object_disappear_variation import ObjectDisappearVariation
 from isaaclab_arena.variations.object_mass_variation import ObjectMassVariation
-
-__all__ = [
-    "ObjectBase",
-    "ObjectType",
-]
 
 
 class ObjectBase(PlaceableAsset, ABC):
-    """Parent class for (spawnable) Object and ObjectReference."""
+    """Parent class for Arena scene objects."""
 
     def __init__(
         self,
@@ -47,10 +38,45 @@ class ObjectBase(PlaceableAsset, ABC):
             prim_path = "{ENV_REGEX_NS}/" + self.name
         self.prim_path = prim_path
         self.object_type = object_type
+        self.object_cfg: AssetBaseCfg | None = None
+
+    def set_prim_path(self, prim_path: str) -> None:
+        self.prim_path = prim_path
+
+    def get_prim_path(self) -> str:
+        return self.prim_path
+
+    def get_object_cfg(self) -> tuple[str, AssetBaseCfg]:
+        """Return the scene key and concrete asset config."""
+        assert (
+            self.object_cfg is not None
+        ), f"Object '{self.name}' ({type(self).__name__}) did not initialize its object config."
+        return self.name, self.object_cfg
+
+    def get_event_cfg(self) -> tuple[str, EventTermCfg | None]:
+        return self.name, self._pose_event_cfg
+
+
+class RootedObjectBase(ObjectBase):
+    """Parent class for rigid, articulated, and static rooted objects."""
+
+    def __init__(
+        self,
+        name: str,
+        prim_path: str | None = None,
+        object_type: ObjectType = ObjectType.BASE,
+        **kwargs,
+    ):
+        super().__init__(name=name, prim_path=prim_path, object_type=object_type, **kwargs)
+        assert self.object_type in {
+            ObjectType.BASE,
+            ObjectType.RIGID,
+            ObjectType.ARTICULATION,
+        }, f"RootedObjectBase does not support object type '{self.object_type}'."
         if self.object_type == ObjectType.RIGID:
             self.add_variation(ObjectMassVariation(self.name))
+            self.add_variation(ObjectDisappearVariation(self.name))
         self.initial_velocity: Velocity | None = None
-        self.object_cfg = None
 
     def _set_initial_pose(self, pose: Pose | PoseRange | PosePerEnv) -> None:
         """Store the pose and write its construction values into the object config."""
@@ -123,18 +149,6 @@ class ObjectBase(PlaceableAsset, ABC):
                 },
             )
 
-    def set_prim_path(self, prim_path: str) -> None:
-        self.prim_path = prim_path
-
-    def get_prim_path(self) -> str:
-        return self.prim_path
-
-    def get_object_cfg(self) -> tuple[str, RigidObjectCfg | ArticulationCfg | AssetBaseCfg]:
-        return self.name, self.object_cfg
-
-    def get_event_cfg(self) -> tuple[str, EventTermCfg | None]:
-        return self.name, self._pose_event_cfg
-
     def _init_object_cfg(self) -> RigidObjectCfg | ArticulationCfg | AssetBaseCfg:
         if self.object_type == ObjectType.RIGID:
             object_cfg = self._generate_rigid_cfg()
@@ -145,29 +159,6 @@ class ObjectBase(PlaceableAsset, ABC):
         else:
             raise ValueError(f"Invalid object type: {self.object_type}")
         return object_cfg
-
-    def get_object_pose(self, env: ManagerBasedEnv, is_relative: bool = True) -> torch.Tensor:
-        """Get the pose of the object in the environment.
-
-        Args:
-            env: The environment.
-            is_relative: Whether to return the pose in the relative frame of the environment.
-
-        Returns:
-            The pose of the object in each environment. The shape is (num_envs, 7).
-            The order is (x, y, z, qx, qy, qz, qw).
-        """
-        # We require that the asset has been added to the scene under its name.
-        assert self.name in env.unwrapped.scene.keys(), f"Asset {self.name} not found in scene"
-        if (self.object_type == ObjectType.RIGID) or (self.object_type == ObjectType.ARTICULATION):
-            object_pose = wp.to_torch(env.unwrapped.scene[self.name].data.root_pose_w).clone()
-        elif self.object_type == ObjectType.BASE:
-            object_pose = torch.cat(env.unwrapped.scene[self.name].get_world_poses(), dim=-1)
-        else:
-            raise ValueError(f"Function not implemented for object type: {self.object_type}")
-        if is_relative:
-            object_pose[:, :3] -= env.unwrapped.scene.env_origins
-        return object_pose
 
     def set_object_pose(self, env: ManagerBasedEnv, pose: Pose, env_ids: torch.Tensor | None = None) -> None:
         """Set the pose of the object in the environment.

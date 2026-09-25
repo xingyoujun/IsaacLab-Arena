@@ -1,0 +1,25 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers.
+# All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+shared:
+  environment:
+    type: ur7e_articraft_open_drawer
+    embodiment: ur7e_robotiq_joint_pos
+    enable_cameras: true
+    episode_length_s: 20.0
+    randomize_drawer_pose: true
+  policy:
+    type: ur7e_dp_remote
+    host: 127.0.0.1
+    port: 5758
+  rollout_limit:
+    num_episodes: 10
+
+runs:
+  articraft_open_drawer_remote_checkpoint: {}

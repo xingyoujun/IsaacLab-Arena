@@ -73,8 +73,8 @@ class G2StackBowlsEnvironment(ArenaEnvironmentFactory[G2StackBowlsEnvironmentCfg
         from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
         from isaaclab_arena.relations.relations import AtPosition, IsAnchor, On
         from isaaclab_arena.scene.scene import Scene
-        from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
-        from isaaclab_arena.tasks.sequential_task_base import SequentialTaskBase
+        from isaaclab_arena.tasks.composite_task_base import CompositeTaskBase
+        from isaaclab_arena.tasks.g2_placement_task import G2PlacementTask
         from isaaclab_arena.utils.pose import Pose
 
         background = self.asset_registry.get_asset_by_name("genie_benchmark_table")(height_m=cfg.table_height_m)
@@ -125,21 +125,22 @@ class G2StackBowlsEnvironment(ArenaEnvironmentFactory[G2StackBowlsEnvironmentCfg
 
         tolerance = cfg.stack_tolerance_m
         max_separation = (tolerance, tolerance, 0.1)
-        stack_first = PickAndPlaceTask(
+        stack_first = G2PlacementTask(
             pick_up_object=bowl_1,
             destination_location=bowl_2,
             background_scene=background,
             max_separation=max_separation,
             task_description="Stack bowl_1 into bowl_2",
         )
-        stack_second = PickAndPlaceTask(
+        stack_second = G2PlacementTask(
             pick_up_object=bowl_3,
             destination_location=bowl_1,
             background_scene=background,
             max_separation=max_separation,
             task_description="Stack bowl_3 on top of bowl_1",
         )
-        task = SequentialTaskBase(
+        task = CompositeTaskBase(
+            subtasks_are_sequential=True,
             subtasks=[stack_first, stack_second],
             episode_length_s=cfg.episode_length_s,
             task_description="stack bowls",

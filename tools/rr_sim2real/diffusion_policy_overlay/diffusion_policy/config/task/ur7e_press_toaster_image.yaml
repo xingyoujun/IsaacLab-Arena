@@ -1,0 +1,43 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# UR7e + Robotiq 2F-85 pressing a toaster lever (Isaac Lab-Arena sim, rr_sim2real).
+# Data: /home/ubuntu/playground/datasets/rr_sim2real/usdcraft_press_toaster_dp.zarr (200 episodes, visual randomization, 15 Hz, one D435 view).
+name: ur7e_press_toaster_image
+
+image_shape: [3, 240, 320]
+dataset_path: /home/ubuntu/playground/datasets/rr_sim2real/usdcraft_press_toaster_dp.zarr
+
+shape_meta: &shape_meta
+  # acceptable types: rgb, low_dim
+  obs:
+    camera_0:
+      shape: ${task.image_shape}
+      type: rgb
+    robot_eef_pose:      # TCP xyz + rotation_6d (rows), UR base frame
+      shape: [9]
+      type: low_dim
+    gripper_pos:         # finger_joint / (pi/4), 0 open .. 1 closed
+      shape: [1]
+      type: low_dim
+  action:                # absolute target TCP pose (xyz + rotation_6d) + gripper
+    shape: [10]
+
+env_runner:
+  # No simulator rollouts during training; evaluation happens in Isaac Lab-Arena afterwards.
+  _target_: diffusion_policy.env_runner.real_pusht_image_runner.RealPushTImageRunner
+
+dataset:
+  _target_: diffusion_policy.dataset.ur7e_drawer_image_dataset.Ur7eDrawerImageDataset
+  shape_meta: *shape_meta
+  dataset_path: ${task.dataset_path}
+  horizon: ${horizon}
+  pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
+  pad_after: ${eval:'${n_action_steps}-1'}
+  n_obs_steps: ${dataset_obs_steps}
+  n_latency_steps: ${n_latency_steps}
+  seed: 42
+  val_ratio: 0.05
+  max_train_episodes: null

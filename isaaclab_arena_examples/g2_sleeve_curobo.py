@@ -12,14 +12,15 @@ import shutil
 import traceback
 from pathlib import Path
 
-from g2_stack_bowls_curobo import _planning_joint_names
+from g2_stack_bowls_curobo import _ensure_curobo_warp_compat, _planning_joint_names
 
 from isaaclab_arena.cli.isaaclab_arena_cli import get_isaaclab_arena_cli_parser
-from isaaclab_arena.utils.isaaclab_utils.simulation_app import get_app_launcher
+from isaaclab_arena.utils.isaaclab_utils.simulation_app import SimulationAppContext
 
 
 def main():
     parser = get_isaaclab_arena_cli_parser()
+    parser.add_argument("--headless", action="store_true", help="Run without a viewer (also the GA default)")
     parser.add_argument("--robot_yaml", type=Path, required=True)
     parser.add_argument("--robot_urdf", type=Path, required=True)
     parser.add_argument("--output_dir", type=Path, required=True)
@@ -60,11 +61,8 @@ def main():
         target = args.output_dir / "provenance" / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_root / relative, target)
-    launcher = get_app_launcher(args)
-    try:
+    with SimulationAppContext(args):
         assert collect(args), "No successful sleeve demonstration; inspect report.json and failed raw"
-    finally:
-        launcher.app.close()
 
 
 def _collision_world(base, table_height_m, excluded=()):
@@ -137,6 +135,8 @@ def _reach_target(move_once, side, target, quat, excluded, tolerance):
 
 
 def collect(args: argparse.Namespace):
+    _ensure_curobo_warp_compat()
+
     import torch
     import yaml
 
@@ -149,9 +149,10 @@ def collect(args: argparse.Namespace):
 
     from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse
     from isaaclab_arena.embodiments.g2.g2 import G2CameraCfg, G2CollectionCameraCfg, G2JointPositionActionsCfg
-    from isaaclab_arena.embodiments.g2.recorders import core_recorder_cfg
+    from isaaclab_arena.embodiments.g2.recorders import G2CollectionSuccessTerm, core_recorder_cfg
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
-    from isaaclab_arena.utils.isaaclab_utils.recorders import ArenaEnvRecorderManagerCfg
+    from isaaclab_arena.tasks.sleeve_task import peg_is_inserted
+    from isaaclab_arena.terms.recorders import ArenaEnvRecorderManagerCfg
     from isaaclab_arena_environments.g2_sleeve_environment import G2SleeveEnvironment, G2SleeveEnvironmentCfg
 
     description = G2SleeveEnvironment().build(
@@ -169,17 +170,15 @@ def collect(args: argparse.Namespace):
         cameras.head_camera = G2CameraCfg().head_camera
         description.embodiment.camera_config = cameras
     original_callback = description.env_cfg_callback
-    success_term = None
     failure_terms = {}
 
     def configure(cfg):
-        nonlocal success_term
         cfg = original_callback(cfg)
-        success_term = cfg.terminations.success
+        cfg.terminations.success.func = G2CollectionSuccessTerm
         # Evaluate success explicitly after release and physical settling.
         for name, term in vars(cfg.terminations).items():
-            if isinstance(term, TerminationTermCfg):
-                if name != "success" and not term.time_out:
+            if isinstance(term, TerminationTermCfg) and name != "success":
+                if not term.time_out:
                     failure_terms[name] = term
                 setattr(cfg.terminations, name, None)
         cfg.recorders = ArenaEnvRecorderManagerCfg(
@@ -463,7 +462,9 @@ def collect(args: argparse.Namespace):
                 set_phase("verify inserted peg")
                 for _ in range(15):
                     step()
-                    assert bool(success_term.func(base, **success_term.params)[0]), "Peg is not fully inserted"
+                    assert bool(
+                        peg_is_inserted(base, **description.task.success_params)[0]
+                    ), "Peg is not fully inserted"
                     assert torch.norm(position("sleeve") - sleeve_initial) < 0.001, "Fixed sleeve moved"
                     assert torch.norm(base.scene["peg"].data.root_lin_vel_w.torch[0]) < 0.03, "Peg is still moving"
                 entry["success"] = True

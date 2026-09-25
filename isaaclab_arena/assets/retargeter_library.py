@@ -49,9 +49,7 @@ class GR1T2PinkIsaacTeleopRetargeter(RetargetterBase):
         pass
 
     def get_pipeline_builder(self, embodiment: object) -> Callable:
-        from isaaclab_tasks.manager_based.manipulation.pick_place.pickplace_gr1t2_env_cfg import (
-            _build_gr1t2_pickplace_pipeline,
-        )
+        from isaaclab_tasks.contrib.pick_place.pickplace_gr1t2_env_cfg import _build_gr1t2_pickplace_pipeline
 
         return lambda: _build_gr1t2_pickplace_pipeline()[0]
 
@@ -127,6 +125,20 @@ class DroidDifferentialIKKeyboardRetargeter(RetargetterBase):
 @register_retargeter
 class AgibotKeyboardRetargeter(RetargetterBase):
     device = "keyboard"
+    embodiment = "agibot"
+
+    def __init__(self):
+        pass
+
+    def get_pipeline_builder(self, embodiment: object) -> Callable | None:
+        return None
+
+
+@register_retargeter
+class AgibotDualArmKeyboardRetargeter(RetargetterBase):
+    """No retargeting needed: the device already emits the Agibot's 14-value action layout."""
+
+    device = "dual_arm_keyboard"
     embodiment = "agibot"
 
     def __init__(self):

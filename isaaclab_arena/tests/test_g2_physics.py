@@ -123,9 +123,10 @@ def _test_g2_joint_drives(simulation_app) -> bool:
             assert len(actuator.joint_names) == count, f"{group}: {len(actuator.joint_names)} joints, want {count}"
             assert torch.allclose(actuator.stiffness, torch.full_like(actuator.stiffness, stiffness)), group
             assert torch.allclose(actuator.damping, torch.full_like(actuator.damping, damping)), group
-            assert torch.allclose(actuator.effort_limit_sim, torch.full_like(actuator.effort_limit_sim, effort)), group
+            effort_limits = robot.data.joint_effort_limits.torch[:, _joint_ids(robot, actuator.joint_names)]
+            assert torch.allclose(effort_limits, torch.full_like(effort_limits, effort)), group
 
-        arm_vel_limit = robot.actuators["arms"].velocity_limit_sim
+        arm_vel_limit = robot.data.joint_vel_limits.torch[:, _joint_ids(robot, robot.actuators["arms"].joint_names)]
         assert torch.allclose(arm_vel_limit, torch.full_like(arm_vel_limit, math.pi)), "arm velocity limit"
 
         # Joint limits come from the USD (degrees there, radians here).

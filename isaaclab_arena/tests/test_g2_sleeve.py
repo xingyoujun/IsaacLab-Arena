@@ -48,17 +48,27 @@ def _test_sleeve_success_geometry(simulation_app):
     return True
 
 
-def _test_g2_sleeve_physics(simulation_app):
+def _test_g2_sleeve_physics(simulation_app, deferred=False):
     import torch
 
     import warp as wp
 
     from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
+    from isaaclab_arena.embodiments.g2.recorders import G2CollectionSuccessTerm
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.tasks.sleeve_task import peg_is_inserted
     from isaaclab_arena_environments.g2_sleeve_environment import G2SleeveEnvironment, G2SleeveEnvironmentCfg
 
     description = G2SleeveEnvironment().build(G2SleeveEnvironmentCfg())
+    if deferred:
+        original_callback = description.env_cfg_callback
+
+        def configure(cfg):
+            cfg = original_callback(cfg)
+            cfg.terminations.success.func = G2CollectionSuccessTerm
+            return cfg
+
+        description.env_cfg_callback = configure
     args = get_isaaclab_arena_cli_parser().parse_args(["--num_envs", "2", "--device", "cpu"])
     env = ArenaEnvBuilder(description, arena_env_builder_cfg_from_argparse(args)).make_registered()
     try:
@@ -66,7 +76,7 @@ def _test_g2_sleeve_physics(simulation_app):
         base = env.unwrapped
         sleeve = base.scene["sleeve"]
         peg = base.scene["peg"]
-        params = description.task.get_termination_cfg().success.params
+        params = description.task.success_params
         action = torch.zeros(env.action_space.shape, device=base.device)
         action[:, [6, 13]] = 1
         for _ in range(30):
@@ -93,8 +103,13 @@ def _test_g2_sleeve_physics(simulation_app):
         assert peg_is_inserted(base, **params).all()
         assert torch.allclose(wp.to_torch(sleeve.data.root_pos_w), initial_sleeve, atol=0.001)
         _, _, terminated, _, _ = env.step(action)
-        assert terminated.all()
+        if deferred:
+            assert not terminated.any(), "Collection must continue through release and retreat"
+            assert base.progress_tracker.is_complete().all()
+        else:
+            assert terminated.all()
         env.reset()
+        assert not base.progress_tracker.is_complete().any(), "Reset must clear the managed success state"
         for _ in range(20):
             env.step(action)
         assert not peg_is_inserted(base, **params).any()
@@ -111,3 +126,12 @@ def test_sleeve_success_geometry():
 @requires_g2_asset
 def test_g2_sleeve_physics():
     assert run_function_with_persistent_simulation_app(_test_g2_sleeve_physics, headless=True)
+
+
+def _test_g2_sleeve_collection_lifecycle(simulation_app):
+    return _test_g2_sleeve_physics(simulation_app, deferred=True)
+
+
+@requires_g2_asset
+def test_g2_sleeve_collection_lifecycle():
+    assert run_function_with_persistent_simulation_app(_test_g2_sleeve_collection_lifecycle, headless=True)

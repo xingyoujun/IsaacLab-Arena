@@ -9,6 +9,7 @@ from isaaclab.app import AppLauncher
 
 from isaaclab_arena.cli.dataclass_cli import dataclass_from_cli
 from isaaclab_arena.environments.arena_env_builder_cfg import ArenaEnvBuilderCfg
+from isaaclab_arena.utils.physics_backend import PhysicsBackend
 
 
 # TODO(cvolk, 2026-07-03): [typed-config-migration] Delete this Namespace-to-config adapter after policy_runner,
@@ -70,6 +71,15 @@ def add_isaaclab_arena_cli_args(parser: argparse.ArgumentParser) -> None:
         "Isaac Lab Arena Arguments", "Arguments specific to Isaac Lab Arena framework"
     )
 
+    # Arena builds its environment after AppLauncher starts, so this flag both selects
+    # optional environment cameras and enables camera rendering during app startup.
+    arena_group.add_argument(
+        "--enable_cameras",
+        action="store_true",
+        default=False,
+        help="Add the environment's camera sensors and observations.",
+    )
+
     # TODO(cvolk, 2026-07-06): [typed-config-migration] Delete these manual builder flags after runner scripts
     # receive ArenaEnvBuilderCfg directly. The adapter tests keep their defaults aligned
     # with ArenaEnvBuilderCfg during the transition.
@@ -81,20 +91,24 @@ def add_isaaclab_arena_cli_args(parser: argparse.ArgumentParser) -> None:
         help="Disable solving spatial relations in the environment.",
     )
     arena_group.add_argument(
+        "--placement_layouts",
+        dest="placement_layouts_path",
+        type=str,
+        default=None,
+        help="Replay a companion placement JSONL instead of solving; path is relative to the working directory.",
+    )
+    arena_group.add_argument(
         "--placement_seed",
         type=int,
         default=None,
-        help="Seed for object placement. If set, objects are placed at the same positions across runs.",
+        help="Seed for solved object placement. Not supported with cached placement layouts.",
     )
     arena_group.add_argument(
         "--presets",
-        type=str,
+        type=PhysicsBackend,
+        choices=list(PhysicsBackend),
         default=None,
-        help=(
-            "Physics backend preset: 'physx' or 'newton'. "
-            "Mirrors Isaac Lab's ``presets=newton`` Hydra syntax. "
-            "When not set, each environment uses its own default."
-        ),
+        help="Arena physics backend preset: 'physx' or 'newton'. When not set, each environment uses its own default.",
     )
     arena_group.add_argument(
         "--resolve_on_reset",

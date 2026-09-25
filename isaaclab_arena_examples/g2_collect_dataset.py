@@ -71,6 +71,7 @@ def prepare(args, root, work):
             )
         },
         "g2.py": HERE.parent / "isaaclab_arena/embodiments/g2/g2.py",
+        "g2_placement_task.py": HERE.parent / "isaaclab_arena/tasks/g2_placement_task.py",
         "recorders.py": HERE.parent / "isaaclab_arena/embodiments/g2/recorders.py",
         "environment.py": HERE.parent / "isaaclab_arena_environments/g2_stack_bowls_environment.py",
         "room.usda": HERE.parent / "isaaclab_arena/embodiments/g2/assets/stack_bowls_room.usda",

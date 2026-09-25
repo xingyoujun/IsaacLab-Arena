@@ -1,0 +1,329 @@
+# Archived reference only; not a runnable launcher. Original interpreter: /usr/bin/env python3
+"""UR7e + Robotiq 2F-85 静态场景 —— 独立运行，不依赖 ROS 2。
+
+关节初值取自真机 SN 254622076156 所在工位在 2026-08-22 的实测姿态。
+运行后打开 Isaac Sim 窗口，可直接在界面里编辑场景。
+
+    ./run.sh                    # 打开 GUI
+    ./run.sh --save-usd out.usd # 导出为 USD 供 Isaac Sim 直接打开
+"""
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--headless", action="store_true", help="无窗口运行")
+parser.add_argument("--save-usd", default=None, help="把场景导出为 .usd 后退出")
+parser.add_argument("--pose", default=None,
+                    help="从采集目录读取关节角 (captures/<stamp>_<label>)")
+parser.add_argument("--verify", action="store_true",
+                    help="应用 pose 后读回关节角与记录值比对")
+parser.add_argument("--shot", default=None,
+                    help="用仿真相机渲染一帧存到该路径后退出")
+parser.add_argument("--cam-pos", type=float, nargs=3, metavar=("X", "Y", "Z"),
+                    help="覆盖相机世界坐标位置，单位为米")
+parser.add_argument("--cam-look", type=float, nargs=3, metavar=("X", "Y", "Z"),
+                    help="覆盖相机注视点的世界坐标，单位为米")
+parser.add_argument("--cam-up", type=float, nargs=3, metavar=("X", "Y", "Z"),
+                    help="覆盖相机画面上方向的世界坐标向量")
+parser.add_argument("--table-color", type=float, nargs=3, metavar=("R", "G", "B"),
+                    help="覆盖桌面基色，0~1")
+parser.add_argument("--table-metallic", type=float, help="覆盖桌面金属度 0~1")
+parser.add_argument("--table-roughness", type=float, help="覆盖桌面粗糙度 0~1")
+parser.add_argument("--light-scale", type=float, default=1.0,
+                    help="所有灯光强度整体缩放（默认 1.0）")
+args = parser.parse_args()
+
+from isaacsim import SimulationApp
+
+sim_app = SimulationApp({"headless": args.headless or bool(args.save_usd)
+                         or bool(args.shot) or args.verify})
+
+import numpy as np
+import omni.kit.commands
+from isaacsim.core.api import World
+from isaacsim.core.prims import Articulation
+from isaacsim.core.utils.stage import add_reference_to_stage
+from pxr import Gf, Sdf, UsdGeom, UsdLux, UsdPhysics, UsdShade
+
+# ============================================================
+# 可调参数
+# ============================================================
+ROBOT_USD = "/home/sim/ur_ws/ur7e_gripper/Collected_ur7e_gripper/ur7e_gripper.usd"
+
+TABLE_SIZE = 1.0        # 桌面边长 (m)
+TABLE_TOP_H = 0.75      # 桌面上表面高度 (m)
+TOP_THICK = 0.05        # 桌板厚度
+LEG = 0.06              # 方腿截面
+BASE_R = 0.075          # UR 底座半径，用于内缩使底座外沿与桌边齐平
+
+# 机械臂安装在 -Y 侧边的中点
+ROBOT_XY = (0.0, -TABLE_SIZE / 2 + BASE_R)
+
+# 默认关节角 = 标定用的 pose_a，取自
+#   captures/20260822_212349_499_pose_a/record.json
+# 这样不带参数直接开 GUI，看到的就是与 testpic/final_1_fixed_in&ext/pose_a.png
+# 完全一致的场景，可直接和真实照片 captures/*_pose_a/color.png 对照。
+# 换其他姿态用 --pose captures/<目录>。
+INIT_JOINTS = {
+    "shoulder_pan_joint":   1.4309711456298828,
+    "shoulder_lift_joint": -1.6231142483153285,
+    "elbow_joint":          2.4302189985858362,
+    "wrist_1_joint":       -2.3047520122923792,
+    "wrist_2_joint":       -1.5249694029437464,
+    "wrist_3_joint":       -0.06301623979677373,
+    "finger_joint":         0.009650588235294117,
+}
+
+# RealSense D435 (SN 254622076156) Color 640x480 实测内参换算所得
+# fx=606.5056 fy=605.5529 cx=328.3164 cy=238.2540, 畸变系数全 0
+#
+# 【h_offset 的符号】必须是负的。RTX 渲染器对水平主点偏移的应用方向与直觉相反：
+# 设 +0.272296 时，实测有效 cx = 311.3 = 320 - 8.32，而不是期望的 328.32。
+# 用九个已知世界坐标的小球实测过：符号写正时全图恒定偏移 -17.15px(σ=0.10)，
+# 翻成负号后降到 -0.52px。竖直方向 v_offset 则不需要翻转，保持原样即可。
+CAM = dict(width=640, height=480, focal=19.858321,
+           h_aperture=20.955000, v_aperture=15.740976,
+           h_offset=-0.272296, v_offset=-0.057256)
+# ---- 相机外参：标定结果（见 locam2sim.md）----
+# 标定量是"相机在【机械臂基座坐标系】下的位姿"：
+#     X = -0.5537 m   Y = +0.3151 m   Z = +0.6171 m
+#     yaw = -89.96°   pitch = -0.59°  roll = -141.13°   (ZYX 欧拉角)
+# 本场景中机械臂基座位于世界系 (0, -0.425, 0.75)，故世界坐标 = 基座坐标 + 该偏移：
+#     CAM_POS = (0 - 0.5537, -0.425 + 0.3151, 0.75 + 0.6171)
+# CAM_LOOK 取沿光轴前方 0.8m 处的一点；CAM_UP 是"图像上方"在世界系的方向。
+# 二者由上述欧拉角算出：光轴 = [0.6276, -0.0076, -0.7785]，图像上 = [0.7786, 0.0070, 0.6275]。
+# 若改动 ROBOT_XY / TABLE_TOP_H，这三行必须同步重算，否则外参会失配。
+CAM_POS = (-0.5537, -0.1099, 1.3671)
+CAM_LOOK = (-0.0517, -0.1160, 0.7443)
+CAM_UP = (0.7786, 0.0070, 0.6275)
+
+if args.cam_pos:
+    CAM_POS = tuple(args.cam_pos)
+if args.cam_look:
+    CAM_LOOK = tuple(args.cam_look)
+if args.cam_up:
+    CAM_UP = tuple(args.cam_up)
+
+# 桌面材质（金属常数；贴图待办，见 gen_metal_textures.py）
+# 深灰铁质：金属度略低于 1 留一点漫反射，粗糙度居中让它像铸铁/钢板而不是抛光铝。
+# 粗糙度太低会变成镜面、把环境全反射进来，不像铁。注意这组值只有在灯光不过曝
+# 时才看得出效果，见 build_lights 的说明。
+TABLE_METALLIC = 0.8
+TABLE_ROUGHNESS = 0.5
+TABLE_COLOR = (0.22, 0.23, 0.24)
+
+if args.table_color:
+    TABLE_COLOR = tuple(args.table_color)
+if args.table_metallic is not None:
+    TABLE_METALLIC = args.table_metallic
+if args.table_roughness is not None:
+    TABLE_ROUGHNESS = args.table_roughness
+
+PRIM_ROBOT = "/World/ur7e"
+ART_ROOT = PRIM_ROBOT + "/root_joint"
+
+
+# ============================================================
+def set_translate(prim, vec):
+    """设置平移。XformCommonAPI 遇到 xformOp:orient 会静默失败，故直接操作已有 op。"""
+    xf = UsdGeom.Xformable(prim)
+    for op in xf.GetOrderedXformOps():
+        if op.GetOpType() == UsdGeom.XformOp.TypeTranslate:
+            op.Set(vec)
+            return
+    xf.AddTranslateOp().Set(vec)
+
+
+def look_at(eye, target, up=Gf.Vec3d(0, 0, 1)):
+    """USD 相机朝 -Z 看、+Y 向上；返回相机的世界变换。"""
+    view = Gf.Vec3d(*(np.asarray(target, dtype=float) - np.asarray(eye, dtype=float)))
+    view.Normalize()
+    up_dir = Gf.Vec3d(up)
+    up_dir.Normalize()
+    # 垂直俯拍时，默认世界 +Z 上方向与视线共线，SetLookAt 会退化。
+    # 此时用世界 +Y 定义图像上方，使相机成像平面保持与桌面平行。
+    if abs(Gf.Dot(view, up_dir)) > 0.999:
+        up_dir = Gf.Vec3d(0, 1, 0)
+    m = Gf.Matrix4d()
+    m.SetLookAt(Gf.Vec3d(*eye), Gf.Vec3d(*target), up_dir)
+    return m.GetInverse()
+
+
+def build_material(stage):
+    """桌面材质，用 UsdPreviewSurface。
+
+    原来这里用 omni.kit.commands 的 CreateMdlMaterialPrim + OmniPBR。USD 层面看
+    一切正常（材质 prim 有效、ComputeBoundMaterial 能解析到它、shader input 也
+    读得回来），但 RTX 渲染时并没有真正吃到这套 MDL —— 把 metallic 调 0、基色压到
+    近黑，渲出来的桌面依然是浅灰的默认材质。UsdPreviewSurface 是 USD 原生的，
+    RTX 直接支持，不依赖 MDL 的加载/编译，行为可预期。
+    """
+    path = "/World/Looks/TableMetal"
+    mat = UsdShade.Material.Define(stage, path)
+    sh = UsdShade.Shader.Define(stage, path + "/Shader")
+    sh.CreateIdAttr("UsdPreviewSurface")
+    sh.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*TABLE_COLOR))
+    sh.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(TABLE_METALLIC)
+    sh.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(TABLE_ROUGHNESS)
+    mat.CreateSurfaceOutput().ConnectToSource(sh.ConnectableAPI(), "surface")
+    return mat
+
+
+def build_table(stage, material):
+    """桌子：静态碰撞体（只加 CollisionAPI，不加 RigidBodyAPI）。
+
+    碰撞必须开启 —— 承载物体和阻挡机械臂是同一个物理属性，无法分离。
+    """
+    leg_h = TABLE_TOP_H - TOP_THICK
+    inset = TABLE_SIZE / 2 - LEG / 2 - 0.02
+    parts = [("TableTop", (0.0, 0.0, TABLE_TOP_H - TOP_THICK / 2),
+              (TABLE_SIZE, TABLE_SIZE, TOP_THICK))]
+    for i, (sx, sy) in enumerate([(1, 1), (1, -1), (-1, 1), (-1, -1)]):
+        parts.append((f"Leg{i}", (sx * inset, sy * inset, leg_h / 2),
+                      (LEG, LEG, leg_h)))
+
+    for name, center, size in parts:
+        # 用原生 Cube：size=1 再加 scale，尺寸就是字面值。
+        # （isaacsim 的 FixedCuboid 对 scale 有额外换算，实测厚度会被平方）
+        cube = UsdGeom.Cube.Define(stage, f"/World/Table/{name}")
+        cube.GetSizeAttr().Set(1.0)
+        xf = UsdGeom.Xformable(cube.GetPrim())
+        xf.AddTranslateOp().Set(Gf.Vec3d(*center))
+        xf.AddScaleOp().Set(Gf.Vec3f(*size))
+        UsdPhysics.CollisionAPI.Apply(cube.GetPrim())
+        # MaterialBindingAPI 是 applied schema，必须先 Apply 再 Bind。
+        # 直接 UsdShade.MaterialBindingAPI(prim).Bind(...) 不会真正写入绑定，
+        # 桌子会静默地退回默认材质（改颜色/金属度全都看不出效果）。
+        UsdShade.MaterialBindingAPI.Apply(cube.GetPrim()).Bind(material)
+
+
+def build_lights(stage):
+    """灯光强度。
+
+    原来这套强度（dome 1200 / key 4500 / fill 1500）严重过曝：把桌面基色压到
+    (0.12,0.12,0.13) 渲出来仍是浅灰，纯红测试时红通道饱和在 252、而材质里为 0 的
+    绿蓝通道也有 85。等于材质怎么调都被冲掉。这里整体降到约 1/8，深色材质才出得来。
+    需要临时增减用 --light-scale。
+    """
+    k = args.light_scale
+    dome = UsdLux.DomeLight.Define(stage, Sdf.Path("/World/Lights/DomeLight"))
+    dome.CreateIntensityAttr(145.0 * k)
+    dome.CreateColorAttr(Gf.Vec3f(0.85, 0.88, 0.95))
+
+    key = UsdLux.DistantLight.Define(stage, Sdf.Path("/World/Lights/KeyLight"))
+    key.CreateIntensityAttr(540.0 * k)
+    key.CreateAngleAttr(1.5)
+    key.CreateColorAttr(Gf.Vec3f(1.0, 0.97, 0.92))
+    UsdGeom.Xformable(key.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-40.0, 0.0, 30.0))
+
+    fill = UsdLux.DistantLight.Define(stage, Sdf.Path("/World/Lights/FillLight"))
+    fill.CreateIntensityAttr(180.0 * k)
+    fill.CreateAngleAttr(3.0)
+    UsdGeom.Xformable(fill.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-20.0, 0.0, -120.0))
+
+
+def build_camera(stage):
+    """RealSense D435 等效相机。位姿放在父 Xform 上，避免被相机包装类覆盖。"""
+    rig = UsdGeom.Xform.Define(stage, "/World/CamRig")
+    UsdGeom.Xformable(rig.GetPrim()).AddTransformOp().Set(
+        look_at(CAM_POS, CAM_LOOK, Gf.Vec3d(*CAM_UP)))
+
+    cam = UsdGeom.Camera.Define(stage, "/World/CamRig/RealSense_D435")
+    cam.GetFocalLengthAttr().Set(CAM["focal"])
+    cam.GetHorizontalApertureAttr().Set(CAM["h_aperture"])
+    cam.GetVerticalApertureAttr().Set(CAM["v_aperture"])
+    cam.GetHorizontalApertureOffsetAttr().Set(CAM["h_offset"])
+    cam.GetVerticalApertureOffsetAttr().Set(CAM["v_offset"])
+    cam.GetClippingRangeAttr().Set(Gf.Vec2f(0.05, 20.0))
+    return cam
+
+
+# ============================================================
+if args.pose:
+    import json
+    import os as _os
+    rec_path = args.pose
+    if _os.path.isdir(rec_path):
+        rec_path = _os.path.join(rec_path, "record.json")
+    with open(rec_path) as f:
+        rec = json.load(f)
+    INIT_JOINTS = dict(rec["joints"]["arm"])
+    if rec["joints"].get("gripper"):
+        INIT_JOINTS.update(rec["joints"]["gripper"])
+    print(f"[scene] 关节角来自 {rec_path}  (label={rec.get('label','')}, "
+          f"{rec.get('iso_time','')})")
+
+world = World(stage_units_in_meters=1.0)
+stage = world.stage
+
+material = build_material(stage)
+build_table(stage, material)
+build_lights(stage)
+build_camera(stage)
+
+add_reference_to_stage(usd_path=ROBOT_USD, prim_path=PRIM_ROBOT)
+set_translate(stage.GetPrimAtPath(PRIM_ROBOT),
+              Gf.Vec3d(ROBOT_XY[0], ROBOT_XY[1], TABLE_TOP_H))
+
+world.reset()
+
+# 设定初始关节角，并把驱动目标设成同一值，物理运行时才不会塌下来
+art = Articulation(prim_paths_expr=ART_ROOT, name="ur7e")
+art.initialize()
+dof = list(art.dof_names)
+q = art.get_joint_positions()[0].copy()
+for name, val in INIT_JOINTS.items():
+    if name in dof:
+        q[dof.index(name)] = val
+art.set_joint_positions(np.array([q]))
+art.set_joint_position_targets(np.array([q]))
+
+print(f"[scene] 桌面 {TABLE_SIZE}x{TABLE_SIZE}m @ h={TABLE_TOP_H}m，碰撞开启")
+print(f"[scene] 机械臂底座 ({ROBOT_XY[0]}, {ROBOT_XY[1]}, {TABLE_TOP_H})")
+print(f"[scene] 相机 {CAM['width']}x{CAM['height']}  位置 {CAM_POS} -> {CAM_LOOK}")
+print(f"[scene] DOF ({len(dof)}): {dof}")
+
+if args.save_usd:
+    stage.GetRootLayer().Export(args.save_usd)
+    print(f"[scene] 已导出 {args.save_usd}")
+    sim_app.close()
+    raise SystemExit(0)
+
+if args.verify:
+    for _ in range(90):
+        world.step(render=False)
+    back = art.get_joint_positions()[0]
+    print("\n关节        记录值        仿真读回      偏差")
+    print("-" * 56)
+    worst = 0.0
+    for name, want in INIT_JOINTS.items():
+        if name not in dof:
+            print(f"{name:22s} {want:+.6f}   -- 不在 DOF 中 --")
+            continue
+        got = float(back[dof.index(name)])
+        d = got - want
+        worst = max(worst, abs(d))
+        print(f"{name:22s} {want:+.6f}   {got:+.6f}   {d:+.2e}")
+    print("-" * 56)
+    print(f"最大偏差 {worst:.3e} rad = {worst*57.2958:.5f}°")
+    sim_app.close()
+    raise SystemExit(0)
+
+if args.shot:
+    from PIL import Image
+    from isaacsim.sensors.camera import Camera
+    cam = Camera(prim_path="/World/CamRig/RealSense_D435",
+                 resolution=(CAM["width"], CAM["height"]))
+    cam.initialize()
+    for _ in range(90):          # 让物理稳定 + 渲染收敛
+        world.step(render=True)
+    rgba = cam.get_rgba()
+    Image.fromarray(rgba[:, :, :3].astype(np.uint8)).save(args.shot)
+    print(f"[scene] 已渲染 -> {args.shot}")
+    sim_app.close()
+    raise SystemExit(0)
+
+print("[scene] 场景就绪 —— 可在窗口中编辑。关闭窗口即退出。", flush=True)
+while sim_app.is_running():
+    world.step(render=True)
+
+sim_app.close()

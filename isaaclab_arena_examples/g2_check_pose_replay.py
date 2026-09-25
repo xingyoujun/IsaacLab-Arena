@@ -10,7 +10,7 @@ import traceback
 from pathlib import Path
 
 from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
-from isaaclab_arena.utils.isaaclab_utils.simulation_app import get_app_launcher
+from isaaclab_arena.utils.isaaclab_utils.simulation_app import SimulationAppContext
 
 
 def replay(args):
@@ -22,6 +22,7 @@ def replay(args):
     from isaaclab.utils.math import compute_pose_error, subtract_frame_transforms
 
     from isaaclab_arena.embodiments.g2.g2 import G2DualArmActionsCfg, G2JointPositionActionsCfg
+    from isaaclab_arena.embodiments.g2.recorders import G2CollectionSuccessTerm
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena_environments.g2_stack_bowls_environment import (
         G2StackBowlsEnvironment,
@@ -49,8 +50,9 @@ def replay(args):
 
     def configure(cfg):
         cfg = original_callback(cfg)
+        cfg.terminations.success.func = G2CollectionSuccessTerm
         for name, term in vars(cfg.terminations).items():
-            if isinstance(term, TerminationTermCfg):
+            if isinstance(term, TerminationTermCfg) and name != "success":
                 terms[name] = term
                 setattr(cfg.terminations, name, None)
         return cfg
@@ -97,7 +99,7 @@ def replay(args):
                 action[8:15] = target[7:]
             for _ in range(args.repeat):
                 env.step(action.unsqueeze(0))
-                successes.append(bool(terms["success"].func(base, **terms["success"].params)[0]))
+                successes.append(bool(base.progress_tracker.is_complete()[0]))
                 for name, term in terms.items():
                     if name != "success" and not term.time_out and bool(term.func(base, **term.params)[0]):
                         failures.add(name)
@@ -138,6 +140,7 @@ def replay(args):
     except Exception as exc:
         report["error"] = str(exc)
         traceback.print_exc()
+        raise
     finally:
         args.output.write_text(json.dumps(report, indent=2))
         print("REPLAY_RESULT", json.dumps(report), flush=True)
@@ -146,6 +149,7 @@ def replay(args):
 
 def main():
     parser = get_isaaclab_arena_cli_parser()
+    parser.add_argument("--headless", action="store_true", help="Run without a viewer (also the GA default)")
     parser.add_argument("--raw", type=Path, required=True)
     parser.add_argument("--mode", choices=("joint", "eef"), required=True)
     parser.add_argument("--repeat", type=int, default=1)
@@ -153,14 +157,8 @@ def main():
     args = parser.parse_args()
     assert args.repeat > 0 and not args.output.exists()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    launcher = get_app_launcher(args)
-    try:
+    with SimulationAppContext(args):
         replay(args)
-    except Exception:
-        traceback.print_exc()
-        raise
-    finally:
-        launcher.app.close()
 
 
 if __name__ == "__main__":

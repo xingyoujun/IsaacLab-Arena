@@ -83,7 +83,6 @@ Generate the dataset:
 
    # Generate 100 demonstrations
    python submodules/IsaacLab/scripts/imitation_learning/isaaclab_mimic/generate_dataset.py \
-     --headless \
      --enable_cameras \
      --mimic \
      --input_file $DATASET_DIR/arena_g1_loco_manipulation_dataset_annotated.hdf5 \
@@ -96,13 +95,23 @@ Generate the dataset:
      --embodiment g1_wbc_pink
 
 Data generation takes 1-4 hours depending on your CPU/GPU.
-You can remove ``--headless`` and add ``--viz kit`` to visualize during data generation.
+Add ``--viz kit`` to visualize during data generation.
 
 
 Step 3: Validate Generated Dataset (Optional)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To visualize the data produced, you can replay the dataset using the following command:
+
+.. note::
+
+   Non-determinism may be observed when replaying demonstrations with PhysX because
+   physics in Isaac Lab is not deterministically reproducible across ``env.reset()``
+   calls. A demonstration may therefore fail during replay even though it succeeded
+   during generation; all generated demonstrations remain valid for training.
+
+   This dataset was generated using CPU physics, so the replay command uses
+   ``--device cpu`` to reduce device-related differences between generation and replay.
 
 .. code-block:: bash
 
@@ -124,7 +133,3 @@ You should see the robot successfully perform the task.
    :align: center
 
    IsaacLab Arena G1 Locomanip Pick and Place Task View
-
-.. note::
-
-   The dataset was generated using CPU device physics, therefore the replay uses ``--device cpu`` to ensure reproducibility.

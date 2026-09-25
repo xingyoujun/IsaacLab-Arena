@@ -91,6 +91,8 @@ NvStreamer-*.etli
 
 # Ignore plots
 isaaclab_arena/tests/**.png
+# Images written by tests when their SAVE_IMAGES debugging flag is turned on
+isaaclab_arena/tests/output/
 
 # Ignore core dumps produced by debugpy
 core
@@ -104,3 +106,16 @@ core.*
 
 # uv venv (Arena native install)
 .venv*/
+
+# RR sim2real host-only artifacts (never publish training/collection payloads).
+/rr_sim2real_local/
+*.hdf5
+*.h5
+*.ckpt
+*.zarr/
+*.zarr.zip
+*.hdf5.cameras/
+*.mp4
+*.log
+.env
+.env.*

@@ -7,12 +7,11 @@
 
 import json
 import shutil
-import traceback
 from contextlib import ExitStack
 from pathlib import Path
 
 from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
-from isaaclab_arena.utils.isaaclab_utils.simulation_app import get_app_launcher
+from isaaclab_arena.utils.isaaclab_utils.simulation_app import SimulationAppContext
 
 
 def render(args):
@@ -77,7 +76,7 @@ def render(args):
                 }
                 base.scene.reset_to(state, env_ids=env_ids, is_relative=True)
                 base.sim.forward()
-                base.sim.render_context.reset_transform_cadence()
+                base.sim.render_context.reset_scene_state_cadence()
                 base.scene.update(base.step_dt)
                 base.sim.render()
                 base.sim.render()
@@ -119,6 +118,7 @@ def render(args):
 
 def main():
     parser = get_isaaclab_arena_cli_parser()
+    parser.add_argument("--headless", action="store_true", help="Run without a viewer (also the GA default)")
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--output_dir", type=Path, required=True)
     parser.add_argument("--episode", default="demo_0")
@@ -127,14 +127,8 @@ def main():
     assert args.enable_cameras, "Rendering requires --enable_cameras"
     args.output_dir.mkdir(parents=True, exist_ok=False)
     shutil.copyfile(__file__, args.output_dir / "render_source.py")
-    launcher = get_app_launcher(args)
-    try:
+    with SimulationAppContext(args):
         render(args)
-    except Exception:
-        traceback.print_exc()
-        raise
-    finally:
-        launcher.app.close()
 
 
 if __name__ == "__main__":

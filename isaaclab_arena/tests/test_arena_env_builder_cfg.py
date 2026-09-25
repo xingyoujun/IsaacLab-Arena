@@ -10,6 +10,7 @@ import pytest
 from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
 from isaaclab_arena.environments.arena_env_builder_cfg import ArenaEnvBuilderCfg
 from isaaclab_arena.evaluation.policy_runner_cli import add_policy_runner_arguments
+from isaaclab_arena.utils.physics_backend import PhysicsBackend
 
 
 # TODO(cvolk, 2026-07-03): [typed-config-migration] Delete the argparse adapter tests below with
@@ -18,6 +19,8 @@ def test_cli_defaults_match_builder_configuration():
     """Keep the manual CLI defaults aligned with the typed builder configuration."""
     args_cli = get_isaaclab_arena_cli_parser().parse_args([])
 
+    assert not hasattr(args_cli, "headless")
+    assert args_cli.visualizer is None
     assert arena_env_builder_cfg_from_argparse(args_cli) == ArenaEnvBuilderCfg()
 
 
@@ -59,13 +62,27 @@ def test_argparse_adapter_maps_builder_configuration():
         resolve_on_reset=False,
         disable_fabric=True,
         mimic=True,
-        presets="newton",
+        presets=PhysicsBackend.NEWTON,
         device="cpu",
         language_instruction="pick up the cube",
     )
+    assert cfg.presets is PhysicsBackend.NEWTON
 
 
 def test_builder_configuration_requires_positive_num_envs():
     """Reject configurations that cannot build any environment instances."""
     with pytest.raises(AssertionError, match="num_envs must be greater than zero"):
         ArenaEnvBuilderCfg(num_envs=0)
+
+
+def test_builder_configuration_rejects_unknown_physics_backend():
+    """Reject arbitrary strings at the typed builder boundary."""
+    with pytest.raises(ValueError, match="unknown_backend"):
+        ArenaEnvBuilderCfg(presets="unknown_backend")
+
+
+def test_builder_configuration_normalizes_physics_backend_strings():
+    """Normalize legacy configuration input to the typed backend enum."""
+    cfg = ArenaEnvBuilderCfg(presets="newton")
+
+    assert cfg.presets is PhysicsBackend.NEWTON

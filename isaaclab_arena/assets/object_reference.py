@@ -10,21 +10,25 @@ from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
 from pxr import Usd
 
 from isaaclab_arena.affordances.openable import Openable
+from isaaclab_arena.affordances.pressable import Pressable
+from isaaclab_arena.affordances.turnable import Turnable
 from isaaclab_arena.assets.object import Object
-from isaaclab_arena.assets.object_base import ObjectBase, ObjectType
+from isaaclab_arena.assets.object_base import ObjectBase, RootedObjectBase
+from isaaclab_arena.assets.object_type import ObjectType
 from isaaclab_arena.relations.relations import IsAnchor, RelationBase
+from isaaclab_arena.terms.events import reset_articulation_pose_and_joints
 from isaaclab_arena.utils.bounding_box import AxisAlignedBoundingBox, quaternion_to_90_deg_z_quarters
 from isaaclab_arena.utils.pose import Pose
-from isaaclab_arena.utils.usd_helpers import (
+from isaaclab_arena.utils.usd.helpers import (
     NoCollisionMeshError,
-    compute_local_bounding_box_from_prim,
+    compute_world_aligned_bounding_box_relative_to_prim_origin,
     extract_trimesh_from_prim,
     open_stage,
 )
-from isaaclab_arena.utils.usd_pose_helpers import get_prim_pose_in_default_prim_frame
+from isaaclab_arena.utils.usd.pose import get_prim_pose_in_default_prim_frame
 
 
-class ObjectReference(ObjectBase):
+class ObjectReference(RootedObjectBase):
     """An object which *refers* to an existing element in the scene"""
 
     def __init__(self, parent_asset: Object, **kwargs):
@@ -37,10 +41,18 @@ class ObjectReference(ObjectBase):
             self.initial_pose_relative_to_parent,
         ) = self._get_referenced_prim_path_and_pose_relative_to_parent(parent_asset)
         self.object_cfg = self._init_object_cfg()
+        self._pose_event_cfg = self._build_reset_event()
         self._bounding_box: AxisAlignedBoundingBox | None = None
         self._collision_mesh: trimesh.Trimesh | None = None
         # None is a valid cached result for meshless prims; this flag distinguishes that from not-yet-loaded.
         self._collision_mesh_loaded = False
+
+    def _build_reset_event(self):
+        """Build a complete reset event for a referenced rigid body or articulation."""
+        event_cfg = super()._build_reset_event()
+        if event_cfg is not None and self.object_type == ObjectType.ARTICULATION:
+            event_cfg.func = reset_articulation_pose_and_joints
+        return event_cfg
 
     def get_initial_pose(self) -> Pose:
         if self.parent_asset.initial_pose is None:
@@ -72,10 +84,10 @@ class ObjectReference(ObjectBase):
         self.relations.append(relation)
 
     def get_bounding_box(self) -> AxisAlignedBoundingBox:
-        """Get local bounding box of the referenced prim (relative to prim transform).
+        """Get world-axis-aligned bounds measured from the referenced prim's origin.
 
-        The bounding box is relative to the prim's transform origin, consistent with
-        how Object.get_bounding_box() returns bbox relative to USD origin.
+        The coordinates use the parent asset's USD axes, with the origin shifted to
+        the referenced prim's world position.
 
         The bounding box is computed lazily and cached for subsequent calls.
         """
@@ -84,7 +96,7 @@ class ObjectReference(ObjectBase):
                 prim_path_in_usd = self.isaaclab_prim_path_to_original_prim_path(
                     self.prim_path, self.parent_asset, parent_stage
                 )
-                raw_bbox = compute_local_bounding_box_from_prim(parent_stage, prim_path_in_usd)
+                raw_bbox = compute_world_aligned_bounding_box_relative_to_prim_origin(parent_stage, prim_path_in_usd)
                 # Apply parent's scale (no centering - solver is origin-agnostic)
                 self._bounding_box = raw_bbox.scaled(self._parent_scale)
         return self._bounding_box
@@ -239,6 +251,39 @@ class OpenableObjectReference(ObjectReference, Openable):
         super().__init__(
             openable_joint_name=openable_joint_name,
             openable_threshold=openable_threshold,
+            object_type=ObjectType.ARTICULATION,
+            **kwargs,
+        )
+
+
+class PressableObjectReference(ObjectReference, Pressable):
+    """A referenced articulation exposing one prismatic joint as a button."""
+
+    def __init__(self, pressable_joint_name: str, pressedness_threshold: float = 0.5, **kwargs):
+        super().__init__(
+            pressable_joint_name=pressable_joint_name,
+            pressedness_threshold=pressedness_threshold,
+            object_type=ObjectType.ARTICULATION,
+            **kwargs,
+        )
+
+
+class TurnableObjectReference(ObjectReference, Turnable):
+    """A referenced articulation exposing one revolute joint as a discrete control."""
+
+    def __init__(
+        self,
+        turnable_joint_name: str,
+        min_level_angle_deg: float,
+        max_level_angle_deg: float,
+        num_levels: int,
+        **kwargs,
+    ):
+        super().__init__(
+            turnable_joint_name=turnable_joint_name,
+            min_level_angle_deg=min_level_angle_deg,
+            max_level_angle_deg=max_level_angle_deg,
+            num_levels=num_levels,
             object_type=ObjectType.ARTICULATION,
             **kwargs,
         )

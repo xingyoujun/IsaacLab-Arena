@@ -1,0 +1,37 @@
+#usda 1.0
+(
+    defaultPrim = "Asset"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "Asset" (
+    prepend references = @/home/ubuntu/playground/rr_ur/boxx.usdc@</Asset>
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+)
+{
+    bool physics:kinematicEnabled = true
+    float physics:mass = 1
+    over "Links"
+    {
+        over "carton_body" (
+            delete apiSchemas = ["PhysicsArticulationRootAPI", "PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+        )
+        {
+        }
+        over "lid" (
+            delete apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+        )
+        {
+        }
+    }
+    over "Joints"
+    {
+        over "lid_fold" (
+            active = false
+        )
+        {
+            bool physics:jointEnabled = false
+        }
+    }
+}

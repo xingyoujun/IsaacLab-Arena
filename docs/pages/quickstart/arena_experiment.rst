@@ -70,11 +70,21 @@ results.
 Run the Experiment locally
 --------------------------
 
-Start or enter the Base Docker container from the repository root:
+Prepare the runtime from the repository root, using either a native ``uv`` environment or the base
+Docker container (see :doc:`installation` for the full setup):
 
-:docker_run_default:
+.. tab-set::
 
-Then run it inside the container:
+   .. tab-item:: Native uv
+      :selected:
+
+      :uv_run_source:
+
+   .. tab-item:: Docker Container
+
+      :docker_run_default:
+
+Then run the Experiment:
 
 .. code-block:: bash
 
@@ -98,8 +108,19 @@ records every Run, its status, and its episode results.
 Change values from the command line
 -----------------------------------
 
-You can adjust declared values without editing the YAML. This command reduces the number of
-parallel environments in the ``parallel_envs`` Run:
+You can adjust declared values without editing the YAML. This command changes the shared episode
+limit inherited by every Run:
+
+.. code-block:: bash
+
+   python isaaclab_arena/evaluation/experiment_runner.py \
+     --viz kit \
+     --experiment_config isaaclab_arena_environments/experiment_configs/getting_started_experiment.yaml \
+     shared.rollout_limit.num_episodes=4
+
+A value written directly inside a Run would still take priority over this shared override. To
+change only one Run, start the path with ``runs.<name>``. This command reduces the number of
+parallel environments in ``parallel_envs``:
 
 .. code-block:: bash
 
@@ -108,8 +129,9 @@ parallel environments in the ``parallel_envs`` Run:
      --experiment_config isaaclab_arena_environments/experiment_configs/getting_started_experiment.yaml \
      runs.parallel_envs.environment_builder.num_envs=8
 
-This changes only ``environment_builder.num_envs`` in the ``parallel_envs`` Run. All other values
-remain as written in the YAML.
+This changes only ``environment_builder.num_envs`` in the ``parallel_envs`` Run. OSMO uses the same
+paths below ``experiment_cfg``; for example, the shared override above becomes
+``experiment_cfg.shared.rollout_limit.num_episodes=4`` at submission time.
 
 See :doc:`Arena Experiments <../concepts/concept_arena_experiments>` for the full
 precedence order and configuration rules.

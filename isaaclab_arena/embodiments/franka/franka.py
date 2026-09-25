@@ -31,14 +31,15 @@ from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransf
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.configclass import configclass
 from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG, FRANKA_PANDA_HIGH_PD_CFG
-from isaaclab_tasks.manager_based.manipulation.stack.mdp import franka_stack_events
-from isaaclab_tasks.manager_based.manipulation.stack.mdp.observations import ee_frame_pos, ee_frame_quat
+from isaaclab_tasks.contrib.stack.mdp import franka_stack_events
+from isaaclab_tasks.contrib.stack.mdp.observations import ee_frame_pos, ee_frame_quat
 
 from isaaclab_arena.assets.register import register_asset
 from isaaclab_arena.embodiments.common.arm_mode import ArmMode
 from isaaclab_arena.embodiments.common.mimic_utils import get_rigid_and_articulated_object_poses
 from isaaclab_arena.embodiments.embodiment_base import EmbodimentBase
 from isaaclab_arena.embodiments.franka.observations import gripper_pos
+from isaaclab_arena.embodiments.gripper import PandaGripper
 from isaaclab_arena.embodiments.robot_on_stand_utils import RobotPrimSpec, StandPrimSpec, compose_on_stand_usd
 from isaaclab_arena.utils.cameras import ArenaCameraCfg
 from isaaclab_arena.utils.pose import Pose
@@ -60,7 +61,7 @@ _FRANKA_STAND_PRIM = StandPrimSpec(
     ref_prim_path="/Stand",
     payload_child_name="Stand",
     footprint_translate_xyz=(-0.05, 0.0, 0.0),
-    footprint_scale_xy=(1.2, 1.2),
+    stand_default_footprint_xy_m=(0.3888, 0.3888),
     stand_default_height=0.8755,
 )
 _FRANKA_JOINT_NAMES = (
@@ -93,6 +94,7 @@ class FrankaEmbodimentBase(EmbodimentBase):
         arm_mode: ArmMode | None = None,
     ):
         super().__init__(enable_cameras, initial_pose, concatenate_observation_terms, arm_mode)
+        self.gripper = PandaGripper()
         self.event_config = FrankaEventCfg()
         self.reward_config = FrankaRewardsCfg()
         self.mimic_env = FrankaMimicEnv
@@ -104,7 +106,7 @@ class FrankaEmbodimentBase(EmbodimentBase):
 
     def get_collision_mesh(self) -> trimesh.Trimesh:
         """Return one posed box mesh for the robot and stand."""
-        from isaaclab_arena.utils.usd_helpers import extract_trimesh_from_usd_at_joint_pos
+        from isaaclab_arena.utils.usd.helpers import extract_trimesh_from_usd_at_joint_pos
 
         source = self.get_placement_geometry_source()
         return extract_trimesh_from_usd_at_joint_pos(source.usd_path, source.joint_pos, source.scale)

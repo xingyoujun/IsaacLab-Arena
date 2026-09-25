@@ -10,6 +10,22 @@ import torch
 from isaaclab.managers import RecorderTerm, RecorderTermCfg
 from isaaclab.utils.math import subtract_frame_transforms
 
+from isaaclab_arena.progress_tracking.task_success import TaskSuccessTerm
+
+
+class G2CollectionSuccessTerm(TaskSuccessTerm):
+    """Update and reset task progress while allowing collection to finish the release motion."""
+
+    def __call__(
+        self,
+        env,
+        success_objectives,
+        subtasks_are_sequential=False,
+        desired_subtask_success_state=None,
+    ):
+        success = super().__call__(env, success_objectives, subtasks_are_sequential, desired_subtask_success_state)
+        return torch.zeros_like(success)
+
 
 class G2CoreRecorder(RecorderTerm):
     """Capture pre-action absolute joints and right/left TCP poses in world and robot-base frames."""

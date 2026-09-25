@@ -1,0 +1,43 @@
+#usda 1.0
+(
+    defaultPrim = "Asset"
+    doc = "drawer_rr with collisions between the sliding drawer links and the fixed carcass/top panel filtered out: the 1 mm side clearance let PhysX jam the slide at some placements. Geometry and joints are untouched."
+)
+
+def Xform "Asset" (
+    prepend references = @./usdcraft_drawer.usdc@</Asset>
+)
+{
+    over "Links"
+    {
+        over "drawer_box" (
+            prepend apiSchemas = ["PhysicsFilteredPairsAPI"]
+        )
+        {
+            rel physics:filteredPairs = [
+                </Asset/Links/carcass>,
+                </Asset/Links/top_panel>,
+            ]
+        }
+
+        over "drawer_fascia" (
+            prepend apiSchemas = ["PhysicsFilteredPairsAPI"]
+        )
+        {
+            rel physics:filteredPairs = [
+                </Asset/Links/carcass>,
+                </Asset/Links/top_panel>,
+            ]
+        }
+
+        over "pull_knob" (
+            prepend apiSchemas = ["PhysicsFilteredPairsAPI"]
+        )
+        {
+            rel physics:filteredPairs = [
+                </Asset/Links/carcass>,
+                </Asset/Links/top_panel>,
+            ]
+        }
+    }
+}

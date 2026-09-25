@@ -9,13 +9,17 @@ from typing import Any, Union
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.assets.articulation.articulation_cfg import ArticulationCfg
 from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
+from isaaclab.sim import SimulationCfg
 from pxr import Gf, Usd, UsdGeom
 
 from isaaclab_arena.assets.asset import Asset
+from isaaclab_arena.assets.background import Background
+from isaaclab_arena.assets.cable import Cable
 from isaaclab_arena.assets.object import Object
-from isaaclab_arena.assets.object_base import ObjectType
 from isaaclab_arena.assets.object_reference import ObjectReference
 from isaaclab_arena.assets.object_set import RigidObjectSet
+from isaaclab_arena.assets.object_type import ObjectType
+from isaaclab_arena.relations.placement_asset import PlaceableAsset
 from isaaclab_arena.utils.configclass import make_configclass
 from isaaclab_arena.utils.phyx_utils import add_contact_report
 from isaaclab_arena.variations.variation_base import VariationBase
@@ -30,10 +34,12 @@ class Scene:
         # We add these here so a user can override them if they want.
         self.observation_cfg = None
         self.events_cfg = None
-        self.termination_cfg = None
         self.rewards_cfg = None
         self.curriculum_cfg = None
         self.commands_cfg = None
+        self._background_physics_paths: dict[str, dict[str, ObjectType]] = {}
+        self._background_physics_referenced_paths: dict[str, dict[str, ObjectType]] = {}
+        self._background_physics_prim_paths: dict[str, str] = {}
         if assets is not None:
             self.add_assets(assets)
 
@@ -69,12 +75,44 @@ class Scene:
         """Returns a configclass containing all the scene elements."""
         # Combine the configs into a configclass.
         fields: list[tuple[str, type, AssetCfg]] = []
+        self._background_physics_paths = {}
+        self._background_physics_referenced_paths = {}
+        self._background_physics_prim_paths = {}
+        backgrounds: list[Background] = []
+        referenced_paths_by_background: dict[Background, dict[str, ObjectType]] = {}
         for asset in self.assets.values():
             asset_cfg_name, asset_cfg = asset.get_object_cfg()
             fields.append((asset_cfg_name, type(asset_cfg), asset_cfg))
+            if isinstance(asset, Background):
+                backgrounds.append(asset)
+            elif isinstance(asset, ObjectReference) and isinstance(asset.parent_asset, Background):
+                # Matching rigid and articulation references own complete reset
+                # events and are excluded from private background views. BASE
+                # references are observational and do not transfer reset ownership.
+                referenced_paths_by_background.setdefault(asset.parent_asset, {})[asset.prim_path] = asset.object_type
+
+        for background in backgrounds:
+            if not background.reset_nested_physics:
+                continue
+            referenced_paths = referenced_paths_by_background.get(background, {})
+            self._background_physics_paths[background.name] = background.get_nested_physics_prim_paths(referenced_paths)
+            self._background_physics_referenced_paths[background.name] = referenced_paths
+            self._background_physics_prim_paths[background.name] = background.prim_path
         SceneCfg = make_configclass("SceneCfg", fields)
         scene_cfg = SceneCfg()
         return scene_cfg
+
+    def get_background_physics_paths(self) -> dict[str, dict[str, ObjectType]]:
+        """Return reset-enabled backgrounds mapped to deferred-reset physics roots."""
+        return {background: dict(paths) for background, paths in self._background_physics_paths.items()}
+
+    def get_background_physics_referenced_paths(self) -> dict[str, dict[str, ObjectType]]:
+        """Return reset-enabled backgrounds mapped to object-reference-owned runtime paths."""
+        return {background: dict(paths) for background, paths in self._background_physics_referenced_paths.items()}
+
+    def get_background_physics_prim_paths(self) -> dict[str, str]:
+        """Return reset-enabled backgrounds mapped to their runtime root paths."""
+        return dict(self._background_physics_prim_paths)
 
     def get_observation_cfg(self) -> Any:
         return self.observation_cfg
@@ -89,9 +127,6 @@ class Scene:
         EventCfg = make_configclass("EventCfg", fields)
         event_cfg = EventCfg()
         return event_cfg
-
-    def get_termination_cfg(self) -> Any:
-        return self.termination_cfg
 
     def get_rewards_cfg(self) -> Any:
         return self.rewards_cfg
@@ -109,11 +144,11 @@ class Scene:
             asset_name_to_variations[asset.name] = asset.get_variations()
         return asset_name_to_variations
 
-    def get_objects_with_relations(self) -> list[Object | ObjectReference]:
-        """Return scene objects that have at least one relation used in placement optimization."""
-        objects_with_relations: list[Object | ObjectReference] = []
+    def get_objects_with_relations(self) -> list[PlaceableAsset]:
+        """Return placeable assets that have relations used in placement optimization."""
+        objects_with_relations: list[PlaceableAsset] = []
         for asset in self.assets.values():
-            if not isinstance(asset, (Object, ObjectReference)):
+            if not isinstance(asset, PlaceableAsset):
                 continue
             # Those with spatial relations or an anchor, exclude those are only used in validation, e.g. RequiresReachability.
             if asset.get_spatial_relations() or asset.is_anchor:
@@ -134,6 +169,11 @@ class Scene:
                 All assets will be added as children of this prim.
         """
         export_scene_to_usd(self, output_path, root_prim_path)
+
+    def validate_simulation_cfg(self, sim_cfg: SimulationCfg) -> None:
+        """Validate the resolved simulation configuration against every asset."""
+        for asset in self.assets.values():
+            asset.validate_simulation_cfg(sim_cfg)
 
 
 def export_scene_to_usd(scene: Scene, output_path: pathlib.Path, root_prim_path: str = "/World") -> None:
@@ -164,23 +204,29 @@ def export_scene_to_usd(scene: Scene, output_path: pathlib.Path, root_prim_path:
 
 
 def _create_prim_from_asset(stage: Usd.Stage, asset: Asset) -> None:
-    """Adds a prim to the stage for the given asset.
+    """Add a prim to the stage for the given asset.
 
     This is used internally by the scene.export_to_usd method.
     For the passed asset, this method will create a prim at the given stage,
     and reference the asset USD file.
     The pose of the prim will be set to the initial pose of the asset.
+    File-backed objects are referenced into the stage, while procedural
+    assets such as cables are authored directly.
 
     Args:
         stage: The stage to add the prim to.
         asset: The asset to add to the stage.
     """
-    assert isinstance(asset, Object)
     # Get the default prim path
     default_prim_path = stage.GetDefaultPrim().GetPath()
     assert default_prim_path is not None
     # Construct the path for the asset prim
     asset_path = str(default_prim_path) + "/" + asset.name
+    if isinstance(asset, Cable):
+        _create_cable_prim(stage, asset, asset_path)
+        return
+
+    assert isinstance(asset, Object)
     # Create the prim and reference the asset USD file.
     prim = stage.DefinePrim(asset_path, "Xform")
     prim.GetReferences().AddReference(asset.usd_path)
@@ -207,6 +253,19 @@ def _create_prim_from_asset(stage: Usd.Stage, asset: Asset) -> None:
     s = Gf.Vec3d(asset.scale) if scale_double else Gf.Vec3f(asset.scale)
     s_precision = UsdGeom.XformOp.PrecisionDouble if scale_double else UsdGeom.XformOp.PrecisionFloat
     prim_xform.AddScaleOp(precision=s_precision).Set(s)
+
+
+def _create_cable_prim(stage: Usd.Stage, cable: Cable, prim_path: str) -> None:
+    """Author a procedural cable into an export stage."""
+    import isaaclab.sim as sim_utils
+
+    initial_pose = cable.get_initial_pose()
+    translation = initial_pose.position_xyz if initial_pose is not None else None
+    orientation = initial_pose.rotation_xyzw if initial_pose is not None else None
+    spawn_cfg = cable.object_cfg.spawn
+    assert spawn_cfg is not None, f"Cable '{cable.name}' has no spawn configuration."
+    with sim_utils.use_stage(stage):
+        spawn_cfg.func(prim_path, spawn_cfg, translation=translation, orientation=orientation)
 
 
 def _is_double_precision(op: UsdGeom.XformOp) -> bool | None:

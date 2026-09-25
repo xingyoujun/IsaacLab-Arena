@@ -1,0 +1,17 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Recorded joint-space action vector of the UR7e + Robotiq 2F-85 (Ur7eJointRecordingActionsCfg order):
+# six arm joints then the Robotiq drive joint. Also the layout of the HDF5 key joint_pos_target.
+joints:
+  "shoulder_pan_joint": 0
+  "shoulder_lift_joint": 1
+  "elbow_joint": 2
+  "wrist_1_joint": 3
+  "wrist_2_joint": 4
+  "wrist_3_joint": 5
+  "finger_joint": 6
+
+total_joints: 7

@@ -1,0 +1,87 @@
+{
+  "asset_root": "/home/ubuntu/playground/rr_ur",
+  "dataset_root": "/home/ubuntu/playground/datasets/rr_sim2real",
+  "policy": "Only Articraft may be uniformly normalized. Other geometry stays unchanged; add Arena wrappers only after diagnosing structural/cuMotion failure.",
+  "assets": [
+    {
+      "id": "usdcraft_drawer",
+      "method": "usdcraft",
+      "case": "drawer",
+      "source": "usdcraft_drawer.usdc",
+      "arena_entry": "usdcraft_drawer_arena.usda",
+      "environment": "ur7e_usdcraft_open_drawer",
+      "dataset": "usdcraft_open_drawer",
+      "status": "unchanged; existing collision-filter overlay"
+    },
+    {
+      "id": "usdcraft_toast",
+      "method": "usdcraft",
+      "case": "toast",
+      "source": "usdcraft_toast.usdc",
+      "arena_entry": "usdcraft_toast_arena.usda",
+      "environment": "ur7e_usdcraft_press_toaster",
+      "dataset": "usdcraft_press_toaster",
+      "status": "unchanged; existing missing-decal/material overlay"
+    },
+    {
+      "id": "articraft_drawer",
+      "method": "articraft",
+      "case": "drawer",
+      "source": "articraft_drawer/articraft_drawer.usd",
+      "arena_entry": "articraft_drawer/articraft_drawer.usd",
+      "environment": "ur7e_articraft_open_drawer",
+      "dataset": "articraft_open_drawer",
+      "status": "already uniformly scaled 0.495 to 0.198 m width; do not rescale"
+    },
+    {
+      "id": "articraft_toast",
+      "method": "articraft",
+      "case": "toast",
+      "source": "articraft_toast/articraft_toast.urdf",
+      "arena_entry": "articraft_toast/articraft_toast.usd",
+      "environment": "ur7e_articraft_press_toaster",
+      "dataset": "articraft_press_toaster",
+      "status": "exported; uniform scale 0.795522222222 to USDcraft width 0.143194 m; 200 black-gripper randomized demos collected"
+    },
+    {
+      "id": "miniworkflow_gptsol_drawer",
+      "method": "miniworkflow_gptsol",
+      "case": "drawer",
+      "source": "miniworkflow_gptsol_drawer.usd",
+      "arena_entry": "miniworkflow_gptsol_drawer_arena.usda",
+      "environment": "ur7e_miniworkflow_gptsol_open_drawer",
+      "dataset": "miniworkflow_gptsol_open_drawer",
+      "status": "unchanged; existing articulation-root overlay"
+    },
+    {
+      "id": "miniworkflow_gptsol_toast",
+      "method": "miniworkflow_gptsol",
+      "case": "toast",
+      "source": "miniworkflow_gptsol_toast.usd",
+      "arena_entry": "miniworkflow_gptsol_toast_arena.usda",
+      "environment": "ur7e_miniworkflow_gptsol_press_toaster",
+      "dataset": "miniworkflow_gptsol_press_toaster",
+      "status": "unscaled; minimal fixed-base articulation-root overlay; 200 black-gripper randomized demos collected"
+    },
+    {
+      "id": "miniworkflow_astra_drawer",
+      "method": "miniworkflow_astra",
+      "case": "drawer",
+      "source": "miniworkflow_astra_drawer.usd",
+      "arena_entry": "miniworkflow_astra_drawer_arena.usda",
+      "environment": "ur7e_miniworkflow_astra_open_drawer",
+      "dataset": "miniworkflow_astra_open_drawer",
+      "status": "unscaled; minimal articulation-root overlay; reset-velocity fix; 200 black-gripper randomized demos collected"
+    },
+    {
+      "id": "miniworkflow_astra_toast",
+      "method": "miniworkflow_astra",
+      "case": "toast",
+      "source": "miniworkflow_astra_toast.usd",
+      "arena_entry": "miniworkflow_astra_toast_arena.usda",
+      "environment": "ur7e_miniworkflow_astra_press_toaster",
+      "dataset": "miniworkflow_astra_press_toaster",
+      "status": "unscaled; root overlay and triangulated original-vertex collision hulls after four PhysX cooking failures; 200 black-gripper randomized demos collected"
+    }
+  ]
+}

@@ -371,9 +371,11 @@ def ensure_assets_registered():
     try:
         # Import modules to trigger asset registration via decorators
         import isaaclab_arena.assets.background_library  # noqa: F401
+        import isaaclab_arena.assets.deformable_object_library  # noqa: F401
         import isaaclab_arena.assets.device_library  # noqa: F401
         import isaaclab_arena.assets.geniesim_library  # noqa: F401
         import isaaclab_arena.assets.hdr_image_library  # noqa: F401
+        import isaaclab_arena.assets.local_objects  # noqa: F401
         import isaaclab_arena.assets.object_library  # noqa: F401
         import isaaclab_arena.assets.retargeter_library  # noqa: F401
         import isaaclab_arena.assets.simready_object_library  # noqa: F401

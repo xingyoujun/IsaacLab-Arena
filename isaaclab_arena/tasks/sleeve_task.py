@@ -7,6 +7,7 @@
 
 import math
 import torch
+from functools import partial
 
 import warp as wp
 from isaaclab.envs import mdp
@@ -15,8 +16,9 @@ from isaaclab.utils.math import quat_apply, quat_apply_inverse
 
 from isaaclab_arena.metrics.object_moved import ObjectMovedRateMetric
 from isaaclab_arena.metrics.success_rate import SuccessRateMetric
+from isaaclab_arena.progress_tracking.progress_objective import ProgressObjective
 from isaaclab_arena.tasks.no_task import NoTask
-from isaaclab_arena.utils.configclass import make_configclass
+from isaaclab_arena.tasks.task_termination_cfg import TaskTerminationCfg
 
 
 def peg_is_inserted(
@@ -70,31 +72,27 @@ class SleeveTask(NoTask):
         self.peg = peg
         self.episode_length_s = episode_length_s
         self.task_description = "Pick up the peg and fully insert it into the fixed sleeve"
-        success = TerminationTermCfg(
-            func=peg_is_inserted,
-            params={
-                "sleeve_cfg": SceneEntityCfg(sleeve.name),
-                "peg_cfg": SceneEntityCfg(peg.name),
-                "radial_tolerance_m": radial_tolerance_m,
-                "seating_tolerance_m": seating_tolerance_m,
-                "axis_tolerance_deg": axis_tolerance_deg,
+        self.success_params = {
+            "sleeve_cfg": SceneEntityCfg(sleeve.name),
+            "peg_cfg": SceneEntityCfg(peg.name),
+            "radial_tolerance_m": radial_tolerance_m,
+            "seating_tolerance_m": seating_tolerance_m,
+            "axis_tolerance_deg": axis_tolerance_deg,
+        }
+        self.termination_cfg = TaskTerminationCfg(
+            timeout_s=episode_length_s,
+            success=[
+                ProgressObjective(
+                    name="peg_inserted", predicate_sequence=[partial(peg_is_inserted, **self.success_params)]
+                )
+            ],
+            failures={
+                "object_dropped": TerminationTermCfg(
+                    func=mdp.root_height_below_minimum,
+                    params={"minimum_height": -0.10, "asset_cfg": SceneEntityCfg(peg.name)},
+                )
             },
         )
-        self.termination_cfg = make_configclass(
-            "SleeveTerminationsCfg",
-            [
-                ("success", TerminationTermCfg, success),
-                ("time_out", TerminationTermCfg, TerminationTermCfg(func=mdp.time_out, time_out=True)),
-                (
-                    "object_dropped",
-                    TerminationTermCfg,
-                    TerminationTermCfg(
-                        func=mdp.root_height_below_minimum,
-                        params={"minimum_height": -0.10, "asset_cfg": SceneEntityCfg(peg.name)},
-                    ),
-                ),
-            ],
-        )()
 
     def get_termination_cfg(self):
         return self.termination_cfg

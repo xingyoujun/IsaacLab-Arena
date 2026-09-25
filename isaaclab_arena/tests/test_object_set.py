@@ -27,7 +27,7 @@ OBJECT_SET_BOTTLES_PRIM_PATH = "/World/envs/env_.*/ObjectSet_Bottles"
 
 def _make_object_set_variants():
     from isaaclab_arena.assets.object import Object
-    from isaaclab_arena.assets.object_base import ObjectType
+    from isaaclab_arena.assets.object_type import ObjectType
     from isaaclab_arena.utils.bounding_box import AxisAlignedBoundingBox
 
     can_a = Object(name="can_a", object_type=ObjectType.RIGID, usd_path="/tmp/can_a.usd")
@@ -43,8 +43,8 @@ def _test_object_set_samples_and_stores_variant_indices(simulation_app):
     """Variant assignment should be sampled once and reused for spawning and bboxes."""
     import torch
 
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     can_a, can_b, bbox_a, bbox_b = _make_object_set_variants()
     assigned_variant_indices = [1, 0, 1, 1]
@@ -79,8 +79,8 @@ def _test_object_set_default_variant_indices_follow_member_order(simulation_app)
     """Default object-set assignment should preserve the old deterministic member order."""
     import torch
 
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     can_a, can_b, bbox_a, bbox_b = _make_object_set_variants()
     with (
@@ -104,8 +104,8 @@ def _test_object_set_default_variant_indices_follow_member_order(simulation_app)
 
 def _test_object_set_random_variant_indices_use_placement_seed(simulation_app):
     """Random variant assignment should be repeatable with the same placement seed."""
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     def _assigned_indices():
         can_a, can_b, _bbox_a, _bbox_b = _make_object_set_variants()
@@ -125,8 +125,8 @@ def _test_object_set_regenerates_variants_with_different_num_envs(simulation_app
     import io
     from contextlib import redirect_stdout
 
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     can_a, can_b, _bbox_a, _bbox_b = _make_object_set_variants()
     with (
@@ -167,7 +167,6 @@ def _build_and_reset_env(simulation_app, scene_assets, env_name="object_set_test
     )
     args_cli = get_isaaclab_arena_cli_parser().parse_args([])
     args_cli.num_envs = NUM_ENVS
-    args_cli.headless = HEADLESS
     env_builder = ArenaEnvBuilder(isaaclab_arena_environment, arena_env_builder_cfg_from_argparse(args_cli))
     env = env_builder.make_registered()
     env.reset()
@@ -187,7 +186,7 @@ def _run_pick_and_place_object_set_test(
     from isaaclab_arena.assets.object_reference import ObjectReference
     from isaaclab_arena.assets.registries import AssetRegistry
     from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
-    from isaaclab_arena.utils.usd_helpers import get_asset_usd_path_from_prim_path
+    from isaaclab_arena.utils.usd.helpers import get_asset_usd_path_from_prim_path
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("kitchen")()
@@ -198,7 +197,7 @@ def _run_pick_and_place_object_set_test(
     )
     if initial_pose is not None:
         obj_set.set_initial_pose(initial_pose)
-    scene_assets = [background, obj_set]
+    scene_assets = [background, obj_set, destination_location]
     task = PickAndPlaceTask(
         pick_up_object=obj_set,
         destination_location=destination_location,
@@ -245,8 +244,8 @@ def _test_empty_object_set(simulation_app):
 
 
 def _test_articulation_object_set(simulation_app):
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     can_a, can_b, _bbox_a, _bbox_b = _make_object_set_variants()
     try:
@@ -269,7 +268,7 @@ def _test_single_object_in_one_object_set(simulation_app):
     from isaaclab_arena.scene.scene import Scene
     from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
     from isaaclab_arena.utils.pose import Pose
-    from isaaclab_arena.utils.usd_helpers import get_asset_usd_path_from_prim_path
+    from isaaclab_arena.utils.usd.helpers import get_asset_usd_path_from_prim_path
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("kitchen")()
@@ -282,7 +281,7 @@ def _test_single_object_in_one_object_set(simulation_app):
     )
     obj_set = RigidObjectSet(name="single_object_set", objects=[cracker_box], prim_path=OBJECT_SET_1_PRIM_PATH)
     obj_set.set_initial_pose(Pose(position_xyz=(0.1, 0.0, 0.1), rotation_xyzw=(0.0, 0.0, 0.0, 1.0)))
-    scene = Scene(assets=[background, obj_set])
+    scene = Scene(assets=[background, obj_set, destination_location])
     task = PickAndPlaceTask(
         pick_up_object=obj_set, destination_location=destination_location, background_scene=background
     )
@@ -295,7 +294,6 @@ def _test_single_object_in_one_object_set(simulation_app):
     )
     args_cli = get_isaaclab_arena_cli_parser().parse_args([])
     args_cli.num_envs = NUM_ENVS
-    args_cli.headless = HEADLESS
     env_builder = ArenaEnvBuilder(isaaclab_arena_environment, arena_env_builder_cfg_from_argparse(args_cli))
     env = env_builder.make_registered()
     env.reset()
@@ -334,7 +332,7 @@ def _test_multi_objects_in_one_object_set(simulation_app):
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
     from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
-    from isaaclab_arena.utils.usd_helpers import get_asset_usd_path_from_prim_path
+    from isaaclab_arena.utils.usd.helpers import get_asset_usd_path_from_prim_path
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("kitchen")()
@@ -349,7 +347,7 @@ def _test_multi_objects_in_one_object_set(simulation_app):
     obj_set = RigidObjectSet(
         name="multi_object_sets", objects=[cracker_box, sugar_box], prim_path=OBJECT_SET_2_PRIM_PATH
     )
-    scene = Scene(assets=[background, obj_set])
+    scene = Scene(assets=[background, obj_set, destination_location])
     task = PickAndPlaceTask(
         pick_up_object=obj_set, destination_location=destination_location, background_scene=background
     )
@@ -362,7 +360,6 @@ def _test_multi_objects_in_one_object_set(simulation_app):
     )
     args_cli = get_isaaclab_arena_cli_parser().parse_args([])
     args_cli.num_envs = NUM_ENVS
-    args_cli.headless = HEADLESS
     env_builder = ArenaEnvBuilder(isaaclab_arena_environment, arena_env_builder_cfg_from_argparse(args_cli))
     env = env_builder.make_registered()
     env.reset()
@@ -407,7 +404,7 @@ def _test_multi_object_sets(simulation_app):
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
-    from isaaclab_arena.utils.usd_helpers import get_asset_usd_path_from_prim_path
+    from isaaclab_arena.utils.usd.helpers import get_asset_usd_path_from_prim_path
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("packing_table")()
@@ -430,7 +427,6 @@ def _test_multi_object_sets(simulation_app):
     )
     args_cli = get_isaaclab_arena_cli_parser().parse_args([])
     args_cli.num_envs = NUM_ENVS
-    args_cli.headless = HEADLESS
     env_builder = ArenaEnvBuilder(isaaclab_arena_environment, arena_env_builder_cfg_from_argparse(args_cli))
     env = env_builder.make_registered()
     env.reset()
@@ -489,9 +485,8 @@ def _test_object_set_with_robot_mounted_cameras(simulation_app) -> bool:
     An object set spawns one USD variant per env, which puts the scene on Isaac Lab's
     heterogeneous clone-plan path: every cfg gets its own destination template instead of a
     single env-root one. DROID's cameras live under the robot, so their templates nest
-    inside the robot's, and resolving them used to raise. See the resolve_clone_plan_source
-    patch. Needs more than one env; a single env takes the homogeneous fast path and never
-    builds the nested templates.
+    inside the robot's, and resolving them used to raise. Needs more than one env; a single
+    env takes the homogeneous fast path and never builds the nested templates.
     """
     from isaaclab_arena.assets.object_set import RigidObjectSet
     from isaaclab_arena.assets.registries import AssetRegistry

@@ -92,6 +92,8 @@ def test_task_catalogue_excludes_structural_graph_fields():
     assert "PickAndPlaceTask" in entries
     pick_params = entries["PickAndPlaceTask"].required_params + entries["PickAndPlaceTask"].optional_params
     assert "task_description" not in pick_params
+    assert "max_separation" not in pick_params
+    assert "support_cone_half_angle_rad" in pick_params
 
 
 def test_relation_catalogue_collects_required_optional_and_enum_params():
@@ -147,7 +149,7 @@ class TestGenerateSpec:
         mock_build_relations.assert_called_once_with()
         mock_build_tasks.assert_called_once_with()
 
-    @patch("isaaclab_arena.utils.usd_prim_tree.load_usd_prim_tree")
+    @patch("isaaclab_arena.utils.usd.prim_tree.load_usd_prim_tree")
     @patch("isaaclab_arena.environment_spec.arena_env_graph_types.AssetSpec.resolve_usd_path")
     def test_two_pass_generate_spec_resolves_object_references(self, mock_resolve_usd, mock_load_tree, agent):
         agent_obj, client = agent
@@ -168,7 +170,7 @@ class TestGenerateSpec:
         assert client.chat.completions.create.call_count == 2
         assert spec.object_references
 
-    @patch("isaaclab_arena.utils.usd_prim_tree.load_usd_prim_tree")
+    @patch("isaaclab_arena.utils.usd.prim_tree.load_usd_prim_tree")
     @patch("isaaclab_arena.environment_spec.arena_env_graph_types.AssetSpec.resolve_usd_path")
     def test_two_pass_generate_spec_returns_dict_on_pass2_failure(self, mock_resolve_usd, mock_load_tree, agent):
         agent_obj, client = agent
@@ -373,6 +375,16 @@ def test_asset_catalogue_withholds_the_generic_simready_object():
 
     assert AssetRegistry().is_registered(SIMREADY_USD_OBJECT_REGISTRY_NAME)
     assert SIMREADY_USD_OBJECT_REGISTRY_NAME not in catalog_string
+
+
+def test_asset_catalogue_withholds_procedural_assets():
+    catalog_string = build_asset_catalogue().to_catalog_string()
+
+    registry = AssetRegistry()
+    assert registry.is_registered("procedural_cube")
+    assert registry.is_registered("procedural_table")
+    assert "procedural_cube" not in catalog_string
+    assert "procedural_table" not in catalog_string
 
 
 # ---------------------------------------------------------------------------

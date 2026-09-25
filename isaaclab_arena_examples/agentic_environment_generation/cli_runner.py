@@ -21,11 +21,11 @@ Usage::
     python isaaclab_arena_examples/agentic_environment_generation/cli_runner.py --mode resolve --prompt ...
 
     # Build a gym env from a graph spec YAML and run the zero-action policy:
-    python isaaclab_arena_examples/agentic_environment_generation/cli_runner.py --mode build --headless \\
+    python isaaclab_arena_examples/agentic_environment_generation/cli_runner.py --mode build \\
         --num_envs 1 --env_spec <env>_env_graph.yaml
 
     # Resolve and build in one process:
-    python isaaclab_arena_examples/agentic_environment_generation/cli_runner.py --mode full --headless \\
+    python isaaclab_arena_examples/agentic_environment_generation/cli_runner.py --mode full \\
         --num_envs 1 --prompt ...
 """
 
@@ -251,7 +251,7 @@ def print_background_prim_tree(env_graph_spec_path: Path) -> None:
         env_graph_spec_path: Path to the environment graph spec YAML whose background is inspected.
     """
     from isaaclab_arena.environment_spec.arena_env_graph_spec import ArenaEnvGraphSpec
-    from isaaclab_arena.utils.usd_prim_tree import load_usd_prim_tree
+    from isaaclab_arena.utils.usd.prim_tree import load_usd_prim_tree
 
     spec = ArenaEnvGraphSpec.from_yaml(env_graph_spec_path)
     usd_path = spec.background.resolve_usd_path()

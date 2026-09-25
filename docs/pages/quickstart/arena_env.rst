@@ -53,9 +53,21 @@ actions, so no policy or model weights are required. It keeps running until you 
 ``Ctrl-C``. While it runs, hold ``Shift`` and left-drag an object to move it and inspect its physical
 behavior.
 
-Start or enter the Base Docker container from the repository root:
+Prepare the runtime from the repository root, using either a native ``uv`` environment or the base
+Docker container (see :doc:`installation` for the full setup):
 
-:docker_run_default:
+.. tab-set::
+
+   .. tab-item:: Native uv
+      :selected:
+
+      :uv_run_source:
+
+   .. tab-item:: Docker Container
+
+      :docker_run_default:
+
+Every command below is identical in both runtimes.
 
 
 Run the reference scene
@@ -172,12 +184,18 @@ For more detail, see :doc:`Assets <../concepts/scene/concept_assets_design>`,
 :doc:`Scenes <../concepts/scene/index>`, :doc:`Embodiments <../concepts/embodiment/index>`,
 :doc:`Tasks <../concepts/task/index>`, and
 :doc:`Environment Builder <../concepts/environment/env_builder>`.
+PhysX vs Newton selection and ``--presets`` precedence are described in
+:doc:`Physics backend selection <../concepts/environment/physics_backend_selection>`.
 
-.. dropdown:: Full source: ``pick_and_place_maple_table_environment.py``
+.. dropdown:: Environment definition: ``pick_and_place_maple_table_environment.py``
    :animate: fade-in
 
    .. literalinclude:: ../../../isaaclab_arena_environments/pick_and_place_maple_table_environment.py
       :language: python
+      :start-at: @dataclass
+      :end-at: return isaaclab_arena_environment
+
+See the `complete source <https://github.com/isaac-sim/IsaacLab-Arena/blob/main/isaaclab_arena_environments/pick_and_place_maple_table_environment.py>`_.
 
 
 Next Steps

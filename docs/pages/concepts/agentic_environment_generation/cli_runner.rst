@@ -6,6 +6,11 @@ the generation interface, resolving a prompt, building an existing graph spec,
 or running the complete pipeline. Run it inside the Isaac Lab-Arena development
 container:
 
+.. note::
+
+   Modes ``schema``, ``catalog``, ``prim_tree``, and ``build`` do not call a
+   remote model and do not require an inference API key.
+
 .. code-block:: bash
 
    python isaaclab_arena_examples/agentic_environment_generation/cli_runner.py \
@@ -51,8 +56,11 @@ The ``--mode`` option selects which parts of the
        zero-action policy in one process. This is the default.
      - **Prompt** through **evaluation**, without a manual-edit pause.
 
-Use ``resolve`` followed by ``build`` when the generated YAML needs manual
-review:
+.. warning::
+
+   ``full`` does not pause for review between generation and evaluation.
+   Generated specs should be reviewed before evaluation. For reviewable
+   workflows, use ``resolve``, review or edit the YAML, and then use ``build``:
 
 .. code-block:: bash
 
@@ -63,8 +71,7 @@ review:
    # Review or edit the generated YAML, then:
    python isaaclab_arena_examples/agentic_environment_generation/cli_runner.py \
       --mode build \
-      --env_spec isaaclab_arena_environments/agent_generated/<env_name>.yaml \
-      --headless
+      --env_spec isaaclab_arena_environments/agent_generated/<env_name>.yaml
 
 Runner options
 --------------
@@ -133,8 +140,8 @@ relevant to ``build`` and ``full`` are:
    * - ``--env_spec PATH``
      - Input graph-spec YAML. Required by ``--mode build`` and ``prim_tree``.
      - Spec
-   * - ``--headless``
-     - Runs Isaac Sim without a viewport.
+   * - ``--viz kit``
+     - Opens the Kit visualizer. Omit ``--viz`` to run headless.
      - Build and evaluation
    * - ``--num_envs N``
      - Sets the number of parallel environments. Default: ``1``.

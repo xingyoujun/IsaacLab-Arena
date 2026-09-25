@@ -16,7 +16,32 @@ from pathlib import Path
 from g2_dataset_io import sample_bowls
 
 from isaaclab_arena.cli.isaaclab_arena_cli import get_isaaclab_arena_cli_parser
-from isaaclab_arena.utils.isaaclab_utils.simulation_app import get_app_launcher
+from isaaclab_arena.utils.isaaclab_utils.simulation_app import SimulationAppContext
+
+
+def _ensure_curobo_warp_compat():
+    """Restore the Warp torch namespace used by the pinned cuRobo collision checker."""
+    import sys
+    from types import ModuleType
+
+    import warp as wp
+
+    # The beta IsaacLab Mimic package installed this shim; GA no longer does.
+    if not hasattr(wp, "torch"):
+        interop = ModuleType("warp.torch")
+        for name in (
+            "from_torch",
+            "to_torch",
+            "device_from_torch",
+            "device_to_torch",
+            "dtype_from_torch",
+            "dtype_to_torch",
+            "stream_from_torch",
+            "stream_to_torch",
+        ):
+            setattr(interop, name, getattr(wp, name))
+        wp.torch = interop
+        sys.modules["warp.torch"] = interop
 
 
 def _planning_joint_names(urdf_path: Path, link_names: list[str]) -> set[str]:
@@ -50,6 +75,7 @@ def _close_video(writer):
 
 def main():
     parser = get_isaaclab_arena_cli_parser()
+    parser.add_argument("--headless", action="store_true", help="Run without a viewer (also the GA default)")
     parser.add_argument("--robot_yaml", type=Path, required=True)
     parser.add_argument("--robot_urdf", type=Path, required=True)
     parser.add_argument("--output_dir", type=Path, required=True)
@@ -71,14 +97,13 @@ def main():
     shutil.copyfile(args.robot_yaml, args.output_dir / "source_robot.yaml")
     shutil.copyfile(args.robot_urdf, args.output_dir / "robot.urdf")
     shutil.copyfile(__file__, args.output_dir / "collector_source.py")
-    launcher = get_app_launcher(args)
-    try:
+    with SimulationAppContext(args):
         collect(args)
-    finally:
-        launcher.app.close()
 
 
 def collect(args: argparse.Namespace):
+    _ensure_curobo_warp_compat()
+
     import torch
     import yaml
 
@@ -92,9 +117,9 @@ def collect(args: argparse.Namespace):
 
     from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse
     from isaaclab_arena.embodiments.g2.g2 import G2CollectionCameraCfg, G2JointPositionActionsCfg
-    from isaaclab_arena.embodiments.g2.recorders import core_recorder_cfg
+    from isaaclab_arena.embodiments.g2.recorders import G2CollectionSuccessTerm, core_recorder_cfg
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
-    from isaaclab_arena.utils.isaaclab_utils.recorders import ArenaEnvRecorderManagerCfg
+    from isaaclab_arena.terms.recorders import ArenaEnvRecorderManagerCfg
     from isaaclab_arena_environments.g2_stack_bowls_environment import (
         G2StackBowlsEnvironment,
         G2StackBowlsEnvironmentCfg,
@@ -113,17 +138,15 @@ def collect(args: argparse.Namespace):
     if args.enable_cameras:
         description.embodiment.camera_config = G2CollectionCameraCfg()
     original_callback = description.env_cfg_callback
-    success_term = None
     failure_terms = {}
 
     def configure(cfg):
-        nonlocal success_term
         cfg = original_callback(cfg)
-        success_term = cfg.terminations.success
+        cfg.terminations.success.func = G2CollectionSuccessTerm
         # Evaluate success explicitly after opening the gripper and allowing the stack to settle.
         for name, term in vars(cfg.terminations).items():
-            if isinstance(term, TerminationTermCfg):
-                if name != "success" and not term.time_out:
+            if isinstance(term, TerminationTermCfg) and name != "success":
+                if not term.time_out:
                     failure_terms[name] = term
                 setattr(cfg.terminations, name, None)
         cfg.recorders = ArenaEnvRecorderManagerCfg(
@@ -183,8 +206,6 @@ def collect(args: argparse.Namespace):
                 frame = base.scene["overview_camera"].data.output["rgb"].torch[0, ..., :3].cpu().numpy()
                 video_writer.append_data(frame)
             assert not bool(terminated[0] or truncated[0]), "Environment reset during trajectory execution"
-            # Advance the sequential task's state without triggering an automatic reset.
-            success_term.func(base, **success_term.params)
             for name, term in failure_terms.items():
                 assert not bool(term.func(base, **term.params)[0]), f"Task failure: {name}"
 
@@ -403,7 +424,7 @@ def collect(args: argparse.Namespace):
                 entry["phase"] = "verify stack"
                 for _ in range(10):
                     step()
-                    assert bool(success_term.func(base, **success_term.params)[0]), "Task success predicate is false"
+                    assert bool(base.progress_tracker.is_complete()[0]), "Task success predicate is false"
                     heights = [position(name)[2].item() for name in ("bowl_2", "bowl_1", "bowl_3")]
                     assert heights[0] < heights[1] < heights[2], "Bowls are not stacked in the intended order"
                 entry["success"] = True

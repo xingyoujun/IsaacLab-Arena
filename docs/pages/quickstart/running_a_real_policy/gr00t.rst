@@ -18,31 +18,14 @@ submodule pinned at commit ``e29d8fc``. Populate it if needed:
 
    git submodule update --init submodules/Isaac-GR00T
 
-If you run Arena from its native ``uv`` environment, install the GR00T client
-package:
+.. note::
 
-.. tab-set::
-
-   .. tab-item:: Source
-      :selected:
-
-      .. code-block:: bash
-
-         uv sync --group gr00t-client
-
-   .. tab-item:: Wheel
-
-      .. code-block:: bash
-
-         uv sync --no-default-groups --group isaaclab-from-wheel --group gr00t-client
+   Blackwell GPUs with compute capability ``sm_120`` require CUDA 12.8 or newer. The
+   `official GR00T documentation <https://github.com/NVIDIA/Isaac-GR00T/blob/e29d8fc50b0e4745120ae3fb72447986fe638aa6/README.md?plain=1#L102>`_
+   specify CUDA 12.8 and ``pytorch-cu128`` for RTX 5090 systems. Please refer to the
+   documentation for the latest requirements.
 
 Then start the server from the repository root in a separate shell:
-
-.. todo::
-
-   The ``submodules/Isaac-GR00T`` submodule will be removed after the policy
-   config refactor. After that, users will set up a separate GR00T repository
-   checkout and launch the server from there.
 
 .. code-block:: bash
 
@@ -74,7 +57,27 @@ GR00T N1.6-DROID uses absolute joint positions. The YAML therefore selects
 instruction belongs to the environment builder, while the server connection belongs to the
 policy.
 
-Open another shell, enter the Arena container, and start the rollout with the Experiment Runner:
+Open another shell and prepare the Arena runtime from the repository root, using either a native
+``uv`` environment or the base Docker container (see :doc:`../installation` for the full setup):
+
+.. tab-set::
+
+   .. tab-item:: Native uv
+      :selected:
+
+      The GR00T client is not part of a default sync, so select its dependency group:
+
+      .. code-block:: bash
+
+         uv sync --extra dev --group gr00t-client
+         source .venv/bin/activate
+         export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y
+
+   .. tab-item:: Docker Container
+
+      :docker_run_default:
+
+Then start the rollout with the Experiment Runner:
 
 .. code-block:: bash
 

@@ -8,14 +8,13 @@
 import json
 import shutil
 import tempfile
-import traceback
 from contextlib import ExitStack
 from pathlib import Path
 
 from g2_dataset_io import CAMERAS, TASK, array_stats, atomic_json, feature_schema, file_digest, read_core, write_parquet
 
 from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
-from isaaclab_arena.utils.isaaclab_utils.simulation_app import get_app_launcher
+from isaaclab_arena.utils.isaaclab_utils.simulation_app import SimulationAppContext
 
 
 def write_metadata(root, entries, joint_names, fps, task=TASK):
@@ -199,7 +198,7 @@ def render_episode(base, path, arrays, staging, fps):
             }
             base.scene.reset_to(state, env_ids=env_ids, is_relative=True)
             base.sim.forward()
-            base.sim.render_context.reset_transform_cadence()
+            base.sim.render_context.reset_scene_state_cadence()
             base.scene.update(base.step_dt)
             base.sim.render()
             base.sim.render()
@@ -333,20 +332,15 @@ def run(args):
 
 def main():
     parser = get_isaaclab_arena_cli_parser()
+    parser.add_argument("--headless", action="store_true", help="Run without a viewer (also the GA default)")
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--work_dir", type=Path, required=True)
     parser.add_argument("--demos", type=int, required=True)
     args = parser.parse_args()
     assert args.enable_cameras
     shutil.copyfile(__file__, args.work_dir / "logs" / "renderer_source.py")
-    launcher = get_app_launcher(args)
-    try:
+    with SimulationAppContext(args):
         run(args)
-    except BaseException:
-        traceback.print_exc()
-        raise
-    finally:
-        launcher.app.close()
 
 
 if __name__ == "__main__":

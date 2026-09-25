@@ -1,0 +1,27 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers.
+# All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+shared:
+  environment:
+    type: ur7e_miniworkflow_gptsol_press_toaster
+    embodiment: ur7e_robotiq_joint_pos
+    enable_cameras: true
+    episode_length_s: 20.0
+    randomize_toaster_pose: true
+    pedestal: true
+  policy:
+    type: ur7e_dp_remote
+    host: 127.0.0.1
+    port: 5758
+    audit_object: miniworkflow_gptsol_toast
+  rollout_limit:
+    num_episodes: 10
+
+runs:
+  toaster_epoch79: {}

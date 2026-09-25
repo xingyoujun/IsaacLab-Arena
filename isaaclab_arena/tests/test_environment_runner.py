@@ -6,18 +6,22 @@
 from __future__ import annotations
 
 import argparse
-import torch
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import pytest
 
-from isaaclab_arena.scripts import environment_runner
+from isaaclab_arena.tests.utils.constants import TestConstants
 from isaaclab_arena.tests.utils.persistent_simulation_app import run_function_with_persistent_simulation_app
+from isaaclab_arena.tests.utils.subprocess import run_subprocess
+from isaaclab_arena.utils.physics_backend import PhysicsBackend
+
+if TYPE_CHECKING:
+    import torch
 
 
 def _interactive_runner_args(**overrides) -> argparse.Namespace:
     argument_values = {
-        "headless": False,
         "visualizer": ["kit"],
         "num_envs": 1,
         "distributed": False,
@@ -50,6 +54,8 @@ class _FakeEnvironment:
         return {}, {}
 
     def step(self, actions: torch.Tensor):
+        import torch
+
         self.step_actions.append(actions.clone())
         terminated = torch.tensor([True])
         truncated = torch.tensor([False])
@@ -60,28 +66,66 @@ class _FakeEnvironment:
 
 
 def test_assert_interactive_runner_args_accepts_one_physx_kit_environment():
+    from isaaclab_arena.scripts import environment_runner
+
     environment_runner._assert_interactive_runner_args(_interactive_runner_args())
 
 
 @pytest.mark.parametrize(
     ("argument_overrides", "expected_message"),
     [
-        ({"headless": True}, "requires the Kit GUI"),
         ({"visualizer": None}, "requires the Kit GUI"),
         ({"visualizer": ["viser"]}, "requires the Kit GUI"),
         ({"num_envs": 2}, "exactly one environment"),
         ({"distributed": True}, "does not support distributed execution"),
-        ({"presets": "newton"}, "requires PhysX"),
         ({"list_variations": True}, "does not support --list_variations"),
         ({"device": "cuda:0"}, "requires CPU PhysX"),
     ],
 )
 def test_assert_interactive_runner_args_rejects_unsupported_configuration(argument_overrides, expected_message):
+    from isaaclab_arena.scripts import environment_runner
+
     with pytest.raises(AssertionError, match=expected_message):
         environment_runner._assert_interactive_runner_args(_interactive_runner_args(**argument_overrides))
 
 
+@pytest.mark.parametrize(
+    ("presets", "env_default"),
+    [
+        (None, PhysicsBackend.NEWTON),
+        (PhysicsBackend.NEWTON, PhysicsBackend.PHYSX),
+    ],
+)
+def test_create_interactive_environment_rejects_newton_backend(presets, env_default, monkeypatch):
+    from isaaclab_arena.scripts import environment_runner
+
+    class FakeArenaBuilder:
+        def __init__(self) -> None:
+            self.cfg = SimpleNamespace(presets=presets, device="cpu")
+            self.arena_env = SimpleNamespace(default_physics_backend=env_default)
+
+        @property
+        def resolved_physics_backend(self) -> PhysicsBackend:
+            return self.cfg.presets if self.cfg.presets is not None else self.arena_env.default_physics_backend
+
+        def compose_manager_cfg(self):
+            raise AssertionError("compose_manager_cfg should not run when Newton is rejected")
+
+    monkeypatch.setattr(
+        environment_runner,
+        "get_arena_builder_from_cli",
+        lambda args_cli, hydra_overrides: FakeArenaBuilder(),
+    )
+
+    with pytest.raises(AssertionError, match="requires PhysX"):
+        environment_runner._create_interactive_environment(_interactive_runner_args(presets=presets), [])
+
+
 def test_run_environment_resets_and_steps_once_before_the_application_stops(monkeypatch):
+    import torch
+
+    from isaaclab_arena.scripts import environment_runner
+
     class OneIterationSimulationApp:
         def __init__(self) -> None:
             self.running_checks = 0
@@ -126,6 +170,8 @@ def _test_mouse_interaction_uses_d6_grab_for_current_stage(simulation_app) -> bo
     import omni.physx.bindings._physx as physx_bindings
     import omni.usd
 
+    from isaaclab_arena.scripts import environment_runner
+
     environment_runner._enable_mouse_interaction()
 
     extension_manager = omni.kit.app.get_app().get_extension_manager()
@@ -145,14 +191,14 @@ def _test_mouse_interaction_uses_d6_grab_for_current_stage(simulation_app) -> bo
     return True
 
 
+@pytest.mark.with_subprocess
 def test_mouse_interaction_uses_d6_grab_for_current_stage():
-    result = run_function_with_persistent_simulation_app(
-        _test_mouse_interaction_uses_d6_grab_for_current_stage, headless=True
-    )
-    assert result
+    run_subprocess([TestConstants.python_path, __file__])
 
 
 def test_main_closes_the_environment_when_the_run_loop_fails(monkeypatch):
+    from isaaclab_arena.scripts import environment_runner
+
     args_cli = _interactive_runner_args(
         visualizer=None,
         visualizer_explicit=False,
@@ -192,7 +238,12 @@ def test_main_closes_the_environment_when_the_run_loop_fails(monkeypatch):
 
     class FakeArenaBuilder:
         def __init__(self, received_args) -> None:
-            self.cfg = SimpleNamespace(device=received_args.device)
+            self.cfg = SimpleNamespace(device=received_args.device, presets=None)
+            self.arena_env = SimpleNamespace(default_physics_backend=PhysicsBackend.PHYSX)
+
+        @property
+        def resolved_physics_backend(self) -> PhysicsBackend:
+            return self.cfg.presets if self.cfg.presets is not None else self.arena_env.default_physics_backend
 
         def compose_manager_cfg(self):
             return env_cfg, {"example_kwarg": "value"}
@@ -243,3 +294,10 @@ def test_main_closes_the_environment_when_the_run_loop_fails(monkeypatch):
     assert args_cli.example_environment == "gr1_open_microwave"
     assert lifecycle_events == ["make_environment", "enable_mouse_interaction", "run_environment"]
     assert env.close_count == 1
+
+
+if __name__ == "__main__":
+    result = run_function_with_persistent_simulation_app(
+        _test_mouse_interaction_uses_d6_grab_for_current_stage, headless=True
+    )
+    raise SystemExit(0 if result else 1)

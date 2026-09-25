@@ -104,14 +104,12 @@ Generate the dataset:
      --input_file $DATASET_DIR/arena_gr1_manipulation_dataset_annotated.hdf5 \
      --output_file $DATASET_DIR/arena_gr1_manipulation_dataset_generated.hdf5 \
      --enable_cameras \
-     --headless \
      --mimic \
      --external_callback isaaclab_arena.environments.isaaclab_interop.environment_registration_callback \
      --task gr1_open_microwave
 
 Data generation takes 30-60 minutes depending on hardware.
-If you want to visualize the data generation process, remove ``--headless``
-and add ``--viz kit``.
+To visualize the data generation process, add ``--viz kit``.
 
 
 Step 3: Validate Generated Data (Optional)
@@ -120,6 +118,16 @@ Step 3: Validate Generated Data (Optional)
 In order to validation the generated dataset, you can replay the generated data
 through the robot, in order to check (visually) if the robot is able to perform the task successfully.
 To do so, run the following command:
+
+.. note::
+
+   Non-determinism may be observed when replaying demonstrations with PhysX because
+   physics in Isaac Lab is not deterministically reproducible across ``env.reset()``
+   calls. A demonstration may therefore fail during replay even though it succeeded
+   during generation; all generated demonstrations remain valid for training.
+
+   This dataset was generated using CPU physics, so the replay command uses
+   ``--device cpu`` to reduce device-related differences between generation and replay.
 
 .. code-block:: bash
 
@@ -140,7 +148,3 @@ You should see the robot successfully perform the task.
    :align: center
 
    IsaacLab Arena GR1 opening the microwave door
-
-.. note::
-
-   The dataset was generated using CPU device physics, therefore the replay uses ``--device cpu`` to ensure reproducibility.

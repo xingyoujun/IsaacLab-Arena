@@ -1,0 +1,116 @@
+#usda 1.0
+(
+    defaultPrim = "Asset"
+    doc = "toast_rr with its look repaired for Arena: the two decals reference textures that do not ship with the asset (they rendered as black patches) and are hidden; the metallic surround, well and dial materials get a lighter base colour so they read as brushed steel and chrome instead of black. Geometry, joints and physics are untouched."
+)
+
+def Xform "Asset" (
+    prepend references = @./usdcraft_toast.usdc@</Asset>
+)
+{
+    over "Links"
+    {
+        over "housing"
+        {
+            over "Visuals"
+            {
+                over "visual_024"
+                {
+                    token visibility = "invisible"
+                }
+                over "visual_025"
+                {
+                    token visibility = "invisible"
+                }
+            }
+        }
+    }
+
+    over "Looks"
+    {
+        over "polished_surround"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.78, 0.79, 0.8)
+            }
+        }
+        over "interior_steel"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.55, 0.56, 0.57)
+            }
+        }
+        over "interior_steel_2"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.55, 0.56, 0.57)
+            }
+        }
+        over "interior_steel_3"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.55, 0.56, 0.57)
+            }
+        }
+        over "interior_steel_4"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.55, 0.56, 0.57)
+            }
+        }
+        over "interior_steel_5"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.55, 0.56, 0.57)
+            }
+        }
+        over "interior_steel_6"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.55, 0.56, 0.57)
+            }
+        }
+        over "interior_steel_7"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.55, 0.56, 0.57)
+            }
+        }
+        over "dial_rim"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.8, 0.81, 0.78)
+            }
+        }
+        over "dial_rim_20"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.8, 0.81, 0.78)
+            }
+        }
+        over "dark"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.12, 0.12, 0.13)
+            }
+        }
+        over "dark_3"
+        {
+            over "PreviewSurface"
+            {
+                color3f inputs:diffuseColor = (0.12, 0.12, 0.13)
+            }
+        }
+    }
+}

@@ -6,15 +6,23 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from isaaclab.envs import ManagerBasedRLEnv
 
-from isaaclab_arena.environments.isaaclab_arena_manager_based_env_cfg import IsaacLabArenaManagerBasedRLEnvCfg
+from isaaclab_arena.environments.arena_world import ArenaWorld
+from isaaclab_arena.environments.isaaclab_arena_manager_based_env_cfg import (
+    IsaacLabArenaManagerBasedRLEnvCfg,
+    apply_arena_global_settings,
+)
 from isaaclab_arena.metrics.metric_data import MetricsDataCollection
 from isaaclab_arena.metrics.metrics_manager import MetricsManager
 from isaaclab_arena.recording.episode_recorder_manager import EpisodeRecorderManager
 from isaaclab_arena.tasks.predicates.object_settling import ObjectInitialRestPoseRecorder
 from isaaclab_arena.variations.variation_recorder import VariationRecorder
+
+if TYPE_CHECKING:
+    from isaaclab_arena.progress_tracking.progress_tracker import ProgressTracker
 
 
 class IsaacLabArenaManagerBasedRLEnv(ManagerBasedRLEnv):
@@ -29,6 +37,9 @@ class IsaacLabArenaManagerBasedRLEnv(ManagerBasedRLEnv):
         variation_recorder: VariationRecorder | None = None,
         **kwargs,
     ):
+        apply_arena_global_settings()
+        self._arena_world: ArenaWorld | None = None
+        self._progress_tracker: ProgressTracker | None = None
         self._object_initial_rest_pose_recorder = ObjectInitialRestPoseRecorder(
             num_envs=cfg.scene.num_envs, device=cfg.sim.device
         )
@@ -43,13 +54,19 @@ class IsaacLabArenaManagerBasedRLEnv(ManagerBasedRLEnv):
         super().__init__(cfg=cfg, render_mode=render_mode, **kwargs)
 
     @property
+    def arena_world(self) -> ArenaWorld:
+        """The environment's live Arena scene queries and cached geometry."""
+        assert self._arena_world is not None, "ArenaWorld is unavailable before managers are loaded."
+        return self._arena_world
+
+    @property
+    def progress_tracker(self) -> ProgressTracker | None:
+        """The ProgressTracker owned by TaskSuccessTerm, or None if not initialized."""
+        return self._progress_tracker
+
+    @property
     def variation_recorder(self) -> VariationRecorder | None:
         """The recorder of variation samples, or ``None`` if the env was not built with one."""
-        if self._variation_recorder is None:
-            print(
-                "[WARNING] variation_recorder is None; no variation samples were recorded. "
-                "Build the env through ArenaEnvBuilder to record variations."
-            )
         return self._variation_recorder
 
     @property
@@ -63,6 +80,8 @@ class IsaacLabArenaManagerBasedRLEnv(ManagerBasedRLEnv):
         return self.episode_recorder_manager
 
     def load_managers(self) -> None:
+        assert self._arena_world is None, "ArenaWorld is already initialized."
+        self._arena_world = ArenaWorld(self.scene)
         super().load_managers()
         self.metrics_manager = MetricsManager(self.cfg.metrics, self)
         self.episode_recorder_manager = EpisodeRecorderManager(self.cfg.episode_recorders, self)

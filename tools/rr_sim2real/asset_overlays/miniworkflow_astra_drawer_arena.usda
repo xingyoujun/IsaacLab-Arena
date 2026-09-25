@@ -1,0 +1,17 @@
+#usda 1.0
+(
+    defaultPrim = "DrawerBox"
+    doc = "Arena anchoring compatibility: move articulation root from plain Xform to Housing rigid body. Geometry, dimensions, materials and joint properties remain unchanged."
+)
+
+def Xform "DrawerBox" (
+    delete apiSchemas = ["PhysicsArticulationRootAPI", "PhysxArticulationAPI"]
+    prepend references = @./miniworkflow_astra_drawer.usd@</DrawerBox>
+)
+{
+    over "Housing" (
+        prepend apiSchemas = ["PhysicsArticulationRootAPI"]
+    )
+    {
+    }
+}
