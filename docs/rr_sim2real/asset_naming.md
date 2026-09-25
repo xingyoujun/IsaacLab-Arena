@@ -1,8 +1,8 @@
-# Four methods, two cases
+# Four methods, eight assets, three tasks
 
 Authoritative inventory: [assets.json](assets.json). Assets are named
 `<method>_<drawer|toast>`; task/dataset names are
-`<method>_<open_drawer|press_toaster>`. No numeric version suffix in canonical
+`<method>_<open_drawer|press_toaster|turn_toaster_knob>`. No numeric version suffix in canonical
 exports. GPTSOL means the supplied GPT-5.6 Sol high output; Astra means the
 supplied GPT-6 Astra low output. These are two miniworkflow baselines, not USDcraft.
 
@@ -40,17 +40,18 @@ textures are a known source issue covered by the existing USDcraft overlay.
 | `ur7e_articraft_open_drawer` | `ur7e_open_drawer_articraft` | `articraft_open_drawer` |
 | `ur7e_miniworkflow_gptsol_open_drawer` | `ur7e_open_drawer_gpt56` | `miniworkflow_gptsol_open_drawer` |
 
-Each existing dataset has a sibling `<dataset>_dp.zarr`, 200 episodes, and
-randomized appearance. They still show the old gripper: black-gripper replay
-remains pending. New robot spawns default to black.
+As checked on 2026-09-25, all twelve method/task datasets have a sibling
+`<dataset>_dp.zarr`, 200 episodes, randomized appearance and the corrected
+`black_fingertips_direct` gripper marker. See [the status audit](upstream_audit_20260925.md)
+and [evaluation protocol](eval_all_dp.md) for current evidence.
 
 The Astra drawer environment `ur7e_miniworkflow_astra_open_drawer` is now registered;
-qualification recordings are separate from the four existing 200-demo datasets.
+qualification recordings remain separate from the completed 200-demo datasets.
 
 The three toast baseline environments are now registered:
 `ur7e_articraft_press_toaster`, `ur7e_miniworkflow_gptsol_press_toaster`,
 `ur7e_miniworkflow_astra_press_toaster`.
-There are no training datasets for these cases. Joint/paddle adapters are in
+Each now has a completed training dataset. Joint/paddle adapters are in
 `ur7e_press_toaster_baselines_environment.py`; inspect the qualification report
 before collecting. Both miniworkflow toasts need minimal root overlays after
 their raw USDs failed fixed-base spawning. Astra also needs collision-only hull
@@ -80,5 +81,5 @@ payload hashes before/after the filename move; the dataset movement manifest is
 under `datasets/rr_sim2real_aux/2026-09-11_cleanup/`. All payload bytes were
 preserved; only existing overlay references were then edited. Method aliases use
 distinct config dataclasses (required by the registry) while keeping legacy IDs.
-The Astra run exercises complete environment registration; the other aliases
-have not been separately simulation-qualified by this rename.
+The naming migration itself did not qualify all aliases; subsequent bulk
+collection and the 240-episode DP evaluation exercised all twelve task IDs.

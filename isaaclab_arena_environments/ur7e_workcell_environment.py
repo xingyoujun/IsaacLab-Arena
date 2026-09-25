@@ -196,15 +196,9 @@ class IdleTask(NoTask):
         self.episode_length_s = episode_length_s
 
     def get_termination_cfg(self):
-        import isaaclab.envs.mdp as mdp_isaac_lab
-        from isaaclab.managers import TerminationTermCfg
-        from isaaclab.utils.configclass import configclass
+        from isaaclab_arena.tasks.task_termination_cfg import TaskTerminationCfg
 
-        @configclass
-        class IdleTerminationsCfg:
-            time_out: TerminationTermCfg = TerminationTermCfg(func=mdp_isaac_lab.time_out, time_out=True)
-
-        return IdleTerminationsCfg()
+        return TaskTerminationCfg(timeout_s=self.episode_length_s)
 
 
 @register_environment

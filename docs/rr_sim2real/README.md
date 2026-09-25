@@ -4,8 +4,11 @@
 All twelve method/task datasets now report 200 black-gripper randomized demos,
 and the 240-episode DP evaluation is complete. The dated 2026-09-11 pending-data,
 pending-render and training-status statements below are historical, not current
-status. Preserve their provenance; use the audit and task-specific handoffs for
-current results. No upstream merge or runtime upgrade has been performed.
+status. Preserve their provenance; use the dated handoffs for current results.
+The audit is the pre-migration snapshot. For the subsequent user-authorized local
+upstream merge, compatibility decisions and validation results, see
+[migration on Isaac Sim 6.0.1](migration_20260925.md). The runtime was not upgraded
+and no changes were pushed.
 
 Last verified on the source host: 2026-09-11. This branch shares **code and
 documentation**, not a complete asset/data/runtime distribution. Read this page

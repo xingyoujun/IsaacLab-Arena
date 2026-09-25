@@ -27,7 +27,7 @@ OBJECT_SET_BOTTLES_PRIM_PATH = "/World/envs/env_.*/ObjectSet_Bottles"
 
 def _make_object_set_variants():
     from isaaclab_arena.assets.object import Object
-    from isaaclab_arena.assets.object_base import ObjectType
+    from isaaclab_arena.assets.object_type import ObjectType
     from isaaclab_arena.utils.bounding_box import AxisAlignedBoundingBox
 
     can_a = Object(name="can_a", object_type=ObjectType.RIGID, usd_path="/tmp/can_a.usd")
@@ -43,8 +43,8 @@ def _test_object_set_samples_and_stores_variant_indices(simulation_app):
     """Variant assignment should be sampled once and reused for spawning and bboxes."""
     import torch
 
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     can_a, can_b, bbox_a, bbox_b = _make_object_set_variants()
     assigned_variant_indices = [1, 0, 1, 1]
@@ -79,8 +79,8 @@ def _test_object_set_default_variant_indices_follow_member_order(simulation_app)
     """Default object-set assignment should preserve the old deterministic member order."""
     import torch
 
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     can_a, can_b, bbox_a, bbox_b = _make_object_set_variants()
     with (
@@ -104,8 +104,8 @@ def _test_object_set_default_variant_indices_follow_member_order(simulation_app)
 
 def _test_object_set_random_variant_indices_use_placement_seed(simulation_app):
     """Random variant assignment should be repeatable with the same placement seed."""
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     def _assigned_indices():
         can_a, can_b, _bbox_a, _bbox_b = _make_object_set_variants()
@@ -125,8 +125,8 @@ def _test_object_set_regenerates_variants_with_different_num_envs(simulation_app
     import io
     from contextlib import redirect_stdout
 
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     can_a, can_b, _bbox_a, _bbox_b = _make_object_set_variants()
     with (
@@ -186,7 +186,7 @@ def _run_pick_and_place_object_set_test(
     from isaaclab_arena.assets.object_reference import ObjectReference
     from isaaclab_arena.assets.registries import AssetRegistry
     from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
-    from isaaclab_arena.utils.usd_helpers import get_asset_usd_path_from_prim_path
+    from isaaclab_arena.utils.usd.helpers import get_asset_usd_path_from_prim_path
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("kitchen")()
@@ -244,8 +244,8 @@ def _test_empty_object_set(simulation_app):
 
 
 def _test_articulation_object_set(simulation_app):
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_set import RigidObjectSet
+    from isaaclab_arena.assets.object_type import ObjectType
 
     can_a, can_b, _bbox_a, _bbox_b = _make_object_set_variants()
     try:
@@ -268,7 +268,7 @@ def _test_single_object_in_one_object_set(simulation_app):
     from isaaclab_arena.scene.scene import Scene
     from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
     from isaaclab_arena.utils.pose import Pose
-    from isaaclab_arena.utils.usd_helpers import get_asset_usd_path_from_prim_path
+    from isaaclab_arena.utils.usd.helpers import get_asset_usd_path_from_prim_path
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("kitchen")()
@@ -332,7 +332,7 @@ def _test_multi_objects_in_one_object_set(simulation_app):
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
     from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
-    from isaaclab_arena.utils.usd_helpers import get_asset_usd_path_from_prim_path
+    from isaaclab_arena.utils.usd.helpers import get_asset_usd_path_from_prim_path
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("kitchen")()
@@ -404,7 +404,7 @@ def _test_multi_object_sets(simulation_app):
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
-    from isaaclab_arena.utils.usd_helpers import get_asset_usd_path_from_prim_path
+    from isaaclab_arena.utils.usd.helpers import get_asset_usd_path_from_prim_path
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("packing_table")()

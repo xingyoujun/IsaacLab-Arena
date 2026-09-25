@@ -210,7 +210,7 @@ class Ur7ePressToasterEnvironment(ArenaEnvironmentFactory[Ur7ePressToasterEnviro
 
         from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
         from isaaclab_arena.scene.scene import Scene
-        from isaaclab_arena.tasks.open_door_task import OpenDoorTask
+        from isaaclab_arena.tasks.ur7e_openable_task import Ur7eOpenableTask
 
         table_blocks = build_table()
         ground_plane = self.asset_registry.get_asset_by_name("ground_plane")()
@@ -264,7 +264,7 @@ class Ur7ePressToasterEnvironment(ArenaEnvironmentFactory[Ur7ePressToasterEnviro
         scene = Scene(assets=[*table_blocks, *stack, ground_plane, *lights])
 
         # The lever's joint runs from the rest position at the top to fully pressed, so "open" == pressed.
-        task = OpenDoorTask(
+        task = Ur7eOpenableTask(
             openable_object=toaster,
             openness_threshold=cfg.pressed_threshold,
             reset_openness=0.0,

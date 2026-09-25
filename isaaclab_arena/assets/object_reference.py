@@ -13,21 +13,22 @@ from isaaclab_arena.affordances.openable import Openable
 from isaaclab_arena.affordances.pressable import Pressable
 from isaaclab_arena.affordances.turnable import Turnable
 from isaaclab_arena.assets.object import Object
-from isaaclab_arena.assets.object_base import ObjectBase, ObjectType
+from isaaclab_arena.assets.object_base import ObjectBase, RootedObjectBase
+from isaaclab_arena.assets.object_type import ObjectType
 from isaaclab_arena.relations.relations import IsAnchor, RelationBase
 from isaaclab_arena.terms.events import reset_articulation_pose_and_joints
 from isaaclab_arena.utils.bounding_box import AxisAlignedBoundingBox, quaternion_to_90_deg_z_quarters
 from isaaclab_arena.utils.pose import Pose
-from isaaclab_arena.utils.usd_helpers import (
+from isaaclab_arena.utils.usd.helpers import (
     NoCollisionMeshError,
     compute_world_aligned_bounding_box_relative_to_prim_origin,
     extract_trimesh_from_prim,
     open_stage,
 )
-from isaaclab_arena.utils.usd_pose_helpers import get_prim_pose_in_default_prim_frame
+from isaaclab_arena.utils.usd.pose import get_prim_pose_in_default_prim_frame
 
 
-class ObjectReference(ObjectBase):
+class ObjectReference(RootedObjectBase):
     """An object which *refers* to an existing element in the scene"""
 
     def __init__(self, parent_asset: Object, **kwargs):

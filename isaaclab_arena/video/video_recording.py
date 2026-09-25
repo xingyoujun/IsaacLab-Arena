@@ -18,7 +18,7 @@ class VideoRecordingCfg:
     """Record the kit viewport (third-person scene view) via ``env.render()``."""
 
     record_camera_video: bool = False
-    """Record the embodiment-mounted cameras from ``obs['camera_obs']``."""
+    """Record RGB embodiment-mounted cameras from ``obs['camera_obs']``."""
 
     video_base_dir: str = "videos"
     """Base directory the mp4s are written to (a reverse-dated run subdirectory is added per run)."""
@@ -79,6 +79,12 @@ def wrap_env_for_video(
         return env
 
     os.makedirs(video_cfg.video_base_dir, exist_ok=True)
+
+    # Wrap the env in a step timer before adding the camera recording to get a without-recording
+    # step measurement.
+    from isaaclab_arena.utils.env_step_timer import EnvStepTimerWrapper
+
+    env = EnvStepTimerWrapper(env, timer_name="sim_step")
 
     # Record the kit viewport (via env.render()).
     if video_cfg.record_viewport_video:

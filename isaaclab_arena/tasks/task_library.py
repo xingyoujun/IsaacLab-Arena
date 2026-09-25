@@ -21,7 +21,6 @@ from isaaclab_arena.tasks import (  # noqa: F401
     place_upright_task,
     press_button_task,
     rotate_revolute_joint_task,
-    sequential_task_base,
     sleeve_on_peg_task,
     sorting_task,
     stack_bowls_task,

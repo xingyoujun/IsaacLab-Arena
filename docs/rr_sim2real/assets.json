@@ -40,8 +40,8 @@
       "source": "articraft_toast/articraft_toast.urdf",
       "arena_entry": "articraft_toast/articraft_toast.usd",
       "environment": "ur7e_articraft_press_toaster",
-      "dataset": null,
-      "status": "exported; uniform scale 0.795522222222 to USDcraft width 0.143194 m; cuMotion 3/3 presses; no training dataset"
+      "dataset": "articraft_press_toaster",
+      "status": "exported; uniform scale 0.795522222222 to USDcraft width 0.143194 m; 200 black-gripper randomized demos collected"
     },
     {
       "id": "miniworkflow_gptsol_drawer",
@@ -60,8 +60,8 @@
       "source": "miniworkflow_gptsol_toast.usd",
       "arena_entry": "miniworkflow_gptsol_toast_arena.usda",
       "environment": "ur7e_miniworkflow_gptsol_press_toaster",
-      "dataset": null,
-      "status": "unscaled; minimal fixed-base articulation-root overlay; cuMotion 3/3 presses; no training dataset"
+      "dataset": "miniworkflow_gptsol_press_toaster",
+      "status": "unscaled; minimal fixed-base articulation-root overlay; 200 black-gripper randomized demos collected"
     },
     {
       "id": "miniworkflow_astra_drawer",
@@ -70,8 +70,8 @@
       "source": "miniworkflow_astra_drawer.usd",
       "arena_entry": "miniworkflow_astra_drawer_arena.usda",
       "environment": "ur7e_miniworkflow_astra_open_drawer",
-      "dataset": null,
-      "status": "unscaled; minimal articulation-root overlay; cuMotion qualification 3/3 genuine pulls after reset-velocity fix; 200-demo dataset pending"
+      "dataset": "miniworkflow_astra_open_drawer",
+      "status": "unscaled; minimal articulation-root overlay; reset-velocity fix; 200 black-gripper randomized demos collected"
     },
     {
       "id": "miniworkflow_astra_toast",
@@ -80,8 +80,8 @@
       "source": "miniworkflow_astra_toast.usd",
       "arena_entry": "miniworkflow_astra_toast_arena.usda",
       "environment": "ur7e_miniworkflow_astra_press_toaster",
-      "dataset": null,
-      "status": "unscaled; root overlay and triangulated original-vertex collision hulls after four PhysX cooking failures; cuMotion 3/3 presses; no training dataset"
+      "dataset": "miniworkflow_astra_press_toaster",
+      "status": "unscaled; root overlay and triangulated original-vertex collision hulls after four PhysX cooking failures; 200 black-gripper randomized demos collected"
     }
   ]
 }

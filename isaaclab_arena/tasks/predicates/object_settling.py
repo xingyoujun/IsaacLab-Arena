@@ -3,25 +3,22 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Object-settling predicate and recorder object.
-
-The ``objects_settled`` predicate reports when all specified objects in the env come to a rest.
-When an object settles, its initial resting position is recorded by the ``ObjectInitialRestPoseRecorder`` object.
-Downstream predicates can read the positions via the ``get_object_initial_rest_state`` function.
-Resetting and clearing of positions are handled by the progress tracker on env reset.
-"""
+"""Instantaneous rest checks and initial rest-pose recording."""
 
 from __future__ import annotations
 
 import torch
+from typing import TYPE_CHECKING
 
-from isaaclab_arena.tasks.predicates.predicate_utils import (
-    get_env,
-    get_root_ang_vel_w,
-    get_root_lin_vel_w,
-    get_root_pos_w,
-    select,
-)
+if TYPE_CHECKING:
+    from isaaclab.scene import InteractiveScene
+
+    from isaaclab_arena.environments.arena_world import ArenaWorld
+    from isaaclab_arena.environments.isaaclab_arena_manager_based_env import IsaacLabArenaManagerBasedRLEnv
+
+
+DEFAULT_LINEAR_VELOCITY_THRESHOLD = 1e-2
+DEFAULT_ANGULAR_VELOCITY_THRESHOLD = 5e-2
 
 
 class ObjectInitialRestPoseRecorder:
@@ -62,29 +59,35 @@ class ObjectInitialRestPoseRecorder:
         return entry["position"], entry["settled"]
 
     def reset(self, env_ids=None) -> None:
-        """Clear recorded rest poses for ``env_ids`` (all envs if None)."""
+        """Clear recorded rest poses for ``env_ids``."""
 
-        ids = slice(None) if env_ids is None else torch.as_tensor(env_ids, dtype=torch.long, device=self._device)
+        if env_ids is None:
+            ids = slice(None)
+        elif isinstance(env_ids, slice):
+            ids = env_ids
+        else:
+            ids = torch.as_tensor(env_ids, dtype=torch.long, device=self._device)
         for entry in self._entries.values():
             entry["settled"][ids] = False
             entry["position"][ids] = float("nan")
 
 
-def get_rest_pose_recorder(env) -> ObjectInitialRestPoseRecorder:
-    """Return the ``ObjectInitialRestPoseRecorder`` owned by the unwrapped Arena environment."""
+def get_rest_pose_recorder(env: IsaacLabArenaManagerBasedRLEnv) -> ObjectInitialRestPoseRecorder:
+    """Return the ``ObjectInitialRestPoseRecorder`` owned by the Arena environment."""
 
-    return get_env(env).object_initial_rest_pose_recorder
-
-
-def reset_rest_pose_recorder(env, env_ids=None) -> None:
-    """Clear recorded initial rest poses for ``env_ids``. Invoked by the progress tracker on env reset."""
-
-    recorder = getattr(get_env(env), "object_initial_rest_pose_recorder", None)
-    if recorder is not None:
-        recorder.reset(env_ids)
+    return env.object_initial_rest_pose_recorder
 
 
-def get_object_initial_rest_state(env, name: str) -> tuple[torch.Tensor, torch.Tensor]:
+def reset_rest_pose_recorder(env: IsaacLabArenaManagerBasedRLEnv, env_ids=None) -> None:
+    """Clear every recorded initial rest pose for ``env_ids``."""
+
+    env.object_initial_rest_pose_recorder.reset(env_ids)
+
+
+def get_object_initial_rest_state(
+    env: IsaacLabArenaManagerBasedRLEnv,
+    name: str,
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Return ``(position, settled)`` for an object's recorded initial rest pose.
 
     ``position`` (num_envs, 3) is meaningful only for envs whose ``settled`` mask (num_envs,) is True.
@@ -93,29 +96,90 @@ def get_object_initial_rest_state(env, name: str) -> tuple[torch.Tensor, torch.T
     return get_rest_pose_recorder(env).get(name)
 
 
-def objects_settled(
-    env,
+def compute_objects_settled_mask(
+    arena_world: ArenaWorld,
+    scene: InteractiveScene,
     object_names: list[str],
-    lin_vel_threshold: float = 1e-2,
-    ang_vel_threshold: float = 5e-2,
-    env_id: int | None = None,
+    lin_vel_threshold: float,
+    ang_vel_threshold: float,
 ) -> torch.Tensor:
-    """True per env when every object in the env is at rest, records each object's rest pose on first settle.
+    """Return a per-env mask that is True when every named object is below velocity thresholds.
 
-    An object is at rest when both its linear speed (m/s) and its angular speed (rad/s) are below the
-    respective thresholds. The recorded rest poses are readable via ``get_object_initial_rest_state``.
+    Rigid objects use root linear and angular speed. Deformable objects use the 90th percentile of
+    nodal linear speeds and have no angular-speed condition.
+
+    Args:
+        arena_world: Arena scene query facade.
+        scene: Live scene (used to detect deformable objects).
+        object_names: Object scene keys to check.
+        lin_vel_threshold: Linear speed threshold in meters per second.
+        ang_vel_threshold: Angular speed threshold in radians per second (rigid objects only).
+
+    Returns:
+        Boolean mask with shape ``(num_envs,)``.
+    """
+    if not object_names:
+        return torch.ones(scene.num_envs, dtype=torch.bool, device=scene.device)
+
+    per_object_settled = []
+    for object_name in object_names:
+        if object_name in scene.deformable_objects:
+            nodal_velocity_w = arena_world.get_nodal_velocities_w(object_name)
+            nodal_speed = torch.linalg.vector_norm(nodal_velocity_w, dim=-1)
+            linear_speed = torch.quantile(nodal_speed, q=0.9, dim=1)
+            per_object_settled.append(linear_speed < lin_vel_threshold)
+            continue
+        root_linear_velocity_w = arena_world.get_root_linear_velocity_w(object_name)
+        linear_speed = torch.linalg.vector_norm(root_linear_velocity_w, dim=-1)
+        root_angular_velocity_w = arena_world.get_root_angular_velocity_w(object_name)
+        angular_speed = torch.linalg.vector_norm(root_angular_velocity_w, dim=-1)
+        per_object_settled.append((linear_speed < lin_vel_threshold) & (angular_speed < ang_vel_threshold))
+    return torch.stack(per_object_settled, dim=0).all(dim=0)
+
+
+def objects_settled(
+    env: IsaacLabArenaManagerBasedRLEnv,
+    object_names: list[str],
+    lin_vel_threshold: float = DEFAULT_LINEAR_VELOCITY_THRESHOLD,
+    ang_vel_threshold: float = DEFAULT_ANGULAR_VELOCITY_THRESHOLD,
+) -> torch.Tensor:
+    """Check whether every named object is at rest and record its first resting position.
+
+    Rigid objects use root linear and angular speed. Deformable objects use the 90th percentile of
+    nodal linear speeds and have no angular-speed condition. Recorded rest poses are readable via
+    ``get_object_initial_rest_state``.
     """
 
-    lin_speeds = torch.stack(
-        [torch.linalg.vector_norm(get_root_lin_vel_w(env, name), dim=-1) for name in object_names], dim=0
+    settled = objects_below_velocity_thresholds(
+        env,
+        object_names=object_names,
+        lin_vel_threshold=lin_vel_threshold,
+        ang_vel_threshold=ang_vel_threshold,
     )
-    ang_speeds = torch.stack(
-        [torch.linalg.vector_norm(get_root_ang_vel_w(env, name), dim=-1) for name in object_names], dim=0
-    )
-    settled = torch.all((lin_speeds < lin_vel_threshold) & (ang_speeds < ang_vel_threshold), dim=0)
 
     recorder = get_rest_pose_recorder(env)
-    for name in object_names:
-        recorder.record(name, get_root_pos_w(env, name), settled)
+    for object_name in object_names:
+        object_position_w = env.arena_world.get_position_w(object_name)
+        recorder.record(object_name, object_position_w, settled)
 
-    return select(settled, env_id)
+    return settled
+
+
+def objects_below_velocity_thresholds(
+    env: IsaacLabArenaManagerBasedRLEnv,
+    object_names: list[str],
+    lin_vel_threshold: float = DEFAULT_LINEAR_VELOCITY_THRESHOLD,
+    ang_vel_threshold: float = DEFAULT_ANGULAR_VELOCITY_THRESHOLD,
+) -> torch.Tensor:
+    """Return whether all named objects meet their speed limits in each environment.
+
+    This check does not record resting positions or count consecutive steps.
+    """
+
+    return compute_objects_settled_mask(
+        env.arena_world,
+        env.scene,
+        object_names,
+        lin_vel_threshold,
+        ang_vel_threshold,
+    )

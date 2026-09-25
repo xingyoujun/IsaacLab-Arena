@@ -5,6 +5,8 @@
 
 """Test discovery and reset of dynamic entities nested in background USDs."""
 
+import pytest
+
 from isaaclab_arena.tests.utils.persistent_simulation_app import run_function_with_persistent_simulation_app
 
 
@@ -84,14 +86,14 @@ def _test_background_physics_discovery_and_reset(
     from pxr import UsdPhysics
 
     from isaaclab_arena.assets.background import Background
-    from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_reference import ObjectReference
+    from isaaclab_arena.assets.object_type import ObjectType
     from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
     from isaaclab_arena.terms.events import ResetBackgroundPhysics, reset_articulation_pose_and_joints
-    from isaaclab_arena.utils.usd_prim_tree import load_usd_physics_roots
+    from isaaclab_arena.utils.usd.prim_tree import load_usd_physics_roots
 
     assert ResetBackgroundPhysics._is_unavailable_backend_error(
         RuntimeError("Failed to create rigid body at: /World/body. Please check PhysX logs.")
@@ -283,6 +285,7 @@ def test_background_physics_reset_without_fabric():
     )
 
 
+@pytest.mark.with_newton
 def test_background_physics_reset_with_newton():
     assert run_function_with_persistent_simulation_app(
         _test_background_physics_discovery_and_reset,
@@ -296,7 +299,7 @@ def _test_maple_table_pose_restored_on_reset(_) -> bool:
     """Move the nested Maple table body and verify reset restores its cached pose."""
     import torch
 
-    from isaaclab_arena.assets.object_base import ObjectType
+    from isaaclab_arena.assets.object_type import ObjectType
     from isaaclab_arena.assets.registries import AssetRegistry
     from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder

@@ -131,18 +131,18 @@ def inventory():
     return cases
 
 
-def collect_worker(directory):
+def collect_worker(directory, expected_episodes=10):
     result = json.loads((directory / "experiment/arena_experiment_result.json").read_text())
     episodes = []
     for run in result["runs"].values():
         assert run["status"] == "completed", run
         for rebuild in run["rebuilds"]:
             episodes.extend(rebuild["episodes"])
-    assert len(episodes) == 10, len(episodes)
+    assert len(episodes) == expected_episodes, len(episodes)
     assert (directory / "experiment/index.html").is_file()
     assert list((directory / "experiment").rglob("episode_results*.jsonl"))
     videos = sorted((directory / "experiment").rglob("*.mp4"))
-    assert len(videos) >= 20, f"Expected two camera videos per episode: {len(videos)}"
+    assert len(videos) == 2 * expected_episodes, f"Expected two camera videos per episode: {len(videos)}"
     for video in videos:
         probe = subprocess.check_output(
             ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", str(video)], text=True
@@ -151,13 +151,13 @@ def collect_worker(directory):
     return episodes, [str(path) for path in videos]
 
 
-def execute_case(case, output):
+def execute_case(case, output, episodes_per_worker=10, num_workers=2, record_trajectories=False):
     assert shutil.disk_usage(output).free > 20 * 1024**3, "Less than 20 GiB disk space remaining"
     checkpoint = Path(case["checkpoint"])
     assert checkpoint.stat().st_size == case["checkpoint_bytes"]
     assert checkpoint.stat().st_mtime_ns == case["checkpoint_mtime_ns"], "Checkpoint changed during evaluation"
     workers = []
-    for worker, seed in enumerate([42, 1042]):
+    for worker, seed in enumerate(42 + 1000 * index for index in range(num_workers)):
         port = 5760 + worker
         with socket.socket() as check:
             check.bind(("127.0.0.1", port))
@@ -200,9 +200,11 @@ def execute_case(case, output):
         config = dict(
             shared=dict(
                 environment=environment,
-                environment_builder=dict(num_envs=1, seed=seed, device="cuda:0"),
+                environment_builder=dict(
+                    num_envs=1, seed=seed, device="cuda:0", record_trajectories=record_trajectories
+                ),
                 policy=dict(type="ur7e_dp_remote", host="127.0.0.1", port=port, audit_object=case["audit_object"]),
-                rollout_limit=dict(num_episodes=10),
+                rollout_limit=dict(num_episodes=episodes_per_worker),
             ),
             runs={f"{output.name}_{case['case']}_w{worker}": {}},
         )
@@ -229,7 +231,7 @@ def execute_case(case, output):
             dict(server_pid=server.pid, simulation_pid=simulation.pid, seed=seed, port=port),
         )
         workers.append((directory, server, simulation))
-        if worker == 0:
+        if worker + 1 < num_workers:
             time.sleep(20)
     deadline = time.monotonic() + 3 * 3600
     while any(sim.poll() is None for _, _, sim in workers):
@@ -241,7 +243,9 @@ def execute_case(case, output):
     episodes, videos = [], []
     for worker, (directory, _, simulation) in enumerate(workers):
         assert simulation.returncode == 0, f"Simulation failed: {directory}"
-        worker_episodes, worker_videos = collect_worker(directory)
+        worker_episodes, worker_videos = collect_worker(directory, episodes_per_worker)
+        if record_trajectories:
+            assert list((directory / "experiment").rglob("dataset_*_rebuild0.hdf5")), directory
         episodes.extend(dict(record, worker=worker) for record in worker_episodes)
         videos.extend(worker_videos)
     success = sum(bool(episode["success"]) for episode in episodes)
@@ -264,10 +268,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument("--only", nargs="+", choices=[f"{method}_{task}" for task in TASKS for method in METHODS])
+    parser.add_argument("--workers", type=int, choices=(1, 2), default=2)
+    parser.add_argument("--episodes-per-worker", type=int, default=10)
+    parser.add_argument("--record-trajectories", action="store_true")
     args = parser.parse_args()
+    assert args.episodes_per_worker > 0
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     cases = inventory()
+    if args.only:
+        cases = [case for case in cases if case["case"] in args.only]
     if args.plan_only:
         print(json.dumps(cases, indent=2))
         return
@@ -277,8 +288,9 @@ def main():
     manifest = dict(
         status="running",
         started=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        episodes_per_case=20,
-        workers=2,
+        episodes_per_case=args.episodes_per_worker * args.workers,
+        workers=args.workers,
+        record_trajectories=args.record_trajectories,
         inference_steps=100,
         timeout_rule="Drawer: 30s; press/knob: ceil(1.5 * longest dataset metadata length / fps)",
         appearance="Existing black gripper; randomized object pose; standard evaluation background",
@@ -295,7 +307,7 @@ def main():
             case["status"] = "running"
             write_json(output / "manifest.json", manifest)
             print(f"CASE {case['case']} timeout={case['episode_length_s']}s", flush=True)
-            execute_case(case, output)
+            execute_case(case, output, args.episodes_per_worker, args.workers, args.record_trajectories)
             with (output / "summary.csv").open("w") as stream:
                 writer = csv.DictWriter(
                     stream,
@@ -305,7 +317,7 @@ def main():
                 writer.writeheader()
                 writer.writerows(cases)
             write_json(output / "manifest.json", manifest)
-            print(f"COMPLETED {case['case']}: {case['successes']}/20", flush=True)
+            print(f"COMPLETED {case['case']}: {case['successes']}/{case['episodes']}", flush=True)
         manifest["status"] = "completed"
     except BaseException as error:
         manifest.update(status="failed", error=repr(error))

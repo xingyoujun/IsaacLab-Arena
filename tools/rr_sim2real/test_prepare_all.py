@@ -79,7 +79,7 @@ class PipelineTest(unittest.TestCase):
         merged = work / "example.hdf5"
         sidecars = Path(f"{merged}.cameras")
         sidecars.mkdir()
-        args = SimpleNamespace(target=3, workers=2, randomize_seed=0, skies=self.root, stagger=0)
+        args = SimpleNamespace(target=3, workers=2, render_workers=None, randomize_seed=0, skies=self.root, stagger=0)
         calls = []
 
         def fake_workers(commands, stagger):

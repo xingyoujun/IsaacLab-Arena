@@ -39,7 +39,7 @@ policy metadata, native `arena_experiment_result.json`, episode JSONL, report
 `index.html`, and both observation-camera MP4 streams. Completed cases produce
 `CASE/results.json`; root `summary.csv` is updated after each case and root
 `manifest.json` tracks pending/running/completed/execution_failed cases.
-Each worker must produce exactly ten result episodes and at least twenty
+By default, each worker must produce exactly ten result episodes and twenty
 nonempty, ffprobe-readable camera clips before a case is marked completed.
 Run names include the batch, case and worker, which also isolates the native
 metric recorder's temporary HDF5 filename; sharing a run name across concurrent
@@ -66,3 +66,22 @@ not part of the evaluation denominator. The retry isolates native run names.
 Inspect the manifest/logs before assuming completion. Disconnecting SSH does not
 terminate the tmux session; stopping the orchestrator intentionally does stop its
 workers. Existing unrelated tmux sessions are not modified.
+
+## Short migration checks
+
+The defaults above are unchanged. Select a smaller batch explicitly when checking
+runtime compatibility (these samples do not replace the 20-episode benchmark):
+
+```bash
+/home/ubuntu/miniconda3/envs/robodiff/bin/python -u tools/rr_sim2real/eval_all_dp.py \
+  --output "$PWD/outputs/dp_migration_NEW_RUN" \
+  --only usdcraft_open_drawer usdcraft_press_toaster usdcraft_turn_toaster_knob \
+  --workers 2 --episodes-per-worker 1 --record-trajectories
+```
+
+`--workers` accepts one or two; each worker uses seed `42 + 1000 * worker`.
+`--record-trajectories` enables upstream evaluation HDF5 recording in addition to
+the two camera videos and canonical reports. This is diagnostic recording, not
+the seven-joint cuMotion training-data export. Each worker must produce the
+requested episode count, twice as many camera clips, and (when requested) a
+trajectory HDF5 before the orchestrator marks its case completed.

@@ -141,7 +141,7 @@ class Ur7eOpenDrawerEnvironment(ArenaEnvironmentFactory[Ur7eOpenDrawerEnvironmen
 
         from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
         from isaaclab_arena.scene.scene import Scene
-        from isaaclab_arena.tasks.open_door_task import OpenDoorTask
+        from isaaclab_arena.tasks.ur7e_openable_task import Ur7eOpenableTask
 
         table_blocks = build_table()
         ground_plane = self.asset_registry.get_asset_by_name("ground_plane")()
@@ -177,7 +177,7 @@ class Ur7eOpenDrawerEnvironment(ArenaEnvironmentFactory[Ur7eOpenDrawerEnvironmen
 
         scene = Scene(assets=[*table_blocks, drawer, ground_plane, *lights])
 
-        task = OpenDoorTask(
+        task = Ur7eOpenableTask(
             openable_object=drawer,
             openness_threshold=cfg.openness_threshold,
             reset_openness=0.0,
