@@ -18,19 +18,19 @@ from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_arg
 from isaaclab_arena.utils.isaaclab_utils.simulation_app import get_app_launcher
 
 
-def write_metadata(root, entries, joint_names, fps):
+def write_metadata(root, entries, joint_names, fps, task=TASK):
     """Rebuild LeRobot metadata from committed contiguous episodes only."""
     import numpy as np
 
     assert [entry["episode_index"] for entry in entries] == list(range(len(entries)))
     meta = root / "meta"
     meta.mkdir(exist_ok=True)
-    episodes = [{"episode_index": e["episode_index"], "tasks": [TASK], "length": e["length"]} for e in entries]
+    episodes = [{"episode_index": e["episode_index"], "tasks": [task], "length": e["length"]} for e in entries]
     stats = [{"episode_index": e["episode_index"], "stats": e["stats"]} for e in entries]
     for name, records in (
         ("episodes", episodes),
         ("episodes_stats", stats),
-        ("tasks", [{"task_index": 0, "task": TASK}]),
+        ("tasks", [{"task_index": 0, "task": task}]),
     ):
         temporary = meta / f"{name}.jsonl.tmp"
         temporary.write_text("".join(json.dumps(record, allow_nan=False) + "\n" for record in records))
@@ -257,11 +257,17 @@ def commit_episode(root, work, base, raw, episode_index, frame_offset):
         "raw_sha256": raw["sha256"],
         "raw_dir": raw["raw_dir"],
         "seed": raw["seed"],
-        "bowl_positions": report["configuration"]["bowl_positions"],
+        "object_positions": {
+            key: value
+            for key, value in report["configuration"].items()
+            if key in ("bowl_positions", "peg_x", "peg_y", "sleeve_x", "sleeve_y")
+        },
         "replay_max_eef_error_m": error,
         "artifacts": hashes,
         "joint_names": report["joint_names"],
     }
+    if "bowl_positions" in report["configuration"]:
+        entry["bowl_positions"] = report["configuration"]["bowl_positions"]
     atomic_json(work / "episodes" / f"episode_{episode_index:06d}.json", entry)
     staging.rmdir()  # Only the empty staging directory created by this function.
     return entry
@@ -279,13 +285,26 @@ def run(args):
     manifest = json.loads((args.work_dir / "collection_manifest.json").read_text())
     raw_episodes = manifest["successes"][: args.demos]
     assert len(raw_episodes) == args.demos
-    description = G2StackBowlsEnvironment().build(
-        G2StackBowlsEnvironmentCfg(
-            enable_cameras=True,
-            hdr=None,
-            table_height_m=config["table_height_m"],
+    task = TASK
+    if config["task"] == "peg_into_sleeve":
+        from isaaclab_arena_environments.g2_sleeve_environment import G2SleeveEnvironment, G2SleeveEnvironmentCfg
+
+        task = "Pick up the cylindrical peg and insert it fully into the fixed upright sleeve."
+        description = G2SleeveEnvironment().build(
+            G2SleeveEnvironmentCfg(enable_cameras=True, table_height_m=config["table_height_m"])
         )
-    )
+    else:
+        description = G2StackBowlsEnvironment().build(
+            G2StackBowlsEnvironmentCfg(
+                enable_cameras=True,
+                hdr=None,
+                table_height_m=config["table_height_m"],
+            )
+        )
+    if config["task"] == "peg_into_sleeve":
+        # Offline replay restores every pose without stepping physics. A dynamic
+        # replay body also accepts the recorded zero velocity during reset_to.
+        description.scene.assets["sleeve"].object_cfg.spawn.rigid_props.kinematic_enabled = False
     description.embodiment.camera_config = G2CameraCfg()
     args.num_envs = 1
     env = ArenaEnvBuilder(description, arena_env_builder_cfg_from_argparse(args)).make_registered()
@@ -306,7 +325,7 @@ def run(args):
                     args.root, args.work_dir, env.unwrapped, raw, index, sum(e["length"] for e in entries)
                 )
             entries.append(entry)
-            write_metadata(args.root, entries, entry["joint_names"], 1.0 / env.unwrapped.step_dt)
+            write_metadata(args.root, entries, entry["joint_names"], 1.0 / env.unwrapped.step_dt, task=task)
         print(f"LEROBOT_COMPLETE episodes={len(entries)}", flush=True)
     finally:
         env.close()

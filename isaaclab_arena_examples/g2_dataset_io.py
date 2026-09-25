@@ -75,14 +75,19 @@ def read_core(path):
             assert arrays[key].shape[1] == 14
             for start in (3, 10):
                 assert np.allclose(np.linalg.norm(arrays[key][:, start : start + 4], axis=1), 1, atol=1e-3)
-        # Tight final physical stability check, independent of the recorded success flag.
-        final = []
-        for name in ("bowl_2", "bowl_1", "bowl_3"):
-            positions = episode[f"states/rigid_object/{name}/root_pose"][-10:, :3]
-            assert np.max(np.ptp(positions, axis=0)) < 0.005, "Final stack is still moving"
-            final.append(positions[-1])
-        assert final[0][2] < final[1][2] < final[2][2]
-        assert max(np.linalg.norm(pos[:2] - final[0][:2]) for pos in final[1:]) < 0.05
+        if report.get("task_variant") == "movable_peg_fixed_sleeve":
+            from check_g2_sleeve_dataset import validate
+
+            validate(Path(path).parent)
+        else:
+            # Tight final physical stability check, independent of the recorded success flag.
+            final = []
+            for name in ("bowl_2", "bowl_1", "bowl_3"):
+                positions = episode[f"states/rigid_object/{name}/root_pose"][-10:, :3]
+                assert np.max(np.ptp(positions, axis=0)) < 0.005, "Final stack is still moving"
+                final.append(positions[-1])
+            assert final[0][2] < final[1][2] < final[2][2]
+            assert max(np.linalg.norm(pos[:2] - final[0][:2]) for pos in final[1:]) < 0.05
         arrays["observation.state"] = np.concatenate(
             (arrays["observation.joint_position"], arrays["observation.eef_pose"]), axis=1
         )
