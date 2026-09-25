@@ -24,8 +24,6 @@ from isaaclab_arena.assets.physics_config import UsdPrimSpawnPhysicsCfg
 if TYPE_CHECKING:
     from isaaclab_arena.environments.isaaclab_arena_manager_based_env_cfg import IsaacLabArenaManagerBasedRLEnvCfg
 
-    from .newton_manager import NewtonUsbcManager
-
 _SOLREF = (0.004, 1.0)
 _SOLIMP = (0.95, 0.999, 0.0005, 0.5, 2.0)
 _LINK_6 = "Geometry/arm/link_1/link_2/link_3/link_4/link_5/link_6"
