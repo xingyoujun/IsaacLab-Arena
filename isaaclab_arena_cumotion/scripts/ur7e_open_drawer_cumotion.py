@@ -28,7 +28,7 @@ import argparse
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--env", type=str, default="ur7e_open_drawer")
+parser.add_argument("--env", type=str, default="ur7e_usdcraft_open_drawer")
 parser.add_argument("--embodiment", type=str, default="ur7e_robotiq_joint_pos")
 parser.add_argument("--video", type=str, default=None, help="Write the D435 view here and a scene view next to it.")
 parser.add_argument("--record-every", type=int, default=3, help="Keep one video frame in N physics steps.")
@@ -564,6 +564,12 @@ for demo in range(args.num_demos):
         if interface is not None:
             interface.sync_from_robot()
         executor._gripper_target = planner.cfg.gripper_open_pos
+    # Openable's reset writes position only. A passive slide otherwise carries
+    # the previous pull velocity into the next episode and can open ungrasped.
+    drawer.write_joint_velocity_to_sim_index(
+        velocity=torch.zeros((1, 1), device=env.device),
+        joint_ids=torch.tensor([drawer_joint], dtype=torch.int32, device=env.device),
+    )
     executor.step(steps=max(1, 30 // (DECIMATION if recording else 1)))
     refresh_drawer_obstacle()
 

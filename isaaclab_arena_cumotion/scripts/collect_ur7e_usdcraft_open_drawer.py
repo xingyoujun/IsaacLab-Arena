@@ -3,15 +3,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Collect uniformly width-scaled Articraft with the shared randomized drawer pipeline."""
+"""Collect randomized USDcraft drawer openings using the shared success-only pipeline."""
 
 from collect_ur7e_open_drawer_gpt56 import main
 
 if __name__ == "__main__":
     main(
-        environment="ur7e_articraft_open_drawer",
-        task="articraft_open_drawer",
-        drawer_key="drawer_articraft",
+        environment="ur7e_usdcraft_open_drawer",
+        task="usdcraft_open_drawer",
+        drawer_key="drawer_rr",
         open_sign=1,
-        min_open_m=0.08415,
+        min_open_m=0.075,
     )

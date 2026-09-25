@@ -3,14 +3,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers.
+# All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 shared:
   environment:
-    type: ur7e_usdcraft_press_toaster
+    type: ur7e_articraft_open_drawer
     embodiment: ur7e_robotiq_joint_pos
     enable_cameras: true
     episode_length_s: 20.0
-    randomize_toaster_pose: true
-    pedestal: true
+    randomize_drawer_pose: true
   policy:
     type: ur7e_dp_remote
     host: 127.0.0.1
@@ -19,4 +22,4 @@ shared:
     num_episodes: 10
 
 runs:
-  toast_rr_epoch60: {}
+  articraft_open_drawer_remote_checkpoint: {}

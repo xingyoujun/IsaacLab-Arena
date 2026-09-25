@@ -23,7 +23,7 @@ class DrawerArticraft(DrawerRR):
 
     name = "drawer_articraft"
     usd_path = os.environ.get(
-        "ARENA_DRAWER_ARTICRAFT_USD", "/home/ubuntu/playground/rr_ur/drawer_articraft/drawer_articraft.usd"
+        "ARENA_DRAWER_ARTICRAFT_USD", "/home/ubuntu/playground/rr_ur/articraft_drawer/articraft_drawer.usd"
     )
     spawn_cfg_addon = {}
     """The imported USD already fixes the enclosure to the world."""

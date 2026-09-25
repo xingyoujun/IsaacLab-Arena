@@ -119,6 +119,12 @@ assets, data contracts, collection, DP training/evaluation, measured results and
 cross-machine setup. `tools/rr_sim2real/` contains only small migration references,
 not datasets, checkpoints or a standalone simulator installation.
 
+Read `docs/rr_sim2real/asset_naming.md` and `assets.json` for the current eight
+asset names and four methods: USDcraft (ours), Articraft, miniworkflow GPTSOL,
+miniworkflow Astra. Only Articraft is uniformly size-normalized; other geometry
+stays unchanged. Add an Arena wrapper only after diagnosing a structural or
+cuMotion failure. Articraft toast is currently URDF-only, not collection-ready.
+
 The user authorized publishing this work on 2026-09-11 to the fork
 `git@github.com:xingyoujun/IsaacLab-Arena.git`, branch `chuanruiz/rr_sim2real`.
 This explicit branch name is an exception to the generic naming convention.
@@ -162,7 +168,7 @@ branch, coordinate shared-file changes, and merge with ordinary commits.
 ### Press-toaster task (rr_sim2real)
 
 - Environment `ur7e_press_toaster` (`isaaclab_arena_environments/ur7e_press_toaster_environment.py`): the toaster `toast_rr` stands on the closed drawer unit (`pedestal=True`, +78 mm) at the lower-left of the D435 image (x -0.22..-0.10, y 0.10..0.14, yaw 0 ± 10°, paddle facing the robot); one reset event places both objects from a single sample. Success = `carriage_slide` joint > 75 % of its 47 mm travel. Gravity is disabled on the toaster bodies so the lever stays where it is left (the asset has no return spring).
-- The env spawns `/home/ubuntu/playground/rr_ur/toast_rr_arena.usda`, an overlay that hides two decals whose textures are missing (they rendered black) and lightens the metallic materials.
+- The env spawns `/home/ubuntu/playground/rr_ur/usdcraft_toast_arena.usda`, an overlay that hides two decals whose textures are missing (they rendered black) and lightens the metallic materials.
 - Driver: `isaaclab_arena_cumotion/scripts/ur7e_press_toaster_cumotion.py` (closed gripper, tool tilted 50-60° towards the toaster, straight vertical press; candidates over tilt x wrist spin are filtered with cuMotion's self-collision inspector and planned to the IK *configuration*, least joint travel wins). Measured constraints, do not re-derive: paddle facing the camera hides the toaster behind the wrist; paddle closer than ~0.43 m to the base has no self-collision-free press; 80-90° (horizontal) tilts self-collide everywhere in the reachable band; planning to a pose target let cuMotion pick a folded IK branch that pressed with the shoulder alone (10 mm).
 - Concurrent training has caused RTX crashes inside `ensure_isaac_rtx_render_update`; reserve the GPU for simulation rather than diagnosing these as asset failures. A single local DP inference server plus one simulator was successfully evaluated on 2026-09-11; do not generalize this to arbitrary concurrent CUDA workloads.
 
@@ -170,5 +176,5 @@ branch, coordinate shared-file changes, and merge with ordinary commits.
 
 - Driver: `isaaclab_arena_cumotion/scripts/ur7e_open_drawer_cumotion.py` (top-down knob grasp, `--record-dir` enables states-only HDF5 recording with `Ur7eJointRecordingActionsCfg` + `embodiments/ur7e/demo_recorders.py`; `--init-joint-std` jitters the start pose, the drawer pose is randomised by the env).
 - Orchestration: `/home/ubuntu/playground/datasets/collect_ur7e_open_drawer.sh` (2 workers per round, merge, trim, `rerender_embodiment_cameras.py` for the D435 at its configured 640x480, `convert_hdf5_to_lerobot.py --yaml_file isaaclab_arena_gr00t/lerobot/config/ur7e_open_drawer_config.yaml`, `add_ur7e_eef_9d.py`, publish). Raw under `datasets/rr_sim2real_raw/open_drawer`, final LeRobot v2.1 under `datasets/rr_sim2real/open_drawer` (converted output only).
-- The drawer env spawns `/home/ubuntu/playground/rr_ur/drawer_rr_arena.usda`, an overlay of the user's `drawer_rr.usdc` that filters collisions between the sliding links and the carcass (the 1 mm clearance otherwise jams the slide at many placements). Diagnose a drawer that will not open with `ur7e_open_drawer_cumotion.py --probe-only --drawer-pose X Y YAW` before touching the grasp.
+- The drawer env spawns `/home/ubuntu/playground/rr_ur/usdcraft_drawer_arena.usda`, an overlay of the user's `usdcraft_drawer.usdc` that filters collisions between the sliding links and the carcass (the 1 mm clearance otherwise jams the slide at many placements). Diagnose a drawer that will not open with `ur7e_open_drawer_cumotion.py --probe-only --drawer-pose X Y YAW` before touching the grasp.
 - Dataset conventions: `observation.state`/`action` = 7 absolute joints `[6 arm, finger_joint]` (rad); `observation.eef_9d`/`action.eef_9d` = TCP xyz + first two rotation-matrix COLUMNS in the UR `base` frame, from URDF FK (`meta/eef_9d.json`); one video `observation.images.realsense_d435` 640x480 h264 at 15 fps. Do not resize the video: it must match the real D435 configuration. `lerobot_to_diffusion_policy_zarr.py` produces the diffusion_policy replay buffer (rot6d rows, 10-dim action with the gripper last).

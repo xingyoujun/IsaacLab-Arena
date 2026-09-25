@@ -4,11 +4,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # UR7e + Robotiq 2F-85 pressing a toaster lever (Isaac Lab-Arena sim, rr_sim2real).
-# Data: /home/ubuntu/playground/datasets/rr_sim2real/press_toaster_v2_dp.zarr (200 episodes, visual randomization, 15 Hz, one D435 view).
+# Data: /home/ubuntu/playground/datasets/rr_sim2real/usdcraft_press_toaster_dp.zarr (200 episodes, visual randomization, 15 Hz, one D435 view).
 name: ur7e_press_toaster_image
 
 image_shape: [3, 240, 320]
-dataset_path: /home/ubuntu/playground/datasets/rr_sim2real/press_toaster_v2_dp.zarr
+dataset_path: /home/ubuntu/playground/datasets/rr_sim2real/usdcraft_press_toaster_dp.zarr
 
 shape_meta: &shape_meta
   # acceptable types: rgb, low_dim

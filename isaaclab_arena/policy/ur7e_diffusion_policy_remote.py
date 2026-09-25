@@ -68,6 +68,8 @@ class Ur7eDiffusionPolicyRemoteCfg(PolicyCfg):
     max_ik_jump_rad: float = 0.5
     """Reject an IK solution that moves any joint more than this from the previous target (branch flip)."""
     camera_key: str = "realsense_d435_rgb"
+    audit_object: str | None = None
+    """Optional articulated object to log every 30 steps during reset-state qualification."""
 
 
 @register_policy
@@ -167,6 +169,17 @@ class Ur7eDiffusionPolicyRemote(PolicyBase[Ur7eDiffusionPolicyRemoteCfg]):
         if not self._ik_ready:
             self._init_ik(env)
         q = self._arm_q()
+        if self.config.audit_object is not None and self._steps % 30 == 0:
+            import warp as wp
+
+            obj = env.unwrapped.scene.articulations[self.config.audit_object]
+            object_q = wp.to_torch(obj.data.joint_pos)[0].detach().cpu().tolist()
+            object_v = wp.to_torch(obj.data.joint_vel)[0].detach().cpu().tolist()
+            print(
+                f"[ur7e_dp_audit] step={self._steps} asset={self.config.audit_object}"
+                f" q={object_q} v={object_v} tcp={self._tcp_pose_base(q)[:3].tolist()}",
+                flush=True,
+            )
         if self._last_q is None:
             self._last_q = q.copy()
 

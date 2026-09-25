@@ -2,7 +2,7 @@
 
 Source: `/home/ubuntu/playground/rr_ur/drawer_articraft/model.urdf`, with both OBJ
 meshes under its `assets/meshes/` directory. The exported single-file USD is
-`/home/ubuntu/playground/rr_ur/drawer_articraft/drawer_articraft.usd`.
+`/home/ubuntu/playground/rr_ur/articraft_drawer/articraft_drawer.usd`.
 Geometry and materials are embedded; the USD does not reference the OBJ files
 or the intermediate importer output.
 
@@ -94,7 +94,7 @@ distractors per episode (seed 0). LeRobot videos remain 640x480 at 15 fps; the
 separate training Zarr uses the existing 320x240 setting.
 
 Outputs are isolated under `rr_sim2real_raw/open_drawer_articraft_v2` and
-`rr_sim2real/open_drawer_articraft_v2` in `/home/ubuntu/playground/datasets`.
+`rr_sim2real/articraft_open_drawer` in `/home/ubuntu/playground/datasets`.
 The raw directory's `complete.json` is written only after all stages validate.
 The launcher supports the same target, batch-size and seed overrides as the
 GPT56 pipeline; resume with the original settings. The single-episode smoke

@@ -5,7 +5,7 @@
 )
 
 def Xform "Asset" (
-    prepend references = @./drawer_rr.usdc@</Asset>
+    prepend references = @./usdcraft_drawer.usdc@</Asset>
 )
 {
     over "Links"

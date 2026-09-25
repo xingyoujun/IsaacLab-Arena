@@ -5,7 +5,7 @@
 )
 
 def Xform "Asset" (
-    prepend references = @./toast_rr.usdc@</Asset>
+    prepend references = @./usdcraft_toast.usdc@</Asset>
 )
 {
     over "Links"

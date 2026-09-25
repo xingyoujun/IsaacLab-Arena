@@ -22,13 +22,13 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO / "isaaclab_arena_cumotion/scripts"
 LEROBOT = REPO / "isaaclab_arena_gr00t/lerobot"
-ENVIRONMENT = "ur7e_open_drawer_gpt56"
-TASK = "open_drawer_gpt56_v2"
+ENVIRONMENT = "ur7e_miniworkflow_gptsol_open_drawer"
+TASK = "miniworkflow_gptsol_open_drawer"
 
 
 def run_workers(commands: list[tuple[list[str], Path]], stagger: float = 0) -> list[int]:
-    """Run at most two children concurrently, logging separately and joining both."""
-    assert len(commands) <= 2
+    """Run at most three children concurrently, with separate logs and cleanup."""
+    assert len(commands) <= 3
     children = []
     try:
         for command, log in commands:

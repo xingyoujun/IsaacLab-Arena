@@ -29,7 +29,7 @@ import argparse
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--env", type=str, default="ur7e_press_toaster")
+parser.add_argument("--env", type=str, default="ur7e_usdcraft_press_toaster")
 parser.add_argument("--embodiment", type=str, default="ur7e_robotiq_joint_pos")
 parser.add_argument("--video", type=str, default=None, help="Write the D435 view here and a scene view next to it.")
 parser.add_argument("--record-every", type=int, default=3, help="Keep one video frame in N physics steps.")
@@ -41,7 +41,9 @@ parser.add_argument(
     default=(60.0, 70.0, 80.0, 90.0, 50.0),
     help="Tool tilts (deg) from the vertical, towards the toaster, to offer.",
 )
-parser.add_argument("--press-depth", type=float, default=0.045, help="How far to push the lever down, metres.")
+parser.add_argument(
+    "--press-depth", type=float, default=None, help="Press distance in metres; default 45/47 of joint travel."
+)
 parser.add_argument("--standoff", type=float, default=0.08, help="Pre-press distance along the approach line, metres.")
 parser.add_argument(
     "--contact-outward",
@@ -79,8 +81,9 @@ parser.add_argument(
 parser.add_argument(
     "--probe-lever",
     action="store_true",
-    help="Write the lever joint to 40 mm before the demo and report where it settles.",
+    help="Write the lever joint to 80% travel before the demo and report where it settles.",
 )
+parser.add_argument("--probe-only", action="store_true", help="Probe passive lever motion without robot contact.")
 parser.add_argument(
     "--no-pedestal",
     action="store_true",
@@ -126,23 +129,9 @@ from isaaclab_arena_cumotion.executor import ArmExecutor, EnvActionExecutor, Joi
 from isaaclab_arena_cumotion.grasps import quat_wxyz_from_matrix  # noqa: E402
 from isaaclab_arena_cumotion.planner import CumotionArmPlanner  # noqa: E402
 from isaaclab_arena_cumotion.robot_description import import_cumotion  # noqa: E402
-from isaaclab_arena_environments.ur7e_press_toaster_environment import (  # noqa: E402
-    LEVER_PADDLE_CENTRE_LOCAL,
-    LEVER_TRAVEL_M,
-    PEDESTAL_HEIGHT_M,
-    TOASTER_EXTENTS_M,
-    ToasterRR,
-)
+from isaaclab_arena_environments.ur7e_press_toaster_environment import PEDESTAL_HEIGHT_M  # noqa: E402
 from isaaclab_arena_environments.ur7e_workcell_environment import TABLE_SIZE_M, TABLE_TOP_HEIGHT_M  # noqa: E402
 
-TOASTER_KEY = "toaster_rr"
-LEVER_BODY = "carriage_lever"
-LEVER_BODY_ORIGIN_LOCAL = np.array([-0.002, -0.106, 0.124])
-"""Origin of the carriage_lever body in the toaster frame, at rest."""
-PADDLE_FROM_LEVER_BODY = np.array(LEVER_PADDLE_CENTRE_LOCAL) - LEVER_BODY_ORIGIN_LOCAL
-"""Paddle centre relative to the carriage_lever body origin (moves with the lever)."""
-PADDLE_HALF_HEIGHT_M = 0.0045
-TOASTER_BOX_CENTRE_LOCAL = np.array([0.001, 0.0, TOASTER_EXTENTS_M[2] / 2])
 PEDESTAL_EXTENTS_M = (0.20, 0.235, PEDESTAL_HEIGHT_M)
 """Drawer unit bounding box (x width, y depth, z height) when it serves as the pedestal."""
 TABLE_OBSTACLE = "/obstacles/table"
@@ -258,9 +247,21 @@ def self_collision_frames(q: np.ndarray) -> list[tuple[str, str]]:
     return list(_inspector.frames_in_self_collision(np.asarray(q, dtype=np.float64).reshape(-1, 1)))
 
 
-toaster = env.scene[TOASTER_KEY]
-lever_body = list(toaster.data.body_names).index(LEVER_BODY)
-lever_joint = list(toaster.data.joint_names).index(ToasterRR.openable_joint_name)
+toaster_asset = arena_env.task.openable_object
+toaster = env.scene[toaster_asset.name]
+lever_body = list(toaster.data.body_names).index(toaster_asset.lever_body)
+lever_joint = list(toaster.data.joint_names).index(toaster_asset.openable_joint_name)
+PADDLE_FROM_LEVER_BODY = np.array(toaster_asset.paddle_offset_local)
+PADDLE_HALF_HEIGHT_M = toaster_asset.paddle_half_height
+TOASTER_EXTENTS_M = toaster_asset.planning_box_size
+TOASTER_BOX_CENTRE_LOCAL = np.array(toaster_asset.planning_box_center)
+joint_lo, joint_hi = wp.to_torch(toaster.data.joint_pos_limits)[0, lever_joint].cpu().numpy()
+LEVER_TRAVEL_M = float(joint_hi - joint_lo)
+LEVER_SIGN = -1.0 if joint_lo < 0 else 1.0
+LEVER_REST = float(joint_hi if joint_lo < 0 else joint_lo)
+if args.press_depth is None:
+    args.press_depth = LEVER_TRAVEL_M * 45 / 47
+print(f"toaster {toaster_asset.name}: limits {joint_lo, joint_hi}, press {args.press_depth:.5f} m")
 
 
 def toaster_pose() -> tuple[np.ndarray, np.ndarray]:
@@ -308,13 +309,14 @@ def outward_direction() -> np.ndarray:
 
 
 def paddle_centre() -> np.ndarray:
-    _, rotation = toaster_pose()
+    quat = wp.to_torch(toaster.data.body_quat_w)[0, lever_body].detach().cpu().float()
+    rotation = math_utils.matrix_from_quat(quat.unsqueeze(0))[0].numpy().astype(np.float64)
     position = wp.to_torch(toaster.data.body_pos_w)[0, lever_body].detach().cpu().numpy().astype(np.float64)
     return position + rotation @ PADDLE_FROM_LEVER_BODY
 
 
 def lever_travel() -> float:
-    return float(wp.to_torch(toaster.data.joint_pos)[0, lever_joint])
+    return LEVER_SIGN * (float(wp.to_torch(toaster.data.joint_pos)[0, lever_joint]) - LEVER_REST)
 
 
 if recording:
@@ -416,16 +418,18 @@ def press_trace(label: str) -> str:
 
 
 def probe_lever() -> list[str]:
-    """Write the lever joint to 40 mm, let physics run, and report where it ends up (a jam test)."""
+    """Write the lever joint to 80% travel and report where it settles (a jam test)."""
     ids = torch.tensor([lever_joint], device=env.device)
     lines = [
         f"lever probe: limits {np.round(wp.to_torch(toaster.data.joint_pos_limits)[0, lever_joint].cpu().numpy(), 4)}"
     ]
-    toaster.write_joint_position_to_sim(torch.tensor([[0.04]], device=env.device), joint_ids=ids)
+    toaster.write_joint_position_to_sim(
+        torch.tensor([[LEVER_REST + LEVER_SIGN * LEVER_TRAVEL_M * 0.8]], device=env.device), joint_ids=ids
+    )
     toaster.write_joint_velocity_to_sim(torch.zeros((1, 1), device=env.device), joint_ids=ids)
     executor.step(steps=30)
-    lines.append(f"lever probe: after writing 40 mm and 30 steps the joint reads {lever_travel() * 1000:.1f} mm")
-    toaster.write_joint_position_to_sim(torch.zeros((1, 1), device=env.device), joint_ids=ids)
+    lines.append(f"lever probe: after writing 80% travel and 30 steps the joint reads {lever_travel() * 1000:.1f} mm")
+    toaster.write_joint_position_to_sim(torch.tensor([[LEVER_REST]], device=env.device), joint_ids=ids)
     toaster.write_joint_velocity_to_sim(torch.zeros((1, 1), device=env.device), joint_ids=ids)
     executor.step(steps=30)
     lines.append(f"lever probe: after writing back 0 mm the joint reads {lever_travel() * 1000:.1f} mm")
@@ -435,8 +439,10 @@ def probe_lever() -> list[str]:
 def run_demo() -> list[str]:
     """One press-toaster demonstration; returns a report."""
     report: list[str] = []
-    if args.probe_lever:
+    if args.probe_lever or args.probe_only:
         report.extend(probe_lever())
+        if args.probe_only:
+            return report
     home_q = planner.joint_positions()
     executor.close_gripper()
 
@@ -588,6 +594,10 @@ for demo in range(args.num_demos):
         if interface is not None:
             interface.sync_from_robot()
         executor._gripper_target = planner.cfg.gripper_open_pos
+    toaster.write_joint_velocity_to_sim_index(
+        velocity=torch.zeros((1, 1), device=env.device),
+        joint_ids=torch.tensor([lever_joint], dtype=torch.int32, device=env.device),
+    )
     executor.step(steps=max(1, 30 // (DECIMATION if recording else 1)))
     refresh_toaster_obstacle()
 
@@ -599,6 +609,7 @@ for demo in range(args.num_demos):
         print(f"  {line}")
 
     success = bool(task.openable_object.is_open(env, threshold=env_cfg.pressed_threshold)[0].item())
+    success = success and not any(line.startswith("aborted:") for line in report)
     print(f"  task success predicate: {success}")
     overall.append(f"demo {demo + 1}: {'success' if success else 'FAILED'}")
 

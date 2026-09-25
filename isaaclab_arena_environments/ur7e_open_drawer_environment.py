@@ -31,8 +31,8 @@ from isaaclab_arena_environments.ur7e_workcell_environment import (
 if TYPE_CHECKING:
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
 
-DRAWER_USD_PATH = os.environ.get("ARENA_DRAWER_USD", "/home/ubuntu/playground/rr_ur/drawer_rr_arena.usda")
-"""Overlay of drawer_rr.usdc that filters the sliding links' collisions against the carcass and top panel.
+DRAWER_USD_PATH = os.environ.get("ARENA_DRAWER_USD", "/home/ubuntu/playground/rr_ur/usdcraft_drawer_arena.usda")
+"""Overlay of usdcraft_drawer.usdc that filters the sliding links' collisions against the carcass and top panel.
 
 With the original asset the drawer box runs inside the carcass with 1 mm of side clearance, and at
 roughly half of the sampled placements PhysX jammed the slide solid (a joint written to 50 mm snapped
@@ -42,9 +42,9 @@ offsets did not help.
 """
 
 DRAWER_GPT56_USD_PATH = os.environ.get(
-    "ARENA_DRAWER_GPT56_USD", "/home/ubuntu/playground/rr_ur/drawer_rr_gpt56_arena.usda"
+    "ARENA_DRAWER_GPT56_USD", "/home/ubuntu/playground/rr_ur/miniworkflow_gptsol_drawer_arena.usda"
 )
-"""Overlay of drawer_rr_gpt56_sol_high_image_mesh.usd (the image-reconstructed comparison asset).
+"""Overlay of miniworkflow_gptsol_drawer.usd (the image-reconstructed comparison asset).
 
 The overlay deactivates the PhysicsScene the asset ships with and moves the articulation root from the
 plain root Xform onto the fixed carcass body so the fixed-base articulation can be anchored. Same

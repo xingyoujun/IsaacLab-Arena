@@ -1,8 +1,8 @@
 # UR7e image-mesh drawer comparison
 
 `ur7e_open_drawer_gpt56` uses
-`/home/ubuntu/playground/rr_ur/drawer_rr_gpt56_sol_high_image_mesh.usd`
-through the existing `drawer_rr_gpt56_arena.usda` overlay beside it. The overlay
+`/home/ubuntu/playground/rr_ur/miniworkflow_gptsol_drawer.usd`
+through the existing `miniworkflow_gptsol_drawer_arena.usda` overlay beside it. The overlay
 disables the asset's PhysicsScene and anchors its Body articulation root.
 
 The comparison factory inherits the original workcell builder and changes only
@@ -44,11 +44,11 @@ Outputs are separated from the original drawer and earlier qualification data:
 - Raw HDF5, provenance, per-worker logs, randomization records and checkpoints:
   `/home/ubuntu/playground/datasets/rr_sim2real_raw/open_drawer_gpt56_v2/`.
 - LeRobot v2.1 with 7D joints and UR-base 9D EEF:
-  `/home/ubuntu/playground/datasets/rr_sim2real/open_drawer_gpt56_v2/`.
+  `/home/ubuntu/playground/datasets/rr_sim2real/miniworkflow_gptsol_open_drawer/`.
 - Diffusion-policy replay buffer:
-  `/home/ubuntu/playground/datasets/rr_sim2real/open_drawer_gpt56_v2_dp.zarr`.
+  `/home/ubuntu/playground/datasets/rr_sim2real/miniworkflow_gptsol_open_drawer_dp.zarr`.
 - Preview:
-  `/home/ubuntu/playground/datasets/rr_sim2real/open_drawer_gpt56_v2_preview.png`.
+  `/home/ubuntu/playground/datasets/rr_sim2real/miniworkflow_gptsol_open_drawer_preview.png`.
 
 D435 videos stay at 640x480 / 15 fps. The separate diffusion-policy zarr uses
 320x240 images and row-convention rot6d / 10D actions, matching the original v2

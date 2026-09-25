@@ -55,6 +55,7 @@ import h5py  # noqa: E402
 import json  # noqa: E402
 import numpy as np  # noqa: E402
 import pathlib  # noqa: E402
+import tempfile  # noqa: E402
 import torch  # noqa: E402
 
 import imageio.v2 as iio  # noqa: E402
@@ -183,6 +184,22 @@ def rerender_demo(demo, out_dir: pathlib.Path, demo_name: str) -> int:
 for path in args.hdf5:
     out_dir = pathlib.Path(f"{path}.cameras")
     out_dir.mkdir(parents=True, exist_ok=True)
+    appearance_path = out_dir / "render_appearance.json"
+    if args.env.startswith("ur7e_"):
+        appearance = {"gripper": "black_fingertips_direct", "diffuse_color": [0.015, 0.015, 0.015], "roughness": 0.5}
+        if appearance_path.exists():
+            assert (
+                json.loads(appearance_path.read_text()) == appearance
+            ), "Use a fresh sidecar directory for new materials"
+        else:
+            assert not list(
+                out_dir.glob("*.mp4")
+            ), "Legacy camera cache: copy HDF5 to a new version before re-rendering"
+            # Publish a complete marker atomically; two workers write identical metadata.
+            with tempfile.NamedTemporaryFile(mode="w", dir=out_dir, suffix=".json.tmp", delete=False) as marker:
+                json.dump(appearance, marker)
+                temporary_path = pathlib.Path(marker.name)
+            temporary_path.replace(appearance_path)
     # Read-only and unlocked so several workers may share one file.
     with h5py.File(path, "r", locking=False) as handle:
         names = sorted(handle["data"], key=lambda name: int(name.split("_")[-1]))

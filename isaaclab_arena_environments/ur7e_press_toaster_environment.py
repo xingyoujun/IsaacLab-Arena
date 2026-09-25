@@ -35,8 +35,8 @@ if TYPE_CHECKING:
 
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
 
-TOASTER_USD_PATH = os.environ.get("ARENA_TOASTER_USD", "/home/ubuntu/playground/rr_ur/toast_rr_arena.usda")
-"""Overlay of toast_rr.usdc that hides its two decals (their textures are missing, they rendered as black
+TOASTER_USD_PATH = os.environ.get("ARENA_TOASTER_USD", "/home/ubuntu/playground/rr_ur/usdcraft_toast_arena.usda")
+"""Overlay of usdcraft_toast.usdc that hides its two decals (their textures are missing, they rendered as black
 patches) and lightens the metallic materials. Geometry, joints and physics are the original asset's."""
 
 LEVER_TRAVEL_M = 0.047
@@ -130,6 +130,11 @@ class ToasterRR(LibraryObject, Openable):
 
     openable_joint_name = "carriage_slide"
     openable_threshold = 0.75
+    lever_body = "carriage_lever"
+    paddle_offset_local = (0.0, -0.01, 0.0)
+    paddle_half_height = 0.0045
+    planning_box_size = TOASTER_EXTENTS_M
+    planning_box_center = (0.001, 0.0, TOASTER_EXTENTS_M[2] / 2)
 
     def __init__(
         self, instance_name: str | None = None, prim_path: str | None = None, initial_pose: Pose | None = None
@@ -142,6 +147,29 @@ class ToasterRR(LibraryObject, Openable):
             openable_threshold=self.openable_threshold,
         )
 
+    def rotate_revolute_joint(self, env, env_ids, asset_cfg=None, percentage=0.0):
+        """Reset the lever position and velocity, without retaining motion from the previous episode."""
+        import warp as wp
+
+        super().rotate_revolute_joint(env, env_ids, asset_cfg, percentage)
+        asset_name = self.name if asset_cfg is None else asset_cfg.name
+        articulation = env.unwrapped.scene.articulations[asset_name]
+        joint_index = articulation.data.joint_names.index(self.openable_joint_name)
+        device = env.unwrapped.device
+        ids = env_ids.to(device) if env_ids is not None else None
+        n = env.unwrapped.num_envs if ids is None else len(ids)
+        articulation.write_joint_velocity_to_sim_index(
+            velocity=torch.zeros((n, 1), device=device),
+            joint_ids=torch.tensor([joint_index], dtype=torch.int32, device=device),
+            env_ids=ids,
+        )
+        if os.environ.get("ARENA_RR_DP_AUDIT") == "1":
+            q = wp.to_torch(articulation.data.joint_pos)[:, joint_index]
+            v = wp.to_torch(articulation.data.joint_vel)[:, joint_index]
+            if ids is not None:
+                q, v = q[ids], v[ids]
+            print(f"[toaster_reset] asset={asset_name} q={q.tolist()} v={v.tolist()}", flush=True)
+
 
 @dataclass
 class Ur7ePressToasterEnvironmentCfg(ArenaEnvironmentCfg):
@@ -150,6 +178,7 @@ class Ur7ePressToasterEnvironmentCfg(ArenaEnvironmentCfg):
     embodiment: str = "ur7e_robotiq_ik"
     teleop_device: str | None = None
     light_scale: float = 1.0
+    toaster_asset: str = "toaster_rr"
     pressed_threshold: float = 0.75
     """Fraction of the 47 mm lever travel the carriage must be pushed down for success."""
     episode_length_s: float = 20.0
@@ -187,7 +216,7 @@ class Ur7ePressToasterEnvironment(ArenaEnvironmentFactory[Ur7ePressToasterEnviro
         ground_plane = self.asset_registry.get_asset_by_name("ground_plane")()
         lights = build_lights(self.asset_registry, cfg.light_scale)
 
-        toaster = self.asset_registry.get_asset_by_name("toaster_rr")()
+        toaster = self.asset_registry.get_asset_by_name(cfg.toaster_asset)()
         stack = [toaster]
         z_offsets = [PEDESTAL_HEIGHT_M if cfg.pedestal else 0.0]
         yaw_offsets = [0.0]

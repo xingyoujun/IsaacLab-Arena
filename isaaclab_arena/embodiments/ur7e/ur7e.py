@@ -46,6 +46,7 @@ from isaaclab_arena.embodiments.common.arm_mode import ArmMode
 from isaaclab_arena.embodiments.common.smooth_joint_actions import SmoothJointPositionActionCfg
 from isaaclab_arena.embodiments.droid.actions import BinaryJointPositionZeroToOneAction
 from isaaclab_arena.embodiments.embodiment_base import EmbodimentBase
+from isaaclab_arena.embodiments.ur7e.appearance import spawn_ur7e_with_black_gripper
 from isaaclab_arena.embodiments.ur7e.observations import (
     GRIPPER_CLOSED_JOINT_POS,
     GRIPPER_DRIVE_JOINT,
@@ -273,6 +274,7 @@ def make_ur7e_robot_cfg(spec: UrRobotSpec) -> ArticulationCfg:
         prim_path="{ENV_REGEX_NS}/Robot",
         articulation_root_prim_path=spec.articulation_root_prim_path,
         spawn=sim_utils.UsdFileCfg(
+            func=spawn_ur7e_with_black_gripper,
             usd_path=spec.usd_path,
             variants=spec.variants,
             activate_contact_sensors=True,
