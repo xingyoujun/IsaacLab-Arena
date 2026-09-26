@@ -14,10 +14,10 @@ axis-aligned proximity check, mirroring Genie Sim's ``Stack`` predicate toleranc
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from isaaclab_arena.assets.register import register_environment
+from isaaclab_arena.assets.usdcraft_scene import resolve_asset
 from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentCfg, ArenaEnvironmentFactory
 
 if TYPE_CHECKING:
@@ -80,9 +80,7 @@ class G2StackBowlsEnvironment(ArenaEnvironmentFactory[G2StackBowlsEnvironmentCfg
         background = self.asset_registry.get_asset_by_name("genie_benchmark_table")(height_m=cfg.table_height_m)
         room = Background(
             name="g2_workroom",
-            usd_path=str(
-                Path(__file__).resolve().parents[1] / "isaaclab_arena/embodiments/g2/assets/stack_bowls_room.usda"
-            ),
+            usd_path=str(resolve_asset("g2_room")),
             object_min_z=-cfg.table_height_m,
             initial_pose=Pose(position_xyz=(0.0, 0.0, -cfg.table_height_m), rotation_xyzw=(0.0, 0.0, 0.0, 1.0)),
         )

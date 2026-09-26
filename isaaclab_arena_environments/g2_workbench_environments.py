@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from isaaclab_arena.assets.register import register_environment
+from isaaclab_arena.assets.usdcraft_scene import resolve_asset
 from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentCfg, ArenaEnvironmentFactory
 
 if TYPE_CHECKING:
@@ -49,7 +49,11 @@ class _G2WorkbenchEnvironment:
 
     def make_object(self, registry_name, params):
         """Construct an object, allowing task-local asset overrides."""
-        return self.asset_registry.get_asset_by_name(registry_name)(**params)
+        cls = self.asset_registry.get_asset_by_name(registry_name)
+        if registry_name in {"peg", "hole", "small_gear", "cordless_drill_ycb_robolab", "bin_b04_vomp_robolab"}:
+            path = str(resolve_asset(f"g2_{registry_name}"))
+            cls = type(f"Bundled{cls.__name__}", (cls,), {"usd_path": path})
+        return cls(**params)
 
     def build(self, cfg: G2WorkbenchEnvironmentCfg) -> IsaacLabArenaEnvironment:
         """Place the selected library objects on the shared tabletop."""
@@ -64,9 +68,7 @@ class _G2WorkbenchEnvironment:
         table = self.asset_registry.get_asset_by_name("genie_benchmark_table")(height_m=cfg.table_height_m)
         room = Background(
             name="g2_workroom",
-            usd_path=str(
-                Path(__file__).resolve().parents[1] / "isaaclab_arena/embodiments/g2/assets/stack_bowls_room.usda"
-            ),
+            usd_path=str(resolve_asset("g2_room")),
             object_min_z=-cfg.table_height_m,
             initial_pose=Pose(position_xyz=(0.0, 0.0, -cfg.table_height_m), rotation_xyzw=(0.0, 0.0, 0.0, 1.0)),
         )

@@ -18,6 +18,7 @@ from isaaclab_arena.assets.background_library import LibraryBackground
 from isaaclab_arena.assets.geniesim import GENIESIM_ASSETS_DIR
 from isaaclab_arena.assets.object_library import LibraryObject
 from isaaclab_arena.assets.register import register_asset
+from isaaclab_arena.assets.usdcraft_scene import asset_or_legacy
 from isaaclab_arena.utils.pose import Pose
 
 GENIE_TABLE_HEIGHT_M: float = 0.74
@@ -86,7 +87,12 @@ class GenieBenchmarkTable(LibraryBackground):
 
     def __init__(self, height_m: float = GENIE_TABLE_HEIGHT_M):
         assert height_m > 0.0, "Table height must be positive"
-        self.usd_path = with_static_mesh_collision(GENIE_TABLE_SOURCE_USD, "benchmark_table_000_collision")
+        source = asset_or_legacy("g2_table", GENIE_TABLE_SOURCE_USD)
+        self.usd_path = (
+            source
+            if source != GENIE_TABLE_SOURCE_USD
+            else with_static_mesh_collision(source, "benchmark_table_000_collision")
+        )
         self.initial_pose = Pose(position_xyz=(0.0, 0.0, -height_m / 2), rotation_xyzw=(0.0, 0.0, 0.0, 1.0))
         super().__init__(scale=(1.0, 1.0, height_m / GENIE_TABLE_HEIGHT_M))
 
@@ -151,8 +157,9 @@ class GenieBenchmarkBowl(LibraryObject):
     usd_path = None  # resolved lazily: the vendor layer wrapped with a Z-up rigid root
 
     def __init__(self, instance_name: str | None = None, **kwargs):
-        self.usd_path = with_rigid_root_above_entity(
-            f"{GENIESIM_ASSETS_DIR}/objects/benchmark/bowl/benchmark_bowl_025/Aligned.usda",
-            "benchmark_bowl_025_rigid_root",
+        legacy = f"{GENIESIM_ASSETS_DIR}/objects/benchmark/bowl/benchmark_bowl_025/Aligned.usda"
+        source = asset_or_legacy("g2_bowl", legacy)
+        self.usd_path = (
+            source if source != legacy else with_rigid_root_above_entity(source, "benchmark_bowl_025_rigid_root")
         )
         super().__init__(instance_name=instance_name, **kwargs)

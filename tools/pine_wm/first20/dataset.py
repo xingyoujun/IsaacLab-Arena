@@ -50,6 +50,8 @@ def annotate_and_validate(output, results, task):
                 demo.attrs["qualification_trial"] = result["trial"]
                 demo.attrs["failure"] = result.get("error", "success_predicate_false")
                 demo.attrs["goals_json"] = json.dumps(result["goals"], ensure_ascii=False)
+    from isaaclab_arena.recording.alignment import pre_step_states, transition_metadata
+
     successes = [r for r in results if r["success"]]
     if not successes:
         return
@@ -60,12 +62,16 @@ def annotate_and_validate(output, results, task):
         assert len(demos) == len(successes)
         metadata = json.loads(data.attrs["env_args"])
         metadata["env_cfg"] = json.loads((output / "environment.json").read_text())
+        metadata["collection_contract"] = transition_metadata(
+            "pine_wm_ur7e", ["realsense_d435_rgb", "wrist_a_rgb", "wrist_b_rgb"]
+        )
         hashes = output / "source_hashes.json"
         if hashes.exists():
             metadata["qualification_source_hashes"] = json.loads(hashes.read_text())
         data.attrs["env_args"] = json.dumps(metadata)
         for name, result in zip(demos, successes):
             demo = data[name]
+            pre_step_states(demo)
             actions = demo["actions"][:]
             assert actions.ndim == 2 and actions.shape[1] == 7 and np.isfinite(actions).all()
             assert np.allclose(actions, demo["joint_pos_target"][:], atol=1e-6)

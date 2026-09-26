@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import isaaclab_arena
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from isaaclab_arena.embodiments.embodiment_base import EmbodimentBase
 
 _CUMOTION_EMBODIMENT_CFGS: dict[str, CumotionEmbodimentCfg] = {}
+_CUMOTION_CFG_FACTORIES: dict[str, Callable] = {}
 
 
 def register_cumotion_cfg(embodiment_name: str, cfg: CumotionEmbodimentCfg, arm: str = "left") -> None:
@@ -35,8 +37,11 @@ def register_cumotion_cfg(embodiment_name: str, cfg: CumotionEmbodimentCfg, arm:
     _CUMOTION_EMBODIMENT_CFGS[key] = cfg
 
 
-def get_cumotion_cfg_by_name(embodiment_name: str, arm: str = "left") -> CumotionEmbodimentCfg:
+def get_cumotion_cfg_by_name(embodiment_name: str, arm: str = "left", env=None) -> CumotionEmbodimentCfg:
     """Return the cuMotion config registered for an exact embodiment name and arm."""
+    factory = _CUMOTION_CFG_FACTORIES.get(f"{embodiment_name}:{arm}")
+    if factory is not None:
+        return factory(env, arm)
     cfg = _CUMOTION_EMBODIMENT_CFGS.get(f"{embodiment_name}:{arm}")
     assert cfg is not None, (
         f"No cuMotion config registered for '{embodiment_name}:{arm}'. Register one via"
@@ -45,7 +50,7 @@ def get_cumotion_cfg_by_name(embodiment_name: str, arm: str = "left") -> Cumotio
     return cfg
 
 
-def get_embodiment_cumotion_cfg(embodiment: EmbodimentBase, arm: str = "left") -> CumotionEmbodimentCfg:
+def get_embodiment_cumotion_cfg(embodiment: EmbodimentBase, arm: str = "left", env=None) -> CumotionEmbodimentCfg:
     """Return the cuMotion config registered for an embodiment's robot family.
 
     Walks the class hierarchy so a config registered under a family name (e.g. ``"agibot"``) also
@@ -57,6 +62,9 @@ def get_embodiment_cumotion_cfg(embodiment: EmbodimentBase, arm: str = "left") -
     """
     for cls in type(embodiment).__mro__:
         name = cls.__dict__.get("name")
+        factory = _CUMOTION_CFG_FACTORIES.get(f"{name}:{arm}")
+        if factory is not None:
+            return factory(env, arm)
         cfg = _CUMOTION_EMBODIMENT_CFGS.get(f"{name}:{arm}") if name else None
         if cfg is not None:
             return cfg
@@ -191,3 +199,13 @@ def _pine_wm_cumotion_cfg() -> CumotionEmbodimentCfg:
 
 
 register_cumotion_cfg("pine_wm_ur7e", _pine_wm_cumotion_cfg())
+
+
+def _g2_cumotion_cfg(env, arm):
+    """Resolve G2 lazily so UR7e users do not require G2 assets."""
+    from isaaclab_arena_cumotion.g2 import create_g2_cumotion_cfg
+
+    return create_g2_cumotion_cfg(env, arm)
+
+
+_CUMOTION_CFG_FACTORIES.update({"g2:left": _g2_cumotion_cfg, "g2:right": _g2_cumotion_cfg})

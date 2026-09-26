@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "tasks": {
+    "stack_bowls": {
+      "environment": "g2_stack_bowls",
+      "collector": "tabletop",
+      "recipe": "stack_bowls",
+      "instruction": "Stack the right bowl on the middle bowl, then the left bowl on top.",
+      "assets": [
+        "g2_bowl"
+      ],
+      "environment_config": {
+        "table_height_m": 0.75,
+        "hdr": null,
+        "bowl_positions": [
+          -0.12,
+          -0.24,
+          -0.1,
+          0.0,
+          -0.12,
+          0.24
+        ]
+      },
+      "settle_steps": 30
+    },
+    "peg_into_sleeve": {
+      "environment": "g2_sleeve",
+      "collector": "tabletop",
+      "recipe": "peg_into_sleeve",
+      "instruction": "Insert the cylindrical peg into the fixed upright sleeve.",
+      "assets": [
+        "g2_peg",
+        "g2_hole"
+      ],
+      "environment_config": {
+        "table_height_m": 0.75,
+        "hdr": null,
+        "peg_xy": [
+          0.05,
+          -0.16
+        ],
+        "sleeve_xy": [
+          -0.1,
+          0.0
+        ]
+      },
+      "settle_steps": 30
+    },
+    "clean_workcell_table": {
+      "environment": "g2_clean_workcell_table",
+      "collector": "workcell",
+      "instruction": "Clear the workbench: put the aluminum stock in the blue bin, the drill in the yellow bin, and the gear in the green bin.",
+      "assets": [
+        "g2_clean_workcell",
+        "g2_aluminum_stock",
+        "g2_cordless_drill_ycb_robolab",
+        "g2_bin_b04_vomp_robolab",
+        "g2_small_gear",
+        "g2_margin_urdf"
+      ],
+      "environment_config": {},
+      "settle_steps": 45
+    }
+  }
+}

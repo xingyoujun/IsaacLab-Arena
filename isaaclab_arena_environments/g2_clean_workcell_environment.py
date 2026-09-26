@@ -6,11 +6,14 @@
 """Three-category G2 workcell cleanup with fixed semantic bin colors."""
 
 import copy
+import hashlib
 import itertools
+import json
 import yaml
 from pathlib import Path
 
 from isaaclab_arena.assets.register import register_environment
+from isaaclab_arena.assets.usdcraft_scene import resolve_asset
 from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironmentFactory
 from isaaclab_arena.tasks.no_task import NoTask
 from isaaclab_arena_environments.g2_workbench_environments import G2WorkbenchEnvironmentCfg, _G2WorkbenchEnvironment
@@ -20,6 +23,17 @@ CONFIG_PATH = Path(__file__).parents[1] / "isaaclab_arena/embodiments/g2/assets/
 
 def load_spec():
     """Load and validate the fixed one-object-per-category sorting contract."""
+    from isaaclab_arena.assets.usdcraft_scene import bundle_root
+
+    root = bundle_root()
+    manifest_path = root / "manifest.json"
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text())
+        if "g2_clean_workcell" in manifest["entries"]:
+            descriptor = json.loads(Path(resolve_asset("g2_clean_workcell")).read_text())
+            assert (
+                hashlib.sha256(CONFIG_PATH.read_bytes()).hexdigest() == descriptor["configuration_sha256"]
+            ), "G2 scene configuration differs from the selected bundle snapshot; regenerate the local bundle"
     spec = yaml.safe_load(CONFIG_PATH.read_text())
     objects, bins = spec["objects"], spec["bins"]
     assert len(objects) == len(bins) == 3
@@ -111,7 +125,7 @@ class G2CleanWorkcellTableEnvironment(_G2WorkbenchEnvironment, ArenaEnvironmentF
         if registry_name == "aluminum_stock":
             return Object(
                 name=name,
-                usd_path=str(CONFIG_PATH.parent / "aluminum_stock.usda"),
+                usd_path=str(resolve_asset("g2_aluminum_stock")),
                 scale=params.get("scale", (1.0, 1.0, 1.0)),
                 object_type=ObjectType.RIGID,
                 spawn_cfg_addon={

@@ -33,3 +33,15 @@ def resolve_asset(asset_id: str, root: str | Path | None = None) -> Path:
     assert not Path(relative).is_absolute() and path.resolve().is_relative_to(directory.resolve()), relative
     assert relative in manifest["files"] and path.is_file(), f"Missing asset payload: {path}"
     return path
+
+
+def asset_or_legacy(asset_id: str, legacy: str | Path) -> str:
+    """Prefer a bundled entry, retaining old paths when no explicit bundle was selected."""
+    root = bundle_root()
+    manifest_path = root / "manifest.json"
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text())
+        if asset_id in manifest["entries"]:
+            return str(resolve_asset(asset_id, root))
+    assert not os.environ.get("ARENA_USDCRAFT_SCENE_ROOT"), f"Explicit bundle is missing {asset_id}: {root}"
+    return str(legacy)

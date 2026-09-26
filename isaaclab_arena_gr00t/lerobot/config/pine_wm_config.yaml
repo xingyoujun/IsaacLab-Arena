@@ -1,0 +1,38 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Set data_root to a successful contracted Pine WM recording and validated three-camera sidecars.
+data_root: "outputs/pine_wm/first20/T001"
+language_instruction: "Use the recorded per-episode language_instruction."
+task_index: 0
+hdf5_name: "demos.hdf5"
+state_name_sim: "robot_joint_pos"  # absolute joint positions of the whole articulation (12), remapped to [arm, gripper]
+action_name_sim: "joint_pos_target"  # absolute joint targets applied by the drives (7)
+pov_cam_name_sim: "realsense_d435_rgb"
+sidecar_camera_streams:
+  realsense_d435_rgb: "observation.images.realsense_d435"
+  wrist_a_rgb: "observation.images.wrist_a"
+  wrist_b_rgb: "observation.images.wrist_b"
+state_name_lerobot: "observation.state"
+action_name_lerobot: "action"
+video_name_lerobot: "observation.images.realsense_d435"
+task_description_lerobot: "annotation.human.action.task_description"
+chunks_size: 1000
+fps: 15
+data_path: "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet"
+video_path: "videos/chunk-{episode_chunk:03d}/{video_key}/episode_{episode_index:06d}.mp4"
+modality_template_path: "isaaclab_arena_gr00t/embodiments/ur7e/pine_wm_modality.json"
+modality_fname: "modality.json"
+episodes_fname: "episodes.jsonl"
+tasks_fname: "tasks.jsonl"
+info_template_path: "isaaclab_arena_gr00t/embodiments/ur7e/info.json"
+info_fname: "info.json"
+policy_joints_config_path: "isaaclab_arena_gr00t/embodiments/ur7e/gr00t_7dof_joint_space.yaml"
+robot_type: "pine_wm_ur7e"
+action_joints_config_path: "isaaclab_arena_gr00t/embodiments/ur7e/7dof_joint_space.yaml"
+state_joints_config_path: "isaaclab_arena_gr00t/embodiments/ur7e/12dof_joint_space.yaml"
+# Sidecar videos are copied as rendered at the D435's configured 640x480.
+original_image_size: [480, 640, 3]
+target_image_size: [480, 640, 3]

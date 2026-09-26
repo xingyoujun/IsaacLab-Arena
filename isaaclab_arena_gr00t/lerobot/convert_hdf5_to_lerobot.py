@@ -19,6 +19,7 @@ from typing import Any
 import imageio.v2 as imageio
 import pandas as pd
 
+from isaaclab_arena.recording.alignment import export_rows, recorded_contract, validate_video
 from isaaclab_arena_gr00t.lerobot.config.dataset_config import Gr00tDatasetConfig
 from isaaclab_arena_gr00t.utils.image_conversion import resize_frames_with_padding
 from isaaclab_arena_gr00t.utils.io_utils import (
@@ -211,7 +212,7 @@ def extract_teleop_command(trajectory: h5py.Dataset, teleop_key: str, config: Gr
     """
     assert "action" in trajectory.keys()
     assert teleop_key in config.hdf5_keys
-    teleop_command = trajectory["action"][config.hdf5_keys[teleop_key]][:-1]
+    teleop_command = trajectory["action"][config.hdf5_keys[teleop_key]][export_rows(trajectory)]
     return [row for row in teleop_command]
 
 
@@ -321,6 +322,7 @@ def convert_trajectory_to_df(
 
     return_dict = {}
     data = {}
+    rows = export_rows(trajectory)
 
     policy_modality_config = load_json(config.modality_template_path)
 
@@ -346,12 +348,12 @@ def convert_trajectory_to_df(
         # state
         if key == "state":
             # NOTE(xinjieyao, 2025-09-25): remove the last obs due to Lab reports observations
-            joints = joints[:-1]
+            joints = joints[rows]
             input_joints_config = state_joints_config
         # action target
         elif key == "action":
             # NOTE(xinjieyao, 2025-09-25): remove the last idle action due to Lab reports actions
-            joints = joints[:-1]
+            joints = joints[rows]
             input_joints_config = action_joints_config
         else:
             raise ValueError(f"Unknown key: {key}")
@@ -405,7 +407,7 @@ def convert_trajectory_to_df(
             if f"{side}_eef_pos" in config.hdf5_keys and f"{side}_eef_quat" in config.hdf5_keys:
                 side_eef_pos = trajectory[key][config.hdf5_keys[f"{side}_eef_pos"]]
                 side_eef_quat = trajectory[key][config.hdf5_keys[f"{side}_eef_quat"]]
-                side_eef_pose = EefPose.from_array(side_eef_pos[:-1], side_eef_quat[:-1], device="cpu")
+                side_eef_pose = EefPose.from_array(side_eef_pos[rows], side_eef_quat[rows], device="cpu")
                 eef_pose[side] = side_eef_pose.get_eef_pose()
         if "left" in eef_pose and "right" in eef_pose:
             eef_pose = np.concatenate([eef_pose["left"].numpy(), eef_pose["right"].numpy()], axis=1).astype(np.float64)
@@ -465,6 +467,19 @@ def convert_hdf5_to_lerobot(config: Gr00tDatasetConfig):
     Returns:
         None
     """
+    # Validate contracted sources before creating workers or any output files.
+    with h5py.File(config.hdf5_file_path, "r") as source:
+        for name, demo in source["data"].items():
+            if recorded_contract(demo) is None:
+                continue
+            export_rows(demo)
+            if config.sidecar_camera_streams:
+                manifest = load_json(config.sidecar_camera_dir / f"{name}_state_replay.json")
+                assert manifest["validation_passed"] and manifest["observation_alignment"] == "pre_step"
+                assert manifest["frames"] == len(demo["actions"])
+                for stream in config.sidecar_camera_streams:
+                    validate_video(config.sidecar_camera_dir / f"{name}_{stream}.mp4", len(demo["actions"]), config.fps)
+
     # Create a queue to communicate with the worker processes
     max_queue_size = 10
     num_workers = 4
@@ -507,10 +522,29 @@ def convert_hdf5_to_lerobot(config: Gr00tDatasetConfig):
             )
         except Exception as e:
             print(f"Error loading trajectory {trajectory_id}: {e}")
+            if recorded_contract(trajectory) is not None:
+                for worker in workers:
+                    worker.terminate()
+                    worker.join()
+                hdf5_handler.close()
+                raise
             continue
 
         # 2.1. Save the episode data
         dataframe = df_ret_dict["data"]
+        if recorded_contract(trajectory) is not None and config.sidecar_camera_streams:
+            replay = load_json(config.sidecar_camera_dir / f"{trajectory_id}_state_replay.json")
+            dataframe["observation.img_state_delta"] = float(replay["physics_dt_s"])
+        if recorded_contract(trajectory) is not None and "language_instruction" in trajectory.attrs:
+            instruction = str(trajectory.attrs["language_instruction"])
+            task_id = next((key for key, value in tasks.items() if value == instruction), None)
+            if task_id is None:
+                task_id = max(tasks, default=-1) + 1
+                tasks[task_id] = instruction
+            dataframe["task_index"] = task_id
+            dataframe[config.lerobot_keys["annotation"][0]] = task_id
+            df_ret_dict["annotation"] = {task_id}
+
         episode_chunk = episode_index // config.chunks_size
         save_relpath = config.data_path.format(episode_chunk=episode_chunk, episode_index=episode_index)
         save_path = config.lerobot_data_dir / save_relpath
@@ -532,6 +566,13 @@ def convert_hdf5_to_lerobot(config: Gr00tDatasetConfig):
             for stream, video_key in config.sidecar_camera_streams.items():
                 source_path = config.sidecar_camera_dir / f"{trajectory_id}_{stream}.mp4"
                 assert source_path.exists(), f"missing sidecar video {source_path}"
+                if recorded_contract(trajectory) is not None:
+                    manifest_path = config.sidecar_camera_dir / f"{trajectory_id}_state_replay.json"
+                    manifest = load_json(manifest_path)
+                    assert manifest["validation_passed"] and manifest["observation_alignment"] == "pre_step"
+                    assert manifest["frames"] == length
+                    validate_video(source_path, length, config.fps)
+
                 new_video_relpath = config.video_path.format(
                     episode_chunk=episode_chunk, video_key=video_key, episode_index=episode_index
                 )
@@ -552,7 +593,7 @@ def convert_hdf5_to_lerobot(config: Gr00tDatasetConfig):
 
             frames = np.array(trajectory["camera_obs"][config.pov_cam_name_sim])
             # remove last frame due to how Lab reports observations
-            frames = frames[:-1]
+            frames = frames[export_rows(trajectory)]
             assert len(frames) == length
             queue.put((new_video_path, frames, config.fps, "image"))
 

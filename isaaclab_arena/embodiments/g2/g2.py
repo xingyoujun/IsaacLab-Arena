@@ -7,8 +7,8 @@
 
 The robot asset is the ``robot/G2_omnipicker`` folder of the ``agibot-world/GenieSimAssets`` HuggingFace
 dataset (the robot used by every ``*_g2_op`` Genie Sim benchmark task). The base is fixed to the world by the
-``robot_fix.usda`` layer, so only the upper body moves. The folder is located through ``GENIESIM_ASSETS_DIR``
-(see ``isaaclab_arena.assets.geniesim``).
+``robot_fix.usda`` layer, so only the upper body moves. Runtime resolves the repackaged robot
+from the pinned USDCraft-Scene manifest ID ``g2``.
 """
 
 import math
@@ -38,16 +38,13 @@ from isaaclab.utils.configclass import configclass
 from isaaclab_tasks.contrib.pick_place.mdp import get_robot_joint_state
 from isaaclab_tasks.contrib.stack.mdp import ee_frame_pose_in_base_frame, franka_stack_events
 
-from isaaclab_arena.assets.geniesim import GENIESIM_ASSETS_DIR
 from isaaclab_arena.assets.register import register_asset
+from isaaclab_arena.assets.usdcraft_scene import resolve_asset
 from isaaclab_arena.embodiments.common.arm_mode import ArmMode
 from isaaclab_arena.embodiments.embodiment_base import EmbodimentBase
 from isaaclab_arena.embodiments.franka.franka import FrankaMimicEnv
 from isaaclab_arena.utils.cameras import ArenaCameraCfg
 from isaaclab_arena.utils.pose import Pose
-
-G2_OMNIPICKER_USD_PATH: str = f"{GENIESIM_ASSETS_DIR}/robot/G2_omnipicker/robot_fix.usda"
-"""Fixed-base G2 omnipicker layer used by the Genie Sim ``*_g2_op`` manipulation tasks."""
 
 # Genie Sim's default G2 manipulation posture (``G2_DEFAULT_STATES`` in geniesim_benchmark): torso bent over the
 # table, both arms in front of the body, grippers open.
@@ -99,7 +96,7 @@ G2_GRIPPER_CLOSED: float = 0.0
 G2_OMNIPICKER_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path=G2_OMNIPICKER_USD_PATH,
+        usd_path="",  # Resolved from the HF bundle when G2Embodiment is constructed.
         activate_contact_sensors=False,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=True,
@@ -196,6 +193,7 @@ class G2Embodiment(EmbodimentBase):
             self.action_config = G2DualArmActionsCfg()
         else:
             raise NotImplementedError(f"Unsupported G2 arm mode: {self.arm_mode}.")
+        self.scene_config.robot.spawn.usd_path = str(resolve_asset("g2"))
         self.observation_config = (
             G2DualArmObservationsCfg() if self.arm_mode == ArmMode.DUAL_ARM else G2ObservationsCfg()
         )

@@ -33,12 +33,12 @@ IsaacLab-Arena-tasks/                 # Git checkout，目录名可以不同
 ## 下载与使用
 
 先登录有私有仓库读取权限的 HF 账号（`hf auth login`；不要把 token 写入代码或命令示例）。
-从仓库根目录使用已有运行环境执行：
+在本仓库对应的 Arena 容器中，从仓库根目录执行：
 
 ```bash
-.venv/bin/python tools/usdcraft_scene/manage.py download
-.venv/bin/python tools/usdcraft_scene/manage.py verify
-.venv/bin/python tools/usdcraft_scene/manage.py audit-usd
+/isaac-sim/python.sh tools/usdcraft_scene/manage.py download
+/isaac-sim/python.sh tools/usdcraft_scene/manage.py verify
+/isaac-sim/python.sh tools/usdcraft_scene/manage.py audit-usd
 ```
 
 以上命令默认操作 `local_assets/USDCraft-Scene/`，Pine WM 仿真也默认读取这里。
@@ -55,7 +55,7 @@ unset ARENA_USDCRAFT_SCENE_ROOT ARENA_PINE_WM_ASSET_ROOT ARENA_PINE_WM_FIRST20_R
 
 ```bash
 export ARENA_USDCRAFT_SCENE_ROOT=/your/external/disk/USDCraft-Scene
-.venv/bin/python tools/usdcraft_scene/manage.py download
+/isaac-sim/python.sh tools/usdcraft_scene/manage.py download
 ```
 
 显式的旧 `ARENA_PINE_WM_ASSET_ROOT` / `ARENA_PINE_WM_FIRST20_ROOT` 仍可读取历史资产包。
@@ -66,22 +66,25 @@ export ARENA_USDCRAFT_SCENE_ROOT=/your/external/disk/USDCraft-Scene
 日常校验和上传也使用同一个本地目录：
 
 ```bash
-.venv/bin/python tools/usdcraft_scene/manage.py verify
-.venv/bin/python tools/usdcraft_scene/manage.py audit-usd
-.venv/bin/python tools/usdcraft_scene/manage.py upload
+/isaac-sim/python.sh tools/usdcraft_scene/manage.py verify
+/isaac-sim/python.sh tools/usdcraft_scene/manage.py audit-usd
+PYTHONPATH=. /isaac-sim/python.sh tools/usdcraft_scene/stage_release.py \
+  --source local_assets/USDCraft-Scene --output local_assets/releases/g2_next
+/isaac-sim/python.sh tools/usdcraft_scene/manage.py upload \
+  local_assets/releases/g2_next/payload --release-plan local_assets/releases/g2_next/release-plan.json
 ```
 
 上传会验证现有 manifest，仅上传清单内文件，要求目标仓库保持私有，并将返回的
 HF commit 和 manifest 校验值写入 Git 侧 `release.json`。不会删除远端的其他资产。
 **不要在未更新 manifest 的情况下修改模型后上传**：校验会拒绝内容不一致的文件。
 新增资产需填写 entry、相对路径、来源、文件大小和 SHA-256；新增其他场景时需合并完整仓库清单。
-当前初始上传器发现远端存在清单之外的文件会停止，防止覆盖后续其他人添加的资产。
-本次目录整理不需要重新上传 HF，因为模型内容没有改变。
+上传器发现远端存在清单之外的文件会停止，防止覆盖后续其他人添加的资产。
+G2 机器人、房间、物体和规划描述与 Pine WM 共用完整资产清单。
 
 从原始来源首次组包使用 `prepare`，仅在目标目录不存在时执行；它不会覆盖现有下载，也不会创建备份：
 
 ```bash
-.venv/bin/python tools/usdcraft_scene/manage.py prepare \
+/isaac-sim/python.sh tools/usdcraft_scene/manage.py prepare \
   --scene-source /path/to/extracted/scene \
   --objects-source /path/to/extracted/first20
 ```
@@ -91,7 +94,8 @@ HF commit 和 manifest 校验值写入 Git 侧 `release.json`。不会删除远�
 ## RR real2sim 与 Pine WM 的边界
 
 两套任务独立管理，见 [任务归属](../../docs/task_families.md)。
-本组包器只收集 Pine WM 机器人和首批 19 种物体，不读取 RR 任务或资产目录。
+`manage.py prepare` 的首次组包范围是 Pine WM 机器人和首批 19 种物体，不读取 RR 任务或资产目录。
+已发布的共享包另外包含 G2；日常开发使用锁定版本下载，无需再次从旧目录组包。
 RR 的 USDA 适配层保留在 `tools/rr_sim2real/asset_overlays/`，其运行入口也不变。
 Pine WM 的 T041–T045 使用 `P20_drawer`，不是 RR 的 `drawer_rr`。
 
@@ -126,3 +130,14 @@ git check-ignore local_assets/USDCraft-Scene/manifest.json
 ```
 
 管理命令不会执行 Git 暂存、提交或推送。
+
+## G2 发布
+
+G2 使用[统一开发与采集流程](../../docs/g2_development.md)。
+`stage_release.py` 从完整已发布资产包生成候选版本，刷新 Git 中的任务、规划参数和标定快照。
+候选目录的 `release-plan.json` 锁定清单哈希与远端父提交；上传前必须通过 `verify` 和 `audit-usd`。
+`manage.py upload PAYLOAD --release-plan PLAN` 拒绝过期父提交，成功后更新 Git 的 `release.json`。
+
+`prepare_g2.py` 仅用于从原始供应商文件首次引入 G2；房间和铝块通过显式 `--room`、
+`--aluminum-stock` 输入。日常开发者直接下载已发布版本，不需要旧数据目录。
+资产发布不包含采集 HDF5、视频、训练集或模型权重。

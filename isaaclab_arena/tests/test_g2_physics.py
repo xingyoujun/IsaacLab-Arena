@@ -6,7 +6,6 @@
 """Physics-level checks of the G2 embodiment: joint drives, collision setup, gripper configuration and grasping."""
 
 import math
-import os
 import torch
 import traceback
 
@@ -17,13 +16,18 @@ from isaaclab_arena.tests.utils.persistent_simulation_app import run_function_wi
 
 HEADLESS = True
 
-_G2_USD = os.path.join(
-    os.environ.get("GENIESIM_ASSETS_DIR", "/datasets/GenieSimAssets"), "robot", "G2_omnipicker", "robot_fix.usda"
-)
+from isaaclab_arena.assets.usdcraft_scene import resolve_asset
+
+try:
+    resolve_asset("g2")
+    _G2_AVAILABLE = True
+except AssertionError:
+    _G2_AVAILABLE = False
 requires_g2_asset = pytest.mark.skipif(
-    not os.path.isfile(_G2_USD),
-    reason=f"G2 omnipicker asset not found at {_G2_USD}; set GENIESIM_ASSETS_DIR to a GenieSimAssets checkout",
+    not _G2_AVAILABLE,
+    reason="Download the pinned USDCraft-Scene release before running G2 tests",
 )
+
 
 ARM_R_JOINTS = [f"idx6{i}_arm_r_joint{i}" for i in range(1, 8)]
 GRIPPER_R_JOINTS = ["idx81_gripper_r_outer_joint1", "idx71_gripper_r_inner_joint1"]

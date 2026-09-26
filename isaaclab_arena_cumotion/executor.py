@@ -100,6 +100,7 @@ class ArmExecutor:
             gripper_target: Gripper joint target; the previous one is held when omitted.
             steps: How many physics steps to take.
         """
+        assert self.planner.cfg.gripper_action_space == "joint_position", "Binary grippers require EnvActionExecutor"
         if gripper_target is not None:
             self._gripper_target = gripper_target
         for _ in range(steps):

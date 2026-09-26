@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import numpy as np
-import os
 import torch
 import tqdm
 
@@ -17,12 +16,16 @@ NUM_STEPS = 10
 HEADLESS = True
 INITIAL_POSITION_EPS = 1e-6
 
-_G2_USD = os.path.join(
-    os.environ.get("GENIESIM_ASSETS_DIR", "/datasets/GenieSimAssets"), "robot", "G2_omnipicker", "robot_fix.usda"
-)
+from isaaclab_arena.assets.usdcraft_scene import resolve_asset
+
+try:
+    resolve_asset("g2")
+    _G2_AVAILABLE = True
+except AssertionError:
+    _G2_AVAILABLE = False
 requires_g2_asset = pytest.mark.skipif(
-    not os.path.isfile(_G2_USD),
-    reason=f"G2 omnipicker asset not found at {_G2_USD}; set GENIESIM_ASSETS_DIR to a GenieSimAssets checkout",
+    not _G2_AVAILABLE,
+    reason="Download the pinned USDCraft-Scene release before running G2 tests",
 )
 
 

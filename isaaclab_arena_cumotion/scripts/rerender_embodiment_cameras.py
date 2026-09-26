@@ -57,9 +57,12 @@ simulation_app = app_launcher.app
 import h5py  # noqa: E402
 import json  # noqa: E402
 import numpy as np  # noqa: E402
+import os  # noqa: E402
 import pathlib  # noqa: E402
 import tempfile  # noqa: E402
 import torch  # noqa: E402
+
+os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
 
 import imageio.v2 as iio  # noqa: E402
 import warp as wp  # noqa: E402
@@ -71,6 +74,12 @@ from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
     get_isaaclab_arena_cli_parser,
 )
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder  # noqa: E402
+from isaaclab_arena.recording.alignment import (  # noqa: E402
+    REPLAY_DT,
+    pre_step_states,
+    transition_metadata,
+    validate_video,
+)
 
 FPS = 15  # one frame per control step at Arena's 15 Hz control rate; the videos play in real time
 
@@ -112,7 +121,7 @@ if args.env == "pine_wm_first20":
             cfg = original_callback(cfg)
         # PhysX must publish a completed step for Hydra to consume restored poses.
         # A microsecond step bounds motion drift while flushing those render buffers.
-        cfg.sim.dt = 1e-6
+        cfg.sim.dt = REPLAY_DT
         cfg.sim.render_interval = 1
         return cfg
 
@@ -168,17 +177,12 @@ def rerender_demo(demo, out_dir: pathlib.Path, demo_name: str) -> int:
     }
     num_steps = next(iter(states["articulation"]["robot"].values())).shape[0]
     if args.env == "pine_wm_first20":
-        # obs/action are pre-step; states are post-step. Match the observation timestamp.
-        for kind, assets in states.items():
-            for asset, fields in assets.items():
-                for field, array in fields.items():
-                    initial = np.array(demo["initial_state"][kind][asset][field])
-                    fields[field] = np.concatenate([initial, array[:-1]], axis=0)
+        states = pre_step_states(demo)
 
     writers = {
         # Default libx264 quality, matching the Agibot datasets: higher quality settings made each
         # video ~10x larger for no training benefit.
-        name: iio.get_writer(out_dir / f"{demo_name}_{name}.part.mp4", fps=FPS, codec="libx264", macro_block_size=8)
+        name: iio.get_writer(out_dir / f"{demo_name}_{name}.part.mp4", fps=FPS, codec="h264_nvenc", macro_block_size=8)
         for name in cams
     }
 
@@ -293,6 +297,7 @@ def rerender_demo(demo, out_dir: pathlib.Path, demo_name: str) -> int:
     (out_dir / f"{demo_name}_state_replay.json").write_text(
         json.dumps(
             {
+                "collection_contract": transition_metadata(arena_env.embodiment.name, list(cams), FPS),
                 "frames": num_steps,
                 "fps": FPS,
                 "observation_alignment": "pre_step" if bounded_replay else "legacy_post_step",
@@ -338,6 +343,7 @@ def rerender_demo(demo, out_dir: pathlib.Path, demo_name: str) -> int:
     # which the skip check ignores, so relaunching resumes cleanly.
     for name, writer in writers.items():
         writer.close()
+        validate_video(out_dir / f"{demo_name}_{name}.part.mp4", num_steps, FPS)
         (out_dir / f"{demo_name}_{name}.part.mp4").rename(out_dir / f"{demo_name}_{name}.mp4")
     manifest_path = out_dir / f"{demo_name}_state_replay.json"
     manifest = json.loads(manifest_path.read_text())

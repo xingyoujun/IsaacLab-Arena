@@ -1,0 +1,40 @@
+{
+    "state": {
+        "arm": {
+            "original_key": "observation.state",
+            "start": 0,
+            "end": 6
+        },
+        "gripper": {
+            "original_key": "observation.state",
+            "start": 6,
+            "end": 7
+        }
+    },
+    "action": {
+        "arm": {
+            "start": 0,
+            "end": 6
+        },
+        "gripper": {
+            "start": 6,
+            "end": 7
+        }
+    },
+    "video": {
+        "realsense_d435": {
+            "original_key": "observation.images.realsense_d435"
+        },
+        "wrist_a": {
+            "original_key": "observation.images.wrist_a"
+        },
+        "wrist_b": {
+            "original_key": "observation.images.wrist_b"
+        }
+    },
+    "annotation": {
+        "human.action.task_description": {
+            "original_key": "task_index"
+        }
+    }
+}

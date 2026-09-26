@@ -21,6 +21,10 @@ drawer ablations and press-toaster pipeline. Start with the
 [RR sim2real development handoff](docs/rr_sim2real/README.md). Assets, datasets
 and checkpoints are transferred separately, not stored in Git.
 
+For G2 development, native cuMotion collection, three-camera replay and validation, use the
+[unified G2 workflow](docs/g2_development.md). Robot and scene assets follow the
+[USDCraft-Scene release workflow](tools/usdcraft_scene/README.md); raw recordings stay on their collection host.
+
 ---
 
 > [!WARNING]

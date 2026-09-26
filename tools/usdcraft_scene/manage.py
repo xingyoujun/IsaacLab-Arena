@@ -12,6 +12,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -160,13 +161,25 @@ def audit_usd(args):
 
 def upload(args):
     """Publish a verified release privately and pin the returned HF commit in Git-side metadata."""
-    from huggingface_hub import HfApi
+    from huggingface_hub import HfApi, snapshot_download
 
     manifest = verify(args.directory)
+    assert not manifest.get("local_extension"), "Stage a complete release candidate before publishing G2"
+    plan_path = getattr(args, "release_plan", None)
+    plan = json.loads(plan_path.read_text()) if plan_path else None
+    if "g2" in manifest["entries"]:
+        assert plan is not None, "G2 publication requires a reviewed --release-plan"
+    if plan:
+        assert plan["repo_id"] == REPO and plan["repo_type"] == "dataset"
+        assert plan["manifest_sha256"] == digest(args.directory / "manifest.json"), "Candidate changed"
     api = HfApi()
-    api.create_repo(REPO, repo_type="dataset", private=True, exist_ok=True)
+    if plan is None:
+        api.create_repo(REPO, repo_type="dataset", private=True, exist_ok=True)
     info = api.repo_info(REPO, repo_type="dataset")
     assert info.private, "Existing repository is public; refusing this private upload"
+    if plan:
+        assert info.sha == plan["expected_parent_revision"], "Remote advanced; merge its new manifest and restage"
+
     # Never remove other scenes or embodiments from the shared repository.
     remote_files = api.list_repo_files(REPO, repo_type="dataset")
     assert all(
@@ -177,9 +190,22 @@ def upload(args):
         repo_type="dataset",
         folder_path=args.directory,
         allow_patterns=[*manifest["files"], "manifest.json"],
-        commit_message="Add Pine WM embodiment, scene descriptors and shared objects",
+        commit_message="Update versioned Arena embodiments, scenes and shared assets",
         parent_commit=info.sha,
     )
+    # HF may add LFS rules to .gitattributes. Do not pin a release whose remote
+    # payload differs from its manifest, even when the upload request succeeded.
+    with TemporaryDirectory(prefix="arena_hf_verify_") as directory:
+        snapshot_download(
+            repo_id=REPO,
+            repo_type="dataset",
+            revision=result.oid,
+            local_dir=directory,
+            allow_patterns=[*manifest["files"], "manifest.json"],
+        )
+        downloaded = Path(directory)
+        assert digest(downloaded / "manifest.json") == digest(args.directory / "manifest.json"), result.oid
+        verify(downloaded)
     write_json(
         LOCK,
         {
@@ -198,6 +224,11 @@ def download(args):
 
     lock = json.loads(LOCK.read_text())
     assert re.fullmatch(r"[0-9a-f]{40}", lock["revision"]), "A published immutable revision is required"
+    existing = args.directory / "manifest.json"
+    if existing.exists():
+        assert (
+            digest(existing) == lock["manifest_sha256"]
+        ), "Destination contains a different or locally extended release; download into a new directory"
     args.directory.mkdir(parents=True, exist_ok=True)
     manifest_path = Path(
         hf_hub_download(
@@ -229,6 +260,8 @@ def main():
     for name in ("prepare", "verify", "audit-usd", "upload", "download"):
         command = commands.add_parser(name)
         command.add_argument("directory", type=Path, nargs="?", default=bundle_root())
+        if name == "upload":
+            command.add_argument("--release-plan", type=Path)
         if name == "prepare":
             command.add_argument("--scene-source", type=Path, required=True)
             command.add_argument("--objects-source", type=Path, required=True)

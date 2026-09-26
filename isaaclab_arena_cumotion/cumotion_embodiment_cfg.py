@@ -30,10 +30,10 @@ class CumotionEmbodimentCfg:
     """Joints the binary gripper command drives."""
 
     gripper_open_pos: float
-    """Joint target for the open gripper."""
+    """Open target in the declared gripper action space (joint radians or binary command)."""
 
     gripper_closed_pos: float
-    """Joint target for the closed gripper."""
+    """Closed target in the declared gripper action space."""
 
     self_collision_ignore: dict[str, list[str]]
     """Link pairs excluded from self-collision, as XRDF's ``self_collision.ignore`` map."""
@@ -72,3 +72,6 @@ class CumotionEmbodimentCfg:
 
     Read from the simulated articulation when empty.
     """
+
+    gripper_action_space: str = "joint_position"
+    """Use binary only with EnvActionExecutor; direct joint execution cannot drive G2 linkages."""

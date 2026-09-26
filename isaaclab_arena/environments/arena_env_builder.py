@@ -21,7 +21,6 @@ from isaaclab_physx.physics import PhysxCfg
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab_teleop import IsaacTeleopCfg
 
-import isaaclab_arena_curobo  # noqa: F401
 from isaaclab_arena.assets.registries import DeviceRegistry
 from isaaclab_arena.embodiments.no_embodiment import NoEmbodiment
 from isaaclab_arena.environments.arena_env_builder_cfg import ArenaEnvBuilderCfg
@@ -48,6 +47,7 @@ from isaaclab_arena.relations.placement_events import (
     make_cached_placement_event,
 )
 from isaaclab_arena.relations.placement_layouts import PlacementLayouts
+from isaaclab_arena.relations.placement_validation import PlacementCheck
 from isaaclab_arena.relations.relation_solver_params import RelationSolverParams
 from isaaclab_arena.tasks.no_task import NoTask
 from isaaclab_arena.tasks.task_termination_cfg import TaskTerminationCfg
@@ -122,6 +122,13 @@ class ArenaEnvBuilder:
             placer_params.placement_seed = self.cfg.placement_seed
         if self.cfg.resolve_on_reset is not None:
             placer_params.resolve_on_reset = self.cfg.resolve_on_reset
+
+        # Register optional IK only for a placement solve that can use it. Fixed-layout
+        # native cuMotion collection must not import a second planning backend.
+        if placement_assets and (
+            placer_params.enabled_checks is None or PlacementCheck.IK_REACHABLE in placer_params.enabled_checks
+        ):
+            import isaaclab_arena_curobo  # noqa: F401
 
         # Delists itself unless the embodiment has a registered cuRobo config and the solver deps are importable.
         # TODO(xinjieyao, 2026-07-22): updated once robot-object co-placement is merged.

@@ -86,6 +86,7 @@ class CumotionArmPlanner:
         embodiment: EmbodimentBase,
         arm: str = "left",
         robot_scene_name: str = "robot",
+        cfg: CumotionEmbodimentCfg | None = None,
     ) -> None:
         # Isaac Lab 3.0 GA no longer exposes isaacsim.core.experimental on the Python path; its own
         # helper drives Kit's extension manager directly.
@@ -99,7 +100,7 @@ class CumotionArmPlanner:
 
         self.env = env
         self.arm = arm
-        self.cfg: CumotionEmbodimentCfg = get_embodiment_cumotion_cfg(embodiment, arm)
+        self.cfg: CumotionEmbodimentCfg = cfg or get_embodiment_cumotion_cfg(embodiment, arm, env)
         self.robot = env.scene.articulations[robot_scene_name]
         self.arm_joint_ids, _ = self.robot.find_joints(self.cfg.arm_joint_names, preserve_order=True)
         self.gripper_joint_ids, _ = self.robot.find_joints(self.cfg.gripper_joint_names)
