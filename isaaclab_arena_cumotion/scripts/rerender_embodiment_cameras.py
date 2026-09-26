@@ -3,14 +3,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Re-render an embodiment's own (world-fixed) cameras for states-only demonstrations.
+"""Re-render an embodiment's calibrated cameras for states-only demonstrations.
 
 Demonstrations are recorded without images (see the cuMotion drivers); this replays each demo's
 recorded states frame by frame and writes one mp4 per requested camera stream into a
 ``<hdf5>.cameras/`` sidecar directory, which ``convert_hdf5_to_lerobot.py`` copies into the LeRobot
 dataset. Unlike ``rerender_demo_cameras.py`` (Agibot: head + wrist cameras posed by hand) this uses
-the environment's own camera sensors at their configured resolution, so it works for any embodiment
-whose cameras are static in the world (the UR7e workcell's calibrated D435 and its ``scene_cam``).
+the environment's own camera sensors at their configured resolution. Robot-mounted cameras
+follow the replayed articulation states, including pine_wm's two calibrated wrist cameras.
 
 With ``--randomize`` the workcell's lights, table/floor materials and a few distractor objects are
 randomized per demo (see ``ur7e_workcell_randomization.py``); the draw is seeded by the demo index,
@@ -31,6 +31,9 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser()
 parser.add_argument("--hdf5", type=str, nargs="+", required=True, help="Recorded HDF5 file(s).")
 parser.add_argument("--env", type=str, required=True, help="Registered environment the demos were recorded in.")
+parser.add_argument(
+    "--env-config", type=str, default=None, help="JSON environment config overrides (e.g. first20 task_id)."
+)
 parser.add_argument("--embodiment", type=str, default=None, help="Embodiment override (env default otherwise).")
 parser.add_argument(
     "--streams", type=str, nargs="+", default=["realsense_d435_rgb"], help="Camera streams (<camera>_rgb) to render."
@@ -59,6 +62,7 @@ import tempfile  # noqa: E402
 import torch  # noqa: E402
 
 import imageio.v2 as iio  # noqa: E402
+import warp as wp  # noqa: E402
 
 import isaaclab_arena_environments  # noqa: E402,F401
 from isaaclab_arena.assets.registries import EnvironmentRegistry  # noqa: E402
@@ -73,7 +77,18 @@ FPS = 15  # one frame per control step at Arena's 15 Hz control rate; the videos
 # ------------------------------------------------------------------------------------- env ---
 arena_args = get_isaaclab_arena_cli_parser().parse_args(["--num_envs", "1", "--enable_cameras"])
 factory = EnvironmentRegistry().get_component_by_name(args.env)()
-cfg_kwargs = {"enable_cameras": True}
+cfg_kwargs = json.loads(pathlib.Path(args.env_config).read_text()) if args.env_config else {}
+if args.env == "pine_wm_first20" and args.env_config is None:
+    recorded_configs = []
+    for hdf5_path in args.hdf5:
+        with h5py.File(hdf5_path, "r") as dataset:
+            metadata = json.loads(dataset["data"].attrs["env_args"])
+            assert "env_cfg" in metadata, "First20 recordings require env_cfg metadata or --env-config"
+            recorded_configs.append(metadata["env_cfg"])
+    assert all(config == recorded_configs[0] for config in recorded_configs), "Render different tasks separately"
+    cfg_kwargs = recorded_configs[0]
+
+cfg_kwargs["enable_cameras"] = True
 if args.embodiment is not None:
     cfg_kwargs["embodiment"] = args.embodiment
 arena_env = factory.build(factory._legacy_argparse_cfg_type(**cfg_kwargs))
@@ -89,9 +104,24 @@ for stream in args.streams:
 # Untiled sensors are the ones whose per-camera output this script reads.
 camera_rig.set_use_tiled_camera(False)
 
+if args.env == "pine_wm_first20":
+    original_callback = arena_env.env_cfg_callback
+
+    def configure_microstep_replay(cfg):
+        if original_callback is not None:
+            cfg = original_callback(cfg)
+        # PhysX must publish a completed step for Hydra to consume restored poses.
+        # A microsecond step bounds motion drift while flushing those render buffers.
+        cfg.sim.dt = 1e-6
+        cfg.sim.render_interval = 1
+        return cfg
+
+    arena_env.env_cfg_callback = configure_microstep_replay
+
 builder = ArenaEnvBuilder(arena_env, arena_env_builder_cfg_from_argparse(arena_args))
 env = builder.make_registered().unwrapped
-env.sim.reset()
+if args.env != "pine_wm_first20":
+    env.sim.reset()
 env.reset()
 device = env.device
 env_ids = torch.tensor([0], device=device)
@@ -137,6 +167,13 @@ def rerender_demo(demo, out_dir: pathlib.Path, demo_name: str) -> int:
         for kind in group
     }
     num_steps = next(iter(states["articulation"]["robot"].values())).shape[0]
+    if args.env == "pine_wm_first20":
+        # obs/action are pre-step; states are post-step. Match the observation timestamp.
+        for kind, assets in states.items():
+            for asset, fields in assets.items():
+                for field, array in fields.items():
+                    initial = np.array(demo["initial_state"][kind][asset][field])
+                    fields[field] = np.concatenate([initial, array[:-1]], axis=0)
 
     writers = {
         # Default libx264 quality, matching the Agibot datasets: higher quality settings made each
@@ -157,27 +194,155 @@ def rerender_demo(demo, out_dir: pathlib.Path, demo_name: str) -> int:
             for kind, assets in states.items()
         }
 
-    # Settle the first frame's state and flush the renderer's temporal history (DLSS/denoiser accumulate over
-    # frames, so the previous demo's scene ghosts into the first frames otherwise). Cameras render when they
-    # are updated, not on sim.step(), so the warm-up must update them.
+    bounded_replay = args.env == "pine_wm_first20"
+    max_joint_error = 0.0
+    max_position_error = 0.0
+    max_root_rotation_error = 0.0
+    joint_errors = {}
+    first_images = {}
+    image_motion = {name: 0.0 for name in cams}
+    image_contrast = {name: 0.0 for name in cams}
+
+    def render_state():
+        env.sim.step(render=True)
+        if bounded_replay:
+            env.scene.update(env.sim.get_physics_dt())
+
+    # Flush temporal image history from the same recorded initial state.
     env.scene.reset_to(frame_state(0), env_ids, is_relative=True)
     for _ in range(args.warmup_frames):
-        env.sim.step(render=True)
+        if bounded_replay:
+            env.scene.reset_to(frame_state(0), env_ids, is_relative=True)
+        render_state()
         for cam in cams.values():
             cam.update(env.sim.get_physics_dt(), force_recompute=True)
 
     for step in range(num_steps):
         env.scene.reset_to(frame_state(step), env_ids, is_relative=True)
-        env.sim.step(render=True)
+        render_state()
         for name, cam in cams.items():
-            cam.update(env.sim.get_physics_dt())
-            writers[name].append_data(cam.data.output["rgb"][0, ..., :3].detach().cpu().numpy().astype(np.uint8))
+            cam.update(env.sim.get_physics_dt(), force_recompute=bounded_replay)
+            pixels = cam.data.output["rgb"][0, ..., :3].detach().cpu().numpy().astype(np.uint8)
+            writers[name].append_data(pixels)
+            if bounded_replay:
+                if name not in first_images:
+                    first_images[name] = pixels.astype(np.float32)
+                image_motion[name] = max(image_motion[name], float(np.abs(pixels - first_images[name]).mean()))
+                image_contrast[name] = max(image_contrast[name], float(pixels.std()))
+        if bounded_replay:
+            for kind, assets in states.items():
+                for asset_name, fields in assets.items():
+                    asset = env.scene[asset_name]
+                    # Read the physics backend, not the reset_to() write-through caches.
+                    transforms = (
+                        asset.root_view.get_root_transforms()
+                        if kind == "articulation"
+                        else asset.root_view.get_transforms()
+                    )
+                    actual_pose = wp.to_torch(transforms).cpu().numpy()[0]
+                    actual_position = actual_pose[:3]
+                    actual_quaternion = actual_pose[3:].astype(np.float64)
+                    recorded_quaternion = fields["root_pose"][step, 3:].astype(np.float64)
+                    cosine = abs(float(actual_quaternion @ recorded_quaternion)) / (
+                        np.linalg.norm(actual_quaternion) * np.linalg.norm(recorded_quaternion)
+                    )
+                    max_root_rotation_error = max(max_root_rotation_error, float(2 * np.arccos(np.clip(cosine, 0, 1))))
+                    max_position_error = max(
+                        max_position_error, float(np.max(np.abs(actual_position - fields["root_pose"][step, :3])))
+                    )
+                    if kind == "articulation":
+                        actual_joint = wp.to_torch(asset.root_view.get_dof_positions()).cpu().numpy()[0]
+                        errors = np.abs(actual_joint - fields["joint_position"][step])
+                        joint_errors[asset_name] = np.maximum(
+                            joint_errors.get(asset_name, np.zeros_like(errors)), errors
+                        )
+                        max_joint_error = max(max_joint_error, float(errors.max()))
+    arm_joint_names = {
+        "shoulder_pan_joint",
+        "shoulder_lift_joint",
+        "elbow_joint",
+        "wrist_1_joint",
+        "wrist_2_joint",
+        "wrist_3_joint",
+    }
+    arm_error = 0.0
+    articulated_object_error = 0.0
+    for asset_name, errors in joint_errors.items():
+        if asset_name == "robot":
+            arm_error = max(
+                (
+                    float(error)
+                    for name, error in zip(env.scene[asset_name].joint_names, errors)
+                    if name in arm_joint_names
+                ),
+                default=0.0,
+            )
+        else:
+            articulated_object_error = max(articulated_object_error, float(errors.max()))
+    # Bound camera-bearing arm rotation separately from compliant finger joints.
+    state_valid = not bounded_replay or (
+        arm_error < 1e-3
+        and max_joint_error < 5e-3
+        and max_position_error < 5e-4
+        and articulated_object_error < 5e-4
+        and max_root_rotation_error < 5e-3
+    )
+    image_valid = not bounded_replay or (
+        all(value > 3 for value in image_contrast.values()) and all(value > 1 for value in image_motion.values())
+    )
+    (out_dir / f"{demo_name}_state_replay.json").write_text(
+        json.dumps(
+            {
+                "frames": num_steps,
+                "fps": FPS,
+                "observation_alignment": "pre_step" if bounded_replay else "legacy_post_step",
+                "replay_mode": "physics_microstep" if bounded_replay else "physics_step",
+                "physics_dt_s": env.sim.get_physics_dt(),
+                "exact_states": False,
+                "validation_passed": False,
+                "state_validation_passed": state_valid,
+                "image_validation_passed": image_valid,
+                "joint_coordinate_errors": {
+                    asset: dict(zip(env.scene[asset].joint_names, errors.tolist()))
+                    for asset, errors in joint_errors.items()
+                },
+                "joint_error_limit_rad": 5e-3 if bounded_replay else None,
+                "arm_joint_error_limit_rad": 1e-3 if bounded_replay else None,
+                "max_arm_joint_error_rad": arm_error if bounded_replay else None,
+                "articulated_object_coordinate_error_limit": 5e-4 if bounded_replay else None,
+                "max_articulated_object_coordinate_error": articulated_object_error if bounded_replay else None,
+                "root_position_error_limit_m": 5e-4 if bounded_replay else None,
+                "root_rotation_error_limit_rad": 5e-3 if bounded_replay else None,
+                "max_root_rotation_error_rad": max_root_rotation_error if bounded_replay else None,
+                "state_error_source": "physics_backend" if bounded_replay else None,
+                "visual_sync_review_required": True,
+                "max_joint_error_rad": max_joint_error if bounded_replay else None,
+                "max_root_position_error_m": max_position_error if bounded_replay else None,
+                "streams": list(cams),
+                "max_image_change_from_first_frame": image_motion,
+                "max_image_std": image_contrast,
+                "env_cfg": cfg_kwargs,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+
+    assert state_valid, (
+        f"State replay drift: joints={max_joint_error:.9g} rad, root_position={max_position_error:.9g} m; "
+        f"see {out_dir / (demo_name + '_state_replay.json')}"
+    )
+    assert image_valid, f"Frozen/empty images: motion={image_motion}, contrast={image_contrast}"
 
     # Only completed renders carry the final name; a killed worker leaves .part files behind,
     # which the skip check ignores, so relaunching resumes cleanly.
     for name, writer in writers.items():
         writer.close()
         (out_dir / f"{demo_name}_{name}.part.mp4").rename(out_dir / f"{demo_name}_{name}.mp4")
+    manifest_path = out_dir / f"{demo_name}_state_replay.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["validation_passed"] = True
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
     return num_steps
 
 
@@ -207,7 +372,11 @@ for path in args.hdf5:
             names = names[args.demo_range[0] : args.demo_range[1]]
         print(f"{path}: {len(names)} demos -> {out_dir}")
         for i, name in enumerate(names):
-            if not args.force and all((out_dir / f"{name}_{stream}.mp4").exists() for stream in cams):
+            manifest = out_dir / f"{name}_state_replay.json"
+            cache_valid = args.env != "pine_wm_first20" or (
+                manifest.exists() and json.loads(manifest.read_text()).get("validation_passed", False)
+            )
+            if not args.force and cache_valid and all((out_dir / f"{name}_{stream}.mp4").exists() for stream in cams):
                 print(f"  [{i + 1}/{len(names)}] {name}: already rendered, skipping")
                 continue
             steps = rerender_demo(handle[f"data/{name}"], out_dir, name)

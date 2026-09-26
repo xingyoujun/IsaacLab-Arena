@@ -1,0 +1,1692 @@
+[
+  {
+    "task": "T001",
+    "name": "提起并放置散放积木",
+    "status": "static_projection_only",
+    "notes": "托盘靠近中心，起点在左前侧，不再分别全桌随机。",
+    "projection": {
+      "realsense_d435": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            285.50703362586415,
+            377.2944255285453
+          ],
+          "pixel_max": [
+            321.65892350927516,
+            426.325238218157
+          ]
+        },
+        "tray": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            189.03987643987736,
+            192.76745102631284
+          ],
+          "pixel_max": [
+            325.9603926443085,
+            319.0871259301366
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            547.9601460256233,
+            354.0973286065165
+          ],
+          "pixel_max": [
+            573.122162919858,
+            379.67977554251627
+          ]
+        },
+        "tray": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            592.5857774611741,
+            366.64705362204916
+          ],
+          "pixel_max": [
+            729.6531166745663,
+            430.9195433829139
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T002",
+    "name": "从贴边位置取出长条",
+    "status": "static_projection_only",
+    "notes": "墙与长条绑定摆放，目标托盘靠近中心。",
+    "projection": {
+      "realsense_d435": {
+        "bar": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            256.7575149757089,
+            315.45493261565696
+          ],
+          "pixel_max": [
+            289.2432238362142,
+            410.2606808140173
+          ]
+        },
+        "wall": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            193.20791478531083,
+            373.0898327657231
+          ],
+          "pixel_max": [
+            339.7495140505033,
+            422.89983207685617
+          ]
+        },
+        "tray": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            191.64814434670768,
+            185.0484311145098
+          ],
+          "pixel_max": [
+            326.14199690864945,
+            307.750140428442
+          ]
+        }
+      },
+      "scene_cam": {
+        "bar": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            569.1343550912229,
+            356.8506933281081
+          ],
+          "pixel_max": [
+            613.0996609738905,
+            387.52768523052475
+          ]
+        },
+        "wall": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            541.9077885374869,
+            329.30916686180467
+          ],
+          "pixel_max": [
+            600.8140875393559,
+            379.9391966333197
+          ]
+        },
+        "tray": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            598.422387706223,
+            369.1273845814876
+          ],
+          "pixel_max": [
+            736.4543490087985,
+            434.10584809938973
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T004",
+    "name": "从支座中取出水平圆柱",
+    "status": "static_projection_only",
+    "notes": "圆柱与支座整体摆放，限制目标托盘边界。",
+    "projection": {
+      "realsense_d435": {
+        "cylinder": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            249.86690347419895,
+            358.210613315445
+          ],
+          "pixel_max": [
+            287.1844183331421,
+            435.6408375516868
+          ]
+        },
+        "v_support": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            234.3807322112835,
+            360.8606798797832
+          ],
+          "pixel_max": [
+            301.8979242733786,
+            450.80579160893285
+          ]
+        },
+        "tray": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            192.91844912264563,
+            181.2718312121659
+          ],
+          "pixel_max": [
+            326.230850086005,
+            302.22614348008676
+          ]
+        }
+      },
+      "scene_cam": {
+        "cylinder": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            557.3859328436276,
+            344.45912904133337
+          ],
+          "pixel_max": [
+            591.3232941537548,
+            371.94945772484425
+          ]
+        },
+        "v_support": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            548.9586347377347,
+            349.7291341083313
+          ],
+          "pixel_max": [
+            600.1096702606451,
+            381.5162789945127
+          ]
+        },
+        "tray": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            601.3664105439454,
+            370.3779919220357
+          ],
+          "pixel_max": [
+            739.8856653501653,
+            435.71405470248675
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T011",
+    "name": "扶正横倒的瓶子",
+    "status": "static_projection_only",
+    "notes": "瓶子扶正目标固定在中心；禁止失败后自动搬到后侧。",
+    "projection": {
+      "realsense_d435": {
+        "bottle": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            260.5676559616312,
+            296.36005896466907
+          ],
+          "pixel_max": [
+            302.91928675103713,
+            388.7818353041989
+          ]
+        }
+      },
+      "scene_cam": {
+        "bottle": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            571.0595880934587,
+            354.6185748287178
+          ],
+          "pixel_max": [
+            618.0320281203177,
+            392.26659889691916
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T012",
+    "name": "翻面放置双面标牌",
+    "status": "static_projection_only",
+    "notes": "标牌与目标框都放在中央可见区域。",
+    "projection": {
+      "realsense_d435": {
+        "sign": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            260.40325848104726,
+            353.5066158026099
+          ],
+          "pixel_max": [
+            300.61146283819795,
+            403.16466266915353
+          ]
+        }
+      },
+      "scene_cam": {
+        "sign": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            565.9199707067648,
+            363.96874659468676
+          ],
+          "pixel_max": [
+            598.0495233332947,
+            382.99678362265837
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T014",
+    "name": "把杯柄转向指定标记",
+    "status": "static_projection_only",
+    "notes": "杯与杯垫居中，杯柄朝向先固定为 90 度。",
+    "projection": {
+      "realsense_d435": {
+        "mug": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            239.17397797216796,
+            239.0145095996441
+          ],
+          "pixel_max": [
+            287.9498805870593,
+            320.7458085804931
+          ]
+        },
+        "coaster": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            220.30693998689867,
+            275.25498932508043
+          ],
+          "pixel_max": [
+            306.8410386420738,
+            340.4082251773357
+          ]
+        }
+      },
+      "scene_cam": {
+        "mug": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            608.6210962251791,
+            351.26283072170105
+          ],
+          "pixel_max": [
+            653.2138471800907,
+            398.18635299754914
+          ]
+        },
+        "coaster": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            591.4974589960805,
+            374.3426891395847
+          ],
+          "pixel_max": [
+            661.5481991832303,
+            403.78826487333174
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T016",
+    "name": "把物体放在两地标中点",
+    "status": "static_projection_only",
+    "notes": "地标关于中心对称，固定中点为主要操作目标。",
+    "projection": {
+      "realsense_d435": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            321.2662254765146,
+            350.00771813810394
+          ],
+          "pixel_max": [
+            355.64528947788267,
+            397.0799171565657
+          ]
+        },
+        "landmark_a": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            186.96993937381896,
+            331.0719266827391
+          ],
+          "pixel_max": [
+            228.61940539743972,
+            402.3768753793527
+          ]
+        },
+        "landmark_b": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            214.66472877971268,
+            215.70426802599405
+          ],
+          "pixel_max": [
+            246.9709120786148,
+            270.0319302453122
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            544.3980894607454,
+            363.2458949121955
+          ],
+          "pixel_max": [
+            570.1142393518761,
+            389.5222195475522
+          ]
+        },
+        "landmark_a": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            598.0919677792126,
+            348.2978622124715
+          ],
+          "pixel_max": [
+            632.1030402790237,
+            375.66692424426776
+          ]
+        },
+        "landmark_b": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            661.9467422233515,
+            375.1794886914743
+          ],
+          "pixel_max": [
+            699.1610332370183,
+            405.06151312652145
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T017",
+    "name": "将物体放在指定容器后方",
+    "status": "static_projection_only",
+    "notes": "两个箱体已调整为 140×100×60 mm；箱体与后方目标均限制在中央可见区。",
+    "projection": {
+      "realsense_d435": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            293.41657716827825,
+            392.34445165696934
+          ],
+          "pixel_max": [
+            329.98369004371955,
+            442.4075032288788
+          ]
+        },
+        "box_a": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            293.2968806810535,
+            213.8756154763172
+          ],
+          "pixel_max": [
+            369.57457922586,
+            315.2447022092058
+          ]
+        },
+        "box_b": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            140.9912069468643,
+            324.4993027042774
+          ],
+          "pixel_max": [
+            252.71858759864062,
+            457.96817190675426
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            539.1483616036837,
+            352.77168606835517
+          ],
+          "pixel_max": [
+            564.2726947015462,
+            378.2541156332492
+          ]
+        },
+        "box_a": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            573.3453356362745,
+            367.68882347831305
+          ],
+          "pixel_max": [
+            652.4433782988557,
+            426.0024723822058
+          ]
+        },
+        "box_b": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            568.2195419150048,
+            327.4802014077346
+          ],
+          "pixel_max": [
+            639.8105741301426,
+            378.022197574361
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T021",
+    "name": "直线推块到目标框",
+    "status": "static_projection_only",
+    "notes": "推垫中心固定，推行起终点都在核心区。",
+    "projection": {
+      "realsense_d435": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            241.05519153023013,
+            319.270155586814
+          ],
+          "pixel_max": [
+            277.2367984368572,
+            364.35488914840755
+          ]
+        },
+        "push_mat": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            163.78726599477986,
+            230.49305608231802
+          ],
+          "pixel_max": [
+            345.9097712345612,
+            405.0500021245455
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            592.0951964285537,
+            357.9456638728539
+          ],
+          "pixel_max": [
+            617.2795600489823,
+            383.8192159579928
+          ]
+        },
+        "push_mat": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            545.8539625244546,
+            357.63511904528247
+          ],
+          "pixel_max": [
+            709.546907156268,
+            425.0018917144968
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T031",
+    "name": "搭建稳定积木柱",
+    "status": "static_projection_only",
+    "notes": "塔底固定在中央，检查 5 块完整塔高约 207 mm，而不是只检查底部。",
+    "projection": {
+      "realsense_d435": {
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            166.06099997168278,
+            192.3045653501128
+          ],
+          "pixel_max": [
+            186.97696918139454,
+            214.54077153549161
+          ]
+        },
+        "cube_32": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            134.3836286281562,
+            229.57093050995203
+          ],
+          "pixel_max": [
+            164.72976456875514,
+            260.4267011366377
+          ]
+        },
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            95.7197305730835,
+            272.7789410386082
+          ],
+          "pixel_max": [
+            139.29325630859014,
+            314.90697357143574
+          ]
+        },
+        "cube_50": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            80.66032918785271,
+            323.63669777265295
+          ],
+          "pixel_max": [
+            141.22204152000964,
+            381.6875495094638
+          ]
+        },
+        "cube_60": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            61.6715202381838,
+            385.8305189521243
+          ],
+          "pixel_max": [
+            143.5183119413929,
+            463.435430031837
+          ]
+        },
+        "completed_tower": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            218.10107455908556,
+            175.529977637323
+          ],
+          "pixel_max": [
+            281.6406453757085,
+            324.8543519520513
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            733.9133837253552,
+            382.9767508078671
+          ],
+          "pixel_max": [
+            750.6258543449112,
+            399.96294329002376
+          ]
+        },
+        "cube_32": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            705.9050616994747,
+            364.12310042464776
+          ],
+          "pixel_max": [
+            726.4460478114482,
+            384.94862229432937
+          ]
+        },
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            679.393011688009,
+            345.99438034736914
+          ],
+          "pixel_max": [
+            704.0863063895855,
+            370.96755598092557
+          ]
+        },
+        "cube_50": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            641.4816688138399,
+            331.82027368613853
+          ],
+          "pixel_max": [
+            671.3853079582296,
+            362.1638960877125
+          ]
+        },
+        "cube_60": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            604.9177979645785,
+            318.28100434991586
+          ],
+          "pixel_max": [
+            639.999999610453,
+            353.699986753868
+          ]
+        },
+        "completed_tower": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            609.9074549782691,
+            293.7685855432758
+          ],
+          "pixel_max": [
+            649.2311729544896,
+            396.0065924496815
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T038",
+    "name": "从塔顶逐件拆卸并入盒",
+    "status": "static_projection_only",
+    "notes": "原塔居中，接收箱缩至 160×120×60 mm，放置点按较小内腔重新配置。",
+    "projection": {
+      "realsense_d435": {
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            244.32616332042386,
+            183.96076339356065
+          ],
+          "pixel_max": [
+            269.19039793843876,
+            214.66880007411208
+          ]
+        },
+        "cube_32": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            242.6144338704137,
+            198.3749380772667
+          ],
+          "pixel_max": [
+            273.4960475922354,
+            236.63455351562587
+          ]
+        },
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            240.97489683531745,
+            215.98357905025347
+          ],
+          "pixel_max": [
+            278.18264409933033,
+            262.25177688719987
+          ]
+        },
+        "cube_50": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            239.044168466077,
+            236.4133798414292
+          ],
+          "pixel_max": [
+            283.5482330157406,
+            291.98792377713653
+          ]
+        },
+        "cube_60": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            237.89092567482322,
+            260.4483670126863
+          ],
+          "pixel_max": [
+            288.61684555999545,
+            324.0969189763655
+          ]
+        },
+        "box": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            231.3973706970931,
+            144.48730716577023
+          ],
+          "pixel_max": [
+            315.1559226073782,
+            237.81707290088954
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            617.8132514427673,
+            297.42329775082675
+          ],
+          "pixel_max": [
+            634.2653081082769,
+            313.7410801279269
+          ]
+        },
+        "cube_32": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            615.6106651938798,
+            307.6364796725068
+          ],
+          "pixel_max": [
+            636.5758439553214,
+            328.589969252496
+          ]
+        },
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            613.1292469958809,
+            320.64217881361895
+          ],
+          "pixel_max": [
+            639.1896390050804,
+            346.9359342155701
+          ]
+        },
+        "cube_50": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            610.0627960924138,
+            336.64240180303966
+          ],
+          "pixel_max": [
+            642.4314987664533,
+            369.66229124090785
+          ]
+        },
+        "cube_60": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            607.0852389066094,
+            356.5411517676412
+          ],
+          "pixel_max": [
+            645.6310572678134,
+            396.37717601663576
+          ]
+        },
+        "box": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            648.4283748869582,
+            374.9473139498389
+          ],
+          "pixel_max": [
+            744.7062736756818,
+            440.98719973717294
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T041",
+    "name": "拉开USDcraft抽屉",
+    "status": "static_projection_only",
+    "notes": "沿用 T044 已展示的抽屉位置与 49.53 度朝向；禁止任意转向或放大。审查完整抽拉包络、把手和托盘。 第三视角朝向抽屉正面；固定相机主要看到柜体背面，内部遮挡仍待你审核。",
+    "projection": {
+      "realsense_d435": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            77.2772117974423
+          ],
+          "pixel_max": [
+            421.70863148665427,
+            373.3523334689788
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            45.03816479446044
+          ],
+          "pixel_max": [
+            479.75117518896843,
+            373.3523334689788
+          ]
+        }
+      },
+      "scene_cam": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            590.0722343980373,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            733.0363441653545,
+            435.84252036466677
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            587.9772001523261,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            740.8349425300247,
+            470.22130383199004
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T042",
+    "name": "推闭已打开的抽屉",
+    "status": "static_projection_only",
+    "notes": "沿用 T044 已展示的抽屉位置与 49.53 度朝向；禁止任意转向或放大。审查完整抽拉包络、把手和托盘。 第三视角朝向抽屉正面；固定相机主要看到柜体背面，内部遮挡仍待你审核。",
+    "projection": {
+      "realsense_d435": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            77.2772117974423
+          ],
+          "pixel_max": [
+            421.70863148665427,
+            373.3523334689788
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            45.03816479446044
+          ],
+          "pixel_max": [
+            479.75117518896843,
+            373.3523334689788
+          ]
+        }
+      },
+      "scene_cam": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            590.0722343980373,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            733.0363441653545,
+            435.84252036466677
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            587.9772001523261,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            740.8349425300247,
+            470.22130383199004
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T043",
+    "name": "把抽屉停在指定开度",
+    "status": "static_projection_only",
+    "notes": "沿用 T044 已展示的抽屉位置与 49.53 度朝向；禁止任意转向或放大。审查完整抽拉包络、把手和托盘。 第三视角朝向抽屉正面；固定相机主要看到柜体背面，内部遮挡仍待你审核。",
+    "projection": {
+      "realsense_d435": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            77.2772117974423
+          ],
+          "pixel_max": [
+            421.70863148665427,
+            373.3523334689788
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            45.03816479446044
+          ],
+          "pixel_max": [
+            479.75117518896843,
+            373.3523334689788
+          ]
+        }
+      },
+      "scene_cam": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            590.0722343980373,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            733.0363441653545,
+            435.84252036466677
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            587.9772001523261,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            740.8349425300247,
+            470.22130383199004
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T044",
+    "name": "从打开的抽屉取出物品",
+    "status": "static_projection_only",
+    "notes": "保持 T044 参考抽屉位姿；接收单个 25 mm 物体的托盘缩至 100×80×20 mm，移到左前侧，避免被抽屉挡住，保持完整抽拉间隙。 第三视角朝向抽屉正面；固定相机主要看到柜体背面，内部遮挡仍待你审核。",
+    "projection": {
+      "realsense_d435": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            77.2772117974423
+          ],
+          "pixel_max": [
+            421.70863148665427,
+            373.3523334689788
+          ]
+        },
+        "tray": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            292.8097223911006,
+            372.64959434619163
+          ],
+          "pixel_max": [
+            365.2488008435276,
+            459.7206502673365
+          ]
+        },
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            335.84098781783865,
+            162.72701155067523
+          ],
+          "pixel_max": [
+            358.2294495278163,
+            188.42771422532502
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            45.03816479446044
+          ],
+          "pixel_max": [
+            479.75117518896843,
+            373.3523334689788
+          ]
+        }
+      },
+      "scene_cam": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            590.0722343980373,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            733.0363441653545,
+            435.84252036466677
+          ]
+        },
+        "tray": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            520.0211264675366,
+            358.45856300188746
+          ],
+          "pixel_max": [
+            575.1154306286644,
+            388.03447295998285
+          ]
+        },
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            654.9736271494547,
+            408.56622207433577
+          ],
+          "pixel_max": [
+            668.0898469108088,
+            425.36807769373075
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            587.9772001523261,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            740.8349425300247,
+            470.22130383199004
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T045",
+    "name": "把物品放进抽屉再关上",
+    "status": "static_projection_only",
+    "notes": "沿用 T044 已展示的抽屉位置与 49.53 度朝向；禁止任意转向或放大。审查完整抽拉包络、把手和托盘。 第三视角朝向抽屉正面；固定相机主要看到柜体背面，内部遮挡仍待你审核。",
+    "projection": {
+      "realsense_d435": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            77.2772117974423
+          ],
+          "pixel_max": [
+            421.70863148665427,
+            373.3523334689788
+          ]
+        },
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            290.8256299597006,
+            420.63523900221196
+          ],
+          "pixel_max": [
+            314.06484901203663,
+            452.3638038712687
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            97.75976864303607,
+            45.03816479446044
+          ],
+          "pixel_max": [
+            479.75117518896843,
+            373.3523334689788
+          ]
+        }
+      },
+      "scene_cam": {
+        "drawer": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            590.0722343980373,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            733.0363441653545,
+            435.84252036466677
+          ]
+        },
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            542.2533416065047,
+            357.08067829444167
+          ],
+          "pixel_max": [
+            557.8191578074322,
+            372.85849140642415
+          ]
+        },
+        "drawer_full_sweep": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            587.9772001523261,
+            300.4098890181384
+          ],
+          "pixel_max": [
+            740.8349425300247,
+            470.22130383199004
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T063",
+    "name": "按下单个大按钮",
+    "status": "static_projection_only",
+    "notes": "按钮和手指接触位置置于中心。",
+    "projection": {
+      "realsense_d435": {
+        "button": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            218.29860825551475,
+            261.8011682048099
+          ],
+          "pixel_max": [
+            292.73231105642185,
+            334.007690644628
+          ]
+        }
+      },
+      "scene_cam": {
+        "button": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            601.0952228040948,
+            359.86244937034417
+          ],
+          "pixel_max": [
+            658.6110856502161,
+            399.9066689441241
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T142",
+    "name": "按几何形状分类",
+    "status": "static_projection_only",
+    "notes": "三个托盘缩至 140×100×20 mm，整体靠近中心排列，避免原先 760 mm 过宽布局。",
+    "projection": {
+      "realsense_d435": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            232.311343154884,
+            376.19950423995147
+          ],
+          "pixel_max": [
+            272.15874391457425,
+            425.24847005617016
+          ]
+        },
+        "cylinder": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            249.013649491695,
+            262.7992227357853
+          ],
+          "pixel_max": [
+            280.80283162803045,
+            323.89477651864365
+          ]
+        },
+        "sphere": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            260.3615408466459,
+            192.2123720305788
+          ],
+          "pixel_max": [
+            288.6805034863557,
+            228.4981344576198
+          ]
+        },
+        "tray_0": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            44.54164435523768,
+            347.7132409855967
+          ],
+          "pixel_max": [
+            165.84755259426498,
+            463.622042247604
+          ]
+        },
+        "tray_1": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            90.57844070801528,
+            252.00459328397181
+          ],
+          "pixel_max": [
+            189.42024603378215,
+            339.688019033018
+          ]
+        },
+        "tray_2": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            124.15031741373392,
+            179.61066810015396
+          ],
+          "pixel_max": [
+            207.33108549557085,
+            248.78845987755227
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            568.8177649449716,
+            347.8893918733955
+          ],
+          "pixel_max": [
+            593.5210856881761,
+            373.004610037932
+          ]
+        },
+        "cylinder": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            611.5492186327314,
+            368.3173374691417
+          ],
+          "pixel_max": [
+            647.4289676296387,
+            397.61384290139927
+          ]
+        },
+        "sphere": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            668.9438513876416,
+            391.1930391821621
+          ],
+          "pixel_max": [
+            696.2289715321791,
+            419.62840586213446
+          ]
+        },
+        "tray_0": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            601.9350301042101,
+            330.8385619823505
+          ],
+          "pixel_max": [
+            671.5718159712965,
+            364.0511907716395
+          ]
+        },
+        "tray_1": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            648.7427090443615,
+            349.35789266595
+          ],
+          "pixel_max": [
+            722.3678371730804,
+            385.31860906892325
+          ]
+        },
+        "tray_2": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            699.9933164400464,
+            369.64149239212605
+          ],
+          "pixel_max": [
+            778.2005873007256,
+            408.74367810267927
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T143",
+    "name": "按相对尺寸从小到大排列",
+    "status": "static_projection_only",
+    "notes": "源物体呈中央弧形；目标行 100 mm 间距、中心 X=0.02 m，需单次验证相邻抓放间隙。",
+    "projection": {
+      "realsense_d435": {
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            166.06099997168278,
+            192.3045653501128
+          ],
+          "pixel_max": [
+            186.97696918139454,
+            214.54077153549161
+          ]
+        },
+        "cube_32": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            134.3836286281562,
+            229.57093050995203
+          ],
+          "pixel_max": [
+            164.72976456875514,
+            260.4267011366377
+          ]
+        },
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            95.7197305730835,
+            272.7789410386082
+          ],
+          "pixel_max": [
+            139.29325630859014,
+            314.90697357143574
+          ]
+        },
+        "cube_50": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            80.66032918785271,
+            323.63669777265295
+          ],
+          "pixel_max": [
+            141.22204152000964,
+            381.6875495094638
+          ]
+        },
+        "cube_60": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            61.6715202381838,
+            385.8305189521243
+          ],
+          "pixel_max": [
+            143.5183119413929,
+            463.435430031837
+          ]
+        },
+        "completed_row": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            217.9249667111075,
+            163.8324380005544
+          ],
+          "pixel_max": [
+            296.39347815355273,
+            450.3482379242462
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_25": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            733.9133837253552,
+            382.9767508078671
+          ],
+          "pixel_max": [
+            750.6258543449112,
+            399.96294329002376
+          ]
+        },
+        "cube_32": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            705.9050616994747,
+            364.12310042464776
+          ],
+          "pixel_max": [
+            726.4460478114482,
+            384.94862229432937
+          ]
+        },
+        "cube_40": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            679.393011688009,
+            345.99438034736914
+          ],
+          "pixel_max": [
+            704.0863063895855,
+            370.96755598092557
+          ]
+        },
+        "cube_50": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            641.4816688138399,
+            331.82027368613853
+          ],
+          "pixel_max": [
+            671.3853079582296,
+            362.1638960877125
+          ]
+        },
+        "cube_60": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            604.9177979645785,
+            318.28100434991586
+          ],
+          "pixel_max": [
+            639.999999610453,
+            353.699986753868
+          ]
+        },
+        "completed_row": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            557.219184480746,
+            336.2757139592084
+          ],
+          "pixel_max": [
+            716.8604921050322,
+            429.58239195928775
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  },
+  {
+    "task": "T145",
+    "name": "按指令收集恰好N件",
+    "status": "static_projection_only",
+    "notes": "收集箱缩至 140×120×70 mm；六块源物体与箱体整体布置，先演示恰好收集 2 件。",
+    "projection": {
+      "realsense_d435": {
+        "cube_0": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            130.18687805713202,
+            359.7803237237241
+          ],
+          "pixel_max": [
+            176.9806705911884,
+            407.8699922469825
+          ]
+        },
+        "cube_1": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            149.71449720099494,
+            296.35724593444706
+          ],
+          "pixel_max": [
+            191.08392322710245,
+            340.0185883793825
+          ]
+        },
+        "cube_2": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            165.89569324617554,
+            243.44273198965826
+          ],
+          "pixel_max": [
+            202.92285866644886,
+            283.42232883491977
+          ]
+        },
+        "cube_3": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            234.50688860080663,
+            361.94047471127044
+          ],
+          "pixel_max": [
+            273.4277945708685,
+            409.9952583760519
+          ]
+        },
+        "cube_4": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            244.25100874048144,
+            298.36775602525427
+          ],
+          "pixel_max": [
+            279.10890616452565,
+            342.00034979085945
+          ]
+        },
+        "cube_5": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            252.32642394401608,
+            245.32148816227436
+          ],
+          "pixel_max": [
+            283.87847875361075,
+            285.2769856320356
+          ]
+        },
+        "box": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            232.4924564583459,
+            139.5170254229797
+          ],
+          "pixel_max": [
+            315.1833970656356,
+            229.07124421883165
+          ]
+        }
+      },
+      "scene_cam": {
+        "cube_0": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            614.2029159648797,
+            338.19078022844064
+          ],
+          "pixel_max": [
+            638.1388805788571,
+            362.58189590220843
+          ]
+        },
+        "cube_1": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            642.2917529914367,
+            349.5272707180543
+          ],
+          "pixel_max": [
+            666.9283984748369,
+            374.765477045908
+          ]
+        },
+        "cube_2": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            671.811735993335,
+            361.5010428397019
+          ],
+          "pixel_max": [
+            697.365927537805,
+            387.6445381244424
+          ]
+        },
+        "cube_3": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            574.1963701826107,
+            350.21345775859044
+          ],
+          "pixel_max": [
+            599.0112987043798,
+            375.50325024607315
+          ]
+        },
+        "cube_4": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            602.0070935608858,
+            362.22637888459894
+          ],
+          "pixel_max": [
+            627.3947365462864,
+            388.42506334350236
+          ]
+        },
+        "cube_5": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            631.4457990932618,
+            374.93532147941875
+          ],
+          "pixel_max": [
+            657.539903833721,
+            402.1074831463846
+          ]
+        },
+        "box": {
+          "inside_12px_margin": true,
+          "pixel_min": [
+            654.8395252872891,
+            373.28955157939
+          ],
+          "pixel_max": [
+            744.87889172651,
+            440.98719973717294
+          ]
+        }
+      }
+    },
+    "limitation": "Frustum only; no occlusion, robot reachability, collision or wrist camera visibility claim."
+  }
+]
