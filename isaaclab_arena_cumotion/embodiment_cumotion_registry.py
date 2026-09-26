@@ -173,3 +173,21 @@ def _ur7e_cumotion_cfg() -> CumotionEmbodimentCfg:
 
 
 register_cumotion_cfg("ur7e_robotiq", _ur7e_cumotion_cfg(), arm="left")
+
+
+def _pine_wm_cumotion_cfg() -> CumotionEmbodimentCfg:
+    """Use a separate gripper-origin frame and include pine_wm camera hardware in planning."""
+    from copy import deepcopy
+
+    cfg = deepcopy(_ur7e_cumotion_cfg())
+    cfg.robot_urdf = str(_ARENA_UR7E_RMPFLOW_DIR / "pine_wm_ur7e.urdf")
+    cfg.lula_robot_description = str(_ARENA_UR7E_RMPFLOW_DIR / "pine_wm_ur7e.yaml")
+    cfg.tool_frame = "pine_wm_gripper_base"
+    cfg.sim_tool_body = "base_link"
+    for link in ("wrist_1_link", "wrist_2_link", "wrist_3_link"):
+        cfg.self_collision_ignore[link].append("pine_wm_gripper_base")
+    cfg.self_collision_ignore["tool0"] = ["pine_wm_gripper_base"]
+    return cfg
+
+
+register_cumotion_cfg("pine_wm_ur7e", _pine_wm_cumotion_cfg())

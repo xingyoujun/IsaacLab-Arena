@@ -1,0 +1,484 @@
+{
+  "schema_version": 1,
+  "path_base": "package_root",
+  "backend": "physx",
+  "purpose": "task specifications and asset bindings, not a pine_wm executable config",
+  "tasks": [
+    {
+      "task_id": "T001",
+      "name": "提起并放置散放积木",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_tray": {
+          "entry": "assets/rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff/isaac/model.usdc",
+          "record_id": "rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff"
+        }
+      },
+      "instance_plan": "1块+1盘",
+      "integration_constraints": "抓持宽40mm；后续可换25/32/50/60mm。",
+      "sequence": "抓取→抬离桌面→运输→释放",
+      "success_criteria_draft": "物体质心在目标盘内且释放后稳定1秒",
+      "fixture_plan": "无需夹具；积木抓取宽度20–60mm",
+      "randomization": "物体位姿;可夹尺寸族;质量/摩擦;障碍间距",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T002",
+      "name": "从贴边位置取出长条",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_bar": {
+          "entry": "assets/rec_120-mm-30-mm-30-mm-0-076-kg-x-0-5-mm-basemode-fl_20260925_091312_fe9553f4_60c405f7/isaac/model.usdc",
+          "record_id": "rec_120-mm-30-mm-30-mm-0-076-kg-x-0-5-mm-basemode-fl_20260925_091312_fe9553f4_60c405f7"
+        },
+        "P20_wall": {
+          "entry": "assets/rec_160-mm-12-mm-80-mm-0-50-kg-x-y-z-basemode-floati_20260925_091405_447614c7_ab2e26b6/isaac/model.usdc",
+          "record_id": "rec_160-mm-12-mm-80-mm-0-50-kg-x-y-z-basemode-floati_20260925_091405_447614c7_ab2e26b6"
+        },
+        "P20_tray": {
+          "entry": "assets/rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff/isaac/model.usdc",
+          "record_id": "rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff"
+        }
+      },
+      "instance_plan": "1长条+1墙+1盘",
+      "integration_constraints": "短端面贴墙，远墙处沿30mm宽度侧夹，墙固定；不得沿120mm长轴两端对夹；检查全夹爪和腕部支架净空。",
+      "sequence": "顶抓或端抓→抬出→放入盘",
+      "success_criteria_draft": "长条进入目标盘且挡墙位移小于2mm",
+      "fixture_plan": "固定挡墙；保证至少一个夹爪可达面",
+      "randomization": "物体位姿;可夹尺寸族;质量/摩擦;障碍间距",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T004",
+      "name": "从支座中取出水平圆柱",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cylinder": {
+          "entry": "assets/rec_35-mm-80-mm-0-054-kg-x-basemode-floating-0-6-0-4_20260925_091305_c1e37e0b_f5cd0ffd/isaac/model.usdc",
+          "record_id": "rec_35-mm-80-mm-0-054-kg-x-basemode-floating-0-6-0-4_20260925_091305_c1e37e0b_f5cd0ffd"
+        },
+        "P20_v_support": {
+          "entry": "assets/rec_35-mm-80-mm-v-100-70-8-mm-x-40-20-20-40-mm-z-30_20260925_091416_ae54ee29_1fe26f2b/isaac/model.usdc",
+          "record_id": "rec_35-mm-80-mm-v-100-70-8-mm-x-40-20-20-40-mm-z-30_20260925_091416_ae54ee29_1fe26f2b"
+        },
+        "P20_tray": {
+          "entry": "assets/rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff/isaac/model.usdc",
+          "record_id": "rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff"
+        }
+      },
+      "instance_plan": "1圆柱+1V座+1盘",
+      "integration_constraints": "支座固定，圆柱水平沿X，中央空隙用于夹持。",
+      "sequence": "对向夹持→竖直提起→入托盘",
+      "success_criteria_draft": "圆柱脱离槽并稳定进入盘",
+      "fixture_plan": "V形支座固定；圆柱直径20–45mm",
+      "randomization": "物体位姿;可夹尺寸族;质量/摩擦;障碍间距",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T011",
+      "name": "扶正横倒的瓶子",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_bottle": {
+          "entry": "assets/rec_110-mm-45-mm-z-5-75-mm-z-75-90-mm-25-mm-z-110-mm_20260925_091400_217a697f_5a6199f1/isaac/model.usdc",
+          "record_id": "rec_110-mm-45-mm-z-5-75-mm-z-75-90-mm-25-mm-z-110-mm_20260925_091400_217a697f_5a6199f1"
+        }
+      },
+      "instance_plan": "1瓶",
+      "integration_constraints": "初始横倒；调整抓点以避免转竖时碰桌。",
+      "sequence": "侧抓→转竖直→放下",
+      "success_criteria_draft": "瓶底接触桌面且瓶轴倾角小于8度",
+      "fixture_plan": "刚性空瓶；夹持段直径35–60mm",
+      "randomization": "初始姿态;参照物位姿;目标关系;重抓中转位",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T012",
+      "name": "翻面放置双面标牌",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_sign": {
+          "entry": "assets/rec_60-45-15-mm-0-035-kg-y-15-mm-z-z-basemode-floati_20260925_091403_30e379c3_d951ea1b/isaac/model.usdc",
+          "record_id": "rec_60-45-15-mm-0-035-kg-y-15-mm-z-z-basemode-floati_20260925_091403_30e379c3_d951ea1b"
+        }
+      },
+      "instance_plan": "1标牌",
+      "integration_constraints": "目标框为场景标记；实际翻转刚体。",
+      "sequence": "边缘抓取→翻转180度→落位",
+      "success_criteria_draft": "指定面朝上且中心进入目标框",
+      "fixture_plan": "标牌带厚边；禁止靠改贴图实现翻面",
+      "randomization": "初始姿态;参照物位姿;目标关系;重抓中转位",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T014",
+      "name": "把杯柄转向指定标记",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_mug": {
+          "entry": "assets/rec_55-55-70-mm-y-27-5-mm-30-mm-3-mm-5-mm-x-x-57-5-m_20260925_091417_d4af18eb_b905894a/isaac/model.usdc",
+          "record_id": "rec_55-55-70-mm-y-27-5-mm-30-mm-3-mm-5-mm-x-x-57-5-m_20260925_091417_d4af18eb_b905894a"
+        },
+        "P20_coaster": {
+          "entry": "assets/rec_110-mm-4-mm-0-06-kg-z-basemode-floating-0-6-0-45_20260925_091428_a0f13016_3b5ecc55/isaac/model.usdc",
+          "record_id": "rec_110-mm-4-mm-0-06-kg-z-basemode-floating-0-6-0-45_20260925_091428_a0f13016_3b5ecc55"
+        }
+      },
+      "instance_plan": "1杯+1杯垫",
+      "integration_constraints": "杯垫固定；场景提供目标方向标记；夹杯身的±Y面。",
+      "sequence": "抓杯身→提起旋转→原杯垫落位",
+      "success_criteria_draft": "杯底仍在原杯垫且柄方向误差小于10度",
+      "fixture_plan": "杯身具有平行夹持面",
+      "randomization": "初始姿态;参照物位姿;目标关系;重抓中转位",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T016",
+      "name": "把物体放在两地标中点",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_cylinder": {
+          "entry": "assets/rec_35-mm-80-mm-0-054-kg-x-basemode-floating-0-6-0-4_20260925_091305_c1e37e0b_f5cd0ffd/isaac/model.usdc",
+          "record_id": "rec_35-mm-80-mm-0-054-kg-x-basemode-floating-0-6-0-4_20260925_091305_c1e37e0b_f5cd0ffd"
+        }
+      },
+      "instance_plan": "1块+2圆柱实例",
+      "integration_constraints": "两圆柱固定为地标；按地标中心定义中点；目标落位区避开地标实体。",
+      "sequence": "识别地标→搬运目标→放在中点",
+      "success_criteria_draft": "目标中心距两地标中点小于15mm",
+      "fixture_plan": "地标固定或质量足够；不以绝对桌面坐标代替关系",
+      "randomization": "初始姿态;参照物位姿;目标关系;重抓中转位",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T017",
+      "name": "将物体放在指定容器后方",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_box": {
+          "entry": "assets/rec_240-180-90-mm-4-mm-4-mm-232-172-86-mm-0-30-kg-z_20260925_091403_afaa7cdd_cd2cc65b/isaac/model.usdc",
+          "record_id": "rec_240-180-90-mm-4-mm-4-mm-232-172-86-mm-0-30-kg-z_20260925_091403_afaa7cdd_cd2cc65b"
+        }
+      },
+      "instance_plan": "1块+2盒实例",
+      "integration_constraints": "盒固定且彼此可辨；在可达空间定义世界+y后方目标矩形。",
+      "sequence": "解析指定参照物→绕行→放置",
+      "success_criteria_draft": "目标位于参照物世界+y侧指定矩形内",
+      "fixture_plan": "明确前后为桌面坐标；不移动参照容器",
+      "randomization": "初始姿态;参照物位姿;目标关系;重抓中转位",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T021",
+      "name": "直线推块到目标框",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_push_mat": {
+          "entry": "assets/rec_300-220-3-mm-0-25-kg-z-0-8-0-6-0-02-basemode-flo_20260925_091413_d6e075b4_6b4a5dd4/isaac/model.usdc",
+          "record_id": "rec_300-220-3-mm-0-25-kg-z-0-8-0-6-0-02-basemode-flo_20260925_091413_d6e075b4_6b4a5dd4"
+        }
+      },
+      "instance_plan": "1块+1垫",
+      "integration_constraints": "垫固定；目标框为场景标记；实际接触摩擦需校准。",
+      "sequence": "闭合夹爪接触侧面→推到框内→退出",
+      "success_criteria_draft": "块中心进入框且全过程未抬高超过5mm",
+      "fixture_plan": "桌垫固定；推块无抓取动作",
+      "randomization": "接触摩擦;推件位姿;目标方向;通道宽度",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T031",
+      "name": "搭建稳定积木柱",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_25": {
+          "entry": "assets/rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982/isaac/model.usdc",
+          "record_id": "rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982"
+        },
+        "P20_cube_32": {
+          "entry": "assets/rec_32-mm-0-02294-kg-0-5-mm-z-basemode-floating-0-6_20260925_091244_716c5615_3f25bab7/isaac/model.usdc",
+          "record_id": "rec_32-mm-0-02294-kg-0-5-mm-z-basemode-floating-0-6_20260925_091244_716c5615_3f25bab7"
+        },
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_cube_50": {
+          "entry": "assets/rec_50-mm-0-0875-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091338_6d4d3385_da6d7dab/isaac/model.usdc",
+          "record_id": "rec_50-mm-0-0875-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091338_6d4d3385_da6d7dab"
+        },
+        "P20_cube_60": {
+          "entry": "assets/rec_60-mm-0-1512-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091323_62fd9d08_5872dcee/isaac/model.usdc",
+          "record_id": "rec_60-mm-0-1512-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091323_62fd9d08_5872dcee"
+        }
+      },
+      "instance_plan": "3–5块，每个尺寸最多1件",
+      "integration_constraints": "先3块再5块，大件在下；5块总高207mm，先验证顶层抓放可达性。",
+      "sequence": "选择稳定次序→逐层对齐放置",
+      "success_criteria_draft": "全部目标形成单塔且释放后2秒不倒",
+      "fixture_plan": "无需夹具；目标数量是随机化参数",
+      "randomization": "起始分布;部件尺寸族;质量比;抓点",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T038",
+      "name": "从塔顶逐件拆卸并入盒",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_25": {
+          "entry": "assets/rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982/isaac/model.usdc",
+          "record_id": "rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982"
+        },
+        "P20_cube_32": {
+          "entry": "assets/rec_32-mm-0-02294-kg-0-5-mm-z-basemode-floating-0-6_20260925_091244_716c5615_3f25bab7/isaac/model.usdc",
+          "record_id": "rec_32-mm-0-02294-kg-0-5-mm-z-basemode-floating-0-6_20260925_091244_716c5615_3f25bab7"
+        },
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_cube_50": {
+          "entry": "assets/rec_50-mm-0-0875-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091338_6d4d3385_da6d7dab/isaac/model.usdc",
+          "record_id": "rec_50-mm-0-0875-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091338_6d4d3385_da6d7dab"
+        },
+        "P20_cube_60": {
+          "entry": "assets/rec_60-mm-0-1512-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091323_62fd9d08_5872dcee/isaac/model.usdc",
+          "record_id": "rec_60-mm-0-1512-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091323_62fd9d08_5872dcee"
+        },
+        "P20_box": {
+          "entry": "assets/rec_240-180-90-mm-4-mm-4-mm-232-172-86-mm-0-30-kg-z_20260925_091403_afaa7cdd_cd2cc65b/isaac/model.usdc",
+          "record_id": "rec_240-180-90-mm-4-mm-4-mm-232-172-86-mm-0-30-kg-z_20260925_091403_afaa7cdd_cd2cc65b"
+        }
+      },
+      "instance_plan": "3–5块+1盒",
+      "integration_constraints": "复用T031塔布局，自顶向下入盒；验证剩余塔稳定。",
+      "sequence": "取顶块→放盒→重复到清空",
+      "success_criteria_draft": "全部积木在盒内且拆卸前剩余塔未倒塌",
+      "fixture_plan": "只能自顶向下；禁止推倒整塔",
+      "randomization": "起始分布;部件尺寸族;质量比;抓点",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T041",
+      "name": "拉开USDcraft抽屉",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_drawer": {
+          "entry": "assets/rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f/isaac/model.usdc",
+          "record_id": "rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f"
+        }
+      },
+      "instance_plan": "1新生成抽屉",
+      "integration_constraints": "新生成抽屉，重新验证布局；读取carcass_to_drawer_fascia，开度>75mm。",
+      "sequence": "抓球形把手→沿滑轨拉出→保持",
+      "success_criteria_draft": "carcass_to_drawer_fascia大于75mm且柜体不移动",
+      "fixture_plan": "固定柜体；复用pine_wm当前已验证布局",
+      "randomization": "柜体XY/偏航;初始开度;轨道摩擦;目标行程",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T042",
+      "name": "推闭已打开的抽屉",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_drawer": {
+          "entry": "assets/rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f/isaac/model.usdc",
+          "record_id": "rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f"
+        }
+      },
+      "instance_plan": "1新生成抽屉",
+      "integration_constraints": "初始开80–120mm；关到<5mm；原文数值是状态目标。",
+      "sequence": "接触抽屉面板→推回→撤离",
+      "success_criteria_draft": "滑轨剩余开度小于5mm且稳定1秒",
+      "fixture_plan": "固定柜体；允许推面板不用夹把手",
+      "randomization": "柜体XY/偏航;初始开度;轨道摩擦;目标行程",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T043",
+      "name": "把抽屉停在指定开度",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_drawer": {
+          "entry": "assets/rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f/isaac/model.usdc",
+          "record_id": "rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f"
+        }
+      },
+      "instance_plan": "1新生成抽屉",
+      "integration_constraints": "指令开度20–100mm，误差<5mm；新抽屉滑轨行程150mm。",
+      "sequence": "抓把手→拉到目标→释放",
+      "success_criteria_draft": "最终开度误差小于5mm并保持1秒",
+      "fixture_plan": "目标区间20–100mm；柜体固定",
+      "randomization": "柜体XY/偏航;初始开度;轨道摩擦;目标行程",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T044",
+      "name": "从打开的抽屉取出物品",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_drawer": {
+          "entry": "assets/rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f/isaac/model.usdc",
+          "record_id": "rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f"
+        },
+        "P20_cube_25": {
+          "entry": "assets/rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982/isaac/model.usdc",
+          "record_id": "rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982"
+        },
+        "P20_tray": {
+          "entry": "assets/rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff/isaac/model.usdc",
+          "record_id": "rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff"
+        }
+      },
+      "instance_plan": "1抽屉+1小块+1盘",
+      "integration_constraints": "25mm块放新抽屉前半部，距内前壁45mm；内腔220×190×65mm；校验全夹爪、腕部相机进出轨迹。",
+      "sequence": "越过面板→抓物→取出放盘",
+      "success_criteria_draft": "目标入盘且抽屉仍在指定开放范围",
+      "fixture_plan": "确保抽屉内净宽和腕部相机间隙足够",
+      "randomization": "柜体XY/偏航;初始开度;轨道摩擦;目标行程",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T045",
+      "name": "把物品放进抽屉再关上",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_drawer": {
+          "entry": "assets/rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f/isaac/model.usdc",
+          "record_id": "rec_x-280-y-260-z-180-mm-y-12-mm-2-0-kg-0-8-kg-q-0-x_20260925_091537_95975d95_488ecd9f"
+        },
+        "P20_cube_25": {
+          "entry": "assets/rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982/isaac/model.usdc",
+          "record_id": "rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982"
+        }
+      },
+      "instance_plan": "1抽屉+1小块",
+      "integration_constraints": "25mm块放新抽屉前半部；检查关屉全程净空；关闭前夹爪退出。",
+      "sequence": "拾物入屉→释放退出→推闭",
+      "success_criteria_draft": "物体在抽屉内且开度小于5mm",
+      "fixture_plan": "物体高度低于内腔净高",
+      "randomization": "柜体XY/偏航;初始开度;轨道摩擦;目标行程",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T063",
+      "name": "按下单个大按钮",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_button": {
+          "entry": "assets/rec_90-90-25-mm-40-mm-8-mm-z-43-mm-12-mm-z-31-mm-0-0_20260925_091526_0bcaf4be_bb949239/isaac/model.usdc",
+          "record_id": "rec_90-90-25-mm-40-mm-8-mm-z-43-mm-12-mm-z-31-mm-0-0_20260925_091526_0bcaf4be_bb949239"
+        }
+      },
+      "instance_plan": "1按钮模块",
+      "integration_constraints": "底座固定；q≥8mm计按压，q≤2mm复位；每轮只要求一次完整按压。",
+      "sequence": "对准→按下至触发→撤离",
+      "success_criteria_draft": "按钮真实行程越阈值且触发一次",
+      "fixture_plan": "模块固定；按钮直径25mm以上",
+      "randomization": "初始档位;触发阈值;目标角;指令顺序/持续时间",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T142",
+      "name": "按几何形状分类",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_cylinder": {
+          "entry": "assets/rec_35-mm-80-mm-0-054-kg-x-basemode-floating-0-6-0-4_20260925_091305_c1e37e0b_f5cd0ffd/isaac/model.usdc",
+          "record_id": "rec_35-mm-80-mm-0-054-kg-x-basemode-floating-0-6-0-4_20260925_091305_c1e37e0b_f5cd0ffd"
+        },
+        "P20_sphere": {
+          "entry": "assets/rec_40-mm-0-024-kg-basemode-floating-0-6-0-45-0-02_20260925_091244_d1081e1c_e227406d/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-024-kg-basemode-floating-0-6-0-45-0-02_20260925_091244_d1081e1c_e227406d"
+        },
+        "P20_tray": {
+          "entry": "assets/rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff/isaac/model.usdc",
+          "record_id": "rec_240-180-20-mm-4-mm-4-mm-232-172-16-mm-0-20-kg-z_20260925_091351_3f8b274b_4652b1ff"
+        }
+      },
+      "instance_plan": "3类物体各1–2件+3盘实例",
+      "integration_constraints": "从少量实例开始；形状与颜色独立；球体reset静稳且不滚出工作区。",
+      "sequence": "辨形状→抓取→分组",
+      "success_criteria_draft": "每件进入形状对应区域",
+      "fixture_plan": "不以固定颜色绑定形状类别",
+      "randomization": "类别/属性组合;物体数量;标签映射;目标数量",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T143",
+      "name": "按相对尺寸从小到大排列",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_25": {
+          "entry": "assets/rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982/isaac/model.usdc",
+          "record_id": "rec_25-mm-0-01094-kg-0-5-mm-z-basemode-floating-0-6_20260925_091255_3e87a759_53a3e982"
+        },
+        "P20_cube_32": {
+          "entry": "assets/rec_32-mm-0-02294-kg-0-5-mm-z-basemode-floating-0-6_20260925_091244_716c5615_3f25bab7/isaac/model.usdc",
+          "record_id": "rec_32-mm-0-02294-kg-0-5-mm-z-basemode-floating-0-6_20260925_091244_716c5615_3f25bab7"
+        },
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_cube_50": {
+          "entry": "assets/rec_50-mm-0-0875-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091338_6d4d3385_da6d7dab/isaac/model.usdc",
+          "record_id": "rec_50-mm-0-0875-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091338_6d4d3385_da6d7dab"
+        },
+        "P20_cube_60": {
+          "entry": "assets/rec_60-mm-0-1512-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091323_62fd9d08_5872dcee/isaac/model.usdc",
+          "record_id": "rec_60-mm-0-1512-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091323_62fd9d08_5872dcee"
+        }
+      },
+      "instance_plan": "5块，每尺寸1件",
+      "integration_constraints": "沿X从小到大；中心间距80mm，总包络约363mm；场景画基准线，不用尺寸槽泄漏答案。",
+      "sequence": "比较尺寸→依次放到排列槽",
+      "success_criteria_draft": "沿指定轴尺寸严格递增且全部释放",
+      "fixture_plan": "尺寸比拉开到视觉可辨；槽不强制尺寸",
+      "randomization": "类别/属性组合;物体数量;标签映射;目标数量",
+      "source_status_is_historical": true
+    },
+    {
+      "task_id": "T145",
+      "name": "按指令收集恰好N件",
+      "status": "specification_only_not_implemented_or_runtime_validated",
+      "asset_bindings": {
+        "P20_cube_40": {
+          "entry": "assets/rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84/isaac/model.usdc",
+          "record_id": "rec_40-mm-0-0448-kg-0-5-mm-z-basemode-floating-0-6-0_20260925_091252_8ce1f100_623acc84"
+        },
+        "P20_box": {
+          "entry": "assets/rec_240-180-90-mm-4-mm-4-mm-232-172-86-mm-0-30-kg-z_20260925_091403_afaa7cdd_cd2cc65b/isaac/model.usdc",
+          "record_id": "rec_240-180-90-mm-4-mm-4-mm-232-172-86-mm-0-30-kg-z_20260925_091403_afaa7cdd_cd2cc65b"
+        }
+      },
+      "instance_plan": "6个同型号方块实例+1盒",
+      "integration_constraints": "指令N=2–5，候选6块保证需要停止；不生成6条重复资产记录。",
+      "sequence": "逐件搬运→计数→达到N停止",
+      "success_criteria_draft": "盒内目标数量恰为N且其他物体未误入",
+      "fixture_plan": "N在2–5变化；不让盒位数量直接泄露N",
+      "randomization": "类别/属性组合;物体数量;标签映射;目标数量",
+      "source_status_is_historical": true
+    }
+  ]
+}

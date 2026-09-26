@@ -200,6 +200,7 @@ class Ur7eRobotiqEmbodimentBase(EmbodimentBase, ABC):
         arm_mode: ArmMode | None = None,
         collision_mode: CollisionMode | str | None = None,
         robot_spec: UrRobotSpec | None = None,
+        camera_config: ArenaCameraCfg | None = None,
     ):
         super().__init__(
             enable_cameras=enable_cameras,
@@ -211,7 +212,7 @@ class Ur7eRobotiqEmbodimentBase(EmbodimentBase, ABC):
         self.robot_spec = robot_spec if robot_spec is not None else select_ur_robot_spec()
         self.scene_config = make_ur7e_scene_cfg(self.robot_spec)
         self.action_config = None
-        self.camera_config = Ur7eCameraCfg()
+        self.camera_config = camera_config if camera_config is not None else Ur7eCameraCfg()
         self.observation_config = Ur7eObservationsCfg()
         self.event_config = Ur7eEventCfg()
         if initial_joint_pose is not None:

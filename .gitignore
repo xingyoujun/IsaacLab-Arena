@@ -115,3 +115,6 @@ core.*
 *.log
 .env
 .env.*
+
+# Downloaded HF simulation assets (shared code stays in Git).
+/local_assets/
