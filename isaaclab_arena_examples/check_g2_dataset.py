@@ -43,13 +43,16 @@ def check(root, work, official_loader=False):
                 frame = reader.get_data(frame_index)
                 assert frame.shape == (*dimensions, 3) and frame.std() > 5
             reader.close()
-        assert report["configuration"]["bowl_xy_noise_m"] > 0
+        if report.get("task_variant") == "clean_workcell_table":
+            assert report["configuration"]["layout"] == "fixed"
+        else:
+            assert report["configuration"]["bowl_xy_noise_m"] > 0
         total += count
     assert len(entries) == info["total_episodes"] and total == info["total_frames"]
     if official_loader:
         from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
-        dataset = LeRobotDataset("local/g2_stack_bowls", root=root, video_backend="pyav")
+        dataset = LeRobotDataset("local/g2_dataset", root=root, video_backend="pyav")
         assert len(dataset) == total
         for index in (0, total // 2, total - 1):
             frame = dataset[index]

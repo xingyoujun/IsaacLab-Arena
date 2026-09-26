@@ -238,7 +238,8 @@ namespaces = false
 # exclude the test fixtures, for a non-editable install. The globs are recursive
 # because the environment spec directories are not packages of their own.
 [tool.setuptools.package-data]
-"isaaclab_arena.embodiments.g2" = ["assets/*.usda"]
+"isaaclab_arena_examples.g2_workcell" = ["*.yaml"]
+"isaaclab_arena.embodiments.g2" = ["assets/*.usda", "assets/*.yaml"]
 "*" = ["**/*.yaml", "**/*.yml", "**/*.json", "**/*.jsonl", "**/*.html"]
 
 [tool.setuptools.exclude-package-data]

@@ -47,6 +47,10 @@ class _G2WorkbenchEnvironment:
     scale_overrides: dict[str, tuple[float, float, float]] = {}
     """Explicit per-instance scales, where a library asset needs a larger work surface."""
 
+    def make_object(self, registry_name, params):
+        """Construct an object, allowing task-local asset overrides."""
+        return self.asset_registry.get_asset_by_name(registry_name)(**params)
+
     def build(self, cfg: G2WorkbenchEnvironmentCfg) -> IsaacLabArenaEnvironment:
         """Place the selected library objects on the shared tabletop."""
         from isaaclab.envs.common import ViewerCfg
@@ -79,7 +83,7 @@ class _G2WorkbenchEnvironment:
             params = {"instance_name": instance_name}
             if instance_name in self.scale_overrides:
                 params["scale"] = self.scale_overrides[instance_name]
-            obj = self.asset_registry.get_asset_by_name(registry_name)(**params)
+            obj = self.make_object(registry_name, params)
             half_yaw = math.radians(yaw_deg) / 2
             rotation = (0.0, 0.0, math.sin(half_yaw), math.cos(half_yaw))
             bounds = obj.get_bounding_box().enclosing_after_rotation(rotation)
@@ -131,27 +135,6 @@ class G2PegInsertEnvironment(_G2WorkbenchEnvironment, ArenaEnvironmentFactory[G2
     object_layout = (
         ("peg", "peg", -0.10, -0.16, 0.0),
         ("hole", "hole", -0.10, 0.16, 0.0),
-    )
-
-
-@dataclass
-class G2OrganizeToolsEnvironmentCfg(G2WorkbenchEnvironmentCfg):
-    """Configure the tool-organization scene."""
-
-
-@register_environment
-class G2OrganizeToolsEnvironment(_G2WorkbenchEnvironment, ArenaEnvironmentFactory[G2OrganizeToolsEnvironmentCfg]):
-    """Preview three tools and two collection bins within the G2 workbench."""
-
-    name = "g2_organize_tools"
-    _legacy_argparse_cfg_type = G2OrganizeToolsEnvironmentCfg
-    scale_overrides = {"left_bin": (1.3, 1.3, 1.3), "right_bin": (1.3, 1.3, 1.3)}
-    object_layout = (
-        ("red_hammer_robolab", "hammer", -0.15, -0.34, 90.0),
-        ("spring_clamp_ycb_robolab", "spring_clamp", -0.15, 0.0, 0.0),
-        ("cordless_drill_ycb_robolab", "drill", -0.15, 0.34, 0.0),
-        ("bin_b04_vomp_robolab", "left_bin", 0.15, 0.29, 90.0),
-        ("bin_b04_vomp_robolab", "right_bin", 0.15, -0.29, 90.0),
     )
 
 

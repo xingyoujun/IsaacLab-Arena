@@ -1,0 +1,67 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+task: clean_workcell_table
+version: 2
+instruction: >-
+  Clear the workcell table: put the aluminum stock block in the blue bin,
+  the cordless drill in the yellow bin, and the finished gear in the green bin.
+sequence: [metal_stock, drill, finished_gear]
+objects:
+  metal_stock:
+    category: raw_material
+    asset: aluminum_stock
+    scale: [0.9, 0.9, 0.9]
+    destination: blue_bin
+    xy: [-0.15, 0.37]
+    yaw_deg: 0
+    suggested_arm: left
+  drill:
+    category: tool
+    asset: cordless_drill_ycb_robolab
+    scale: [0.85, 0.85, 0.85]
+    destination: yellow_bin
+    xy: [-0.18, 0.06]
+    yaw_deg: -16
+    suggested_arm: right
+  finished_gear:
+    category: finished_part
+    asset: small_gear
+    scale: [1.8, 1.8, 1.8]
+    destination: green_bin
+    xy: [-0.15, -0.37]
+    yaw_deg: 0
+    suggested_arm: right
+bins:
+  blue_bin:
+    category: raw_material
+    color: blue
+    rgb: [0.025, 0.16, 0.8]
+    xy: [0.15, 0.37]
+  yellow_bin:
+    category: tool
+    color: yellow
+    rgb: [0.95, 0.65, 0.015]
+    xy: [0.07, 0.0]
+  green_bin:
+    category: finished_part
+    color: green
+    rgb: [0.035, 0.55, 0.12]
+    xy: [0.08, -0.37]
+bin_asset: bin_b04_vomp_robolab
+bin_scale: [1.0, 1.15, 0.5]
+bin_yaw_deg: 90
+# Cavity measurements at the original 1.3x uniform scale, from geometry_001.
+bin_geometry_reference:
+  scale: [1.3, 1.3, 1.3]
+  inner_xy_bounds_m: [[-0.2066092071, -0.1218303308], [0.1744232744, 0.1218302992]]
+  floor_z_m: 0.0020279804
+  rim_max_z_m: 0.1869187176
+success:
+  planar_margin_m: 0.003
+  floor_tolerance_m: 0.012
+  max_linear_speed_m_s: 0.01
+  max_angular_speed_rad_s: 0.1
+  stable_seconds: 1.0

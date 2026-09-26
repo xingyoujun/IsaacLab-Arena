@@ -1,0 +1,96 @@
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+final_settle_steps: 900
+sequence:
+- metal_stock
+- drill
+- finished_gear
+mapping:
+  metal_stock: blue_bin
+  drill: yellow_bin
+  finished_gear: green_bin
+grasp:
+  lift_m: 0.1
+tools:
+  metal_stock:
+    arm: left
+    candidates:
+    - id: metal_stock_initial
+      centre_asset_m:
+      - 0
+      - 0
+      - 0
+      closing_yaw_asset_deg: 90
+      grasp_tcp_world_z_m: 0.0198
+      pregrasp_clearance_m: 0.16
+    grasp:
+      tcp_height_m: 0.0198
+    vertical_raise_before_transfer: false
+    planned_retreat: true
+    placement:
+      yaws_world_deg:
+      - 0
+      object_height_world_m: 0.25
+      offset_bin_m:
+      - 0
+      - 0.04
+    release_clearance_m: 0.14
+  drill:
+    arm: right
+    # The validated G2 drill carry rotates joint 5 by 3.225 rad.
+    # Permit its intentional half-turn while retaining all other 2.6 rad limits.
+    carry_joint_travel_limits_rad: [2.6, 2.6, 2.6, 2.6, 3.65, 2.6, 2.6]
+    mesh_payload: true
+    escape_before_transfer_world_m: [-0.111, -0.02, 0.28]
+    candidates:
+    - id: drill_initial
+      centre_asset_m:
+      - 0.03317625531
+      - -0.017
+      - 0
+      closing_yaw_asset_deg: 0
+      grasp_tcp_world_z_m: 0.017
+      pregrasp_clearance_m: 0.22
+    grasp:
+      tcp_height_m: 0.017
+    vertical_raise_before_transfer: false
+    planned_retreat: true
+    placement:
+      yaws_world_deg:
+      - 180
+      object_height_world_m: 0.25
+      offset_bin_m:
+      - 0
+      - 0
+    release_clearance_m: 0.14
+  finished_gear:
+    arm: right
+    transfer_robot_urdf: /datasets/g2_workcell_assets/g2_joint_margin.urdf
+    candidates:
+    - id: finished_gear_initial
+      centre_asset_m:
+      - 0.09135
+      - 0
+      - 0
+      closing_yaw_asset_deg: 0
+      grasp_tcp_world_z_m: 0.027
+      pregrasp_clearance_m: 0.283
+    grasp:
+      tcp_height_m: 0.027
+    vertical_raise_before_transfer: false
+    planned_retreat: true
+    placement:
+      yaws_world_deg:
+      - 90
+      object_height_world_m: 0.25
+      offset_bin_m:
+      - 0
+      - 0.04
+    release_clearance_m: 0.14
+selected_grasp_candidates:
+  metal_stock: metal_stock_initial
+  drill: drill_initial
+  finished_gear: finished_gear_initial

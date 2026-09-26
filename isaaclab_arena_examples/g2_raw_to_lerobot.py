@@ -6,6 +6,7 @@
 """Offline native three-camera rendering and transactional LeRobot v2.1 export for compact G2 raw."""
 
 import json
+import os
 import shutil
 import tempfile
 from contextlib import ExitStack
@@ -156,7 +157,45 @@ class ImageStats:
         }
 
 
-def render_episode(base, path, arrays, staging, fps):
+def export_recorded_rgb(episode, staging, fps, video_codec):
+    """Encode the same pre-action RGB arrays captured by Arena's standard camera recorder."""
+    import imageio.v2 as imageio
+
+    count = len(episode["actions"])
+    stats = {name: ImageStats() for name in CAMERAS}
+    with ExitStack() as stack:
+        writers = {
+            name: stack.enter_context(
+                imageio.get_writer(
+                    str(staging / f"{name}.mp4"),
+                    fps=fps,
+                    codec=video_codec,
+                    quality=None if video_codec == "h264_nvenc" else 8,
+                    output_params=(
+                        ["-preset", "p4", "-cq", "20", "-movflags", "+faststart"]
+                        if video_codec == "h264_nvenc"
+                        else ["-threads", "2", "-movflags", "+faststart"]
+                    ),
+                )
+            )
+            for name in CAMERAS
+        }
+        for start in range(0, count, 32):
+            slabs = {name: episode[f"camera_obs/{name}_camera_rgb"][start : start + 32] for name in CAMERAS}
+            for index in range(len(slabs["head"])):
+                for name in CAMERAS:
+                    frame = slabs[name][index]
+                    writers[name].append_data(frame)
+                    stats[name].add(frame)
+            if start % 320 == 0:
+                print(f"ENCODE_RECORDED_RGB frame={start}/{count}", flush=True)
+    for name in CAMERAS:
+        with imageio.get_reader(str(staging / f"{name}.mp4")) as reader:
+            assert reader.count_frames() == count and abs(reader.get_meta_data()["fps"] - fps) < 1e-6
+    return {f"observation.images.{name}": value.result() for name, value in stats.items()}, None
+
+
+def render_episode(base, path, arrays, staging, fps, video_codec="libx264"):
     """Render all native cameras from pre-action scene states and verify TCP alignment."""
     import h5py
     import numpy as np
@@ -164,34 +203,52 @@ def render_episode(base, path, arrays, staging, fps):
 
     import imageio.v2 as imageio
 
+    if video_codec == "h264_nvenc":
+        os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
     count = len(arrays["action"])
     stats = {name: ImageStats() for name in CAMERAS}
     max_eef_error = 0.0
     with ExitStack() as stack:
         dataset = stack.enter_context(h5py.File(path, "r"))
         episode = dataset["data/demo_0"]
+        if "camera_obs" in episode:
+            return export_recorded_rgb(episode, staging, fps, video_codec)
+        assert not str(base.device).startswith(
+            "cuda"
+        ), "CUDA state-only replay has stale graphics in this Isaac Sim build; use recorded live RGB"
+        buffers = {
+            group: {
+                category: {
+                    name: {key: torch.as_tensor(value[:], device=base.device) for key, value in fields.items()}
+                    for name, fields in objects.items()
+                }
+                for category, objects in episode[group].items()
+            }
+            for group in ("initial_state", "states")
+        }
         writers = {
             name: stack.enter_context(
                 imageio.get_writer(
                     str(staging / f"{name}.mp4"),
                     fps=fps,
-                    codec="libx264",
-                    quality=8,
-                    output_params=["-threads", "2", "-movflags", "+faststart"],
+                    codec=video_codec,
+                    quality=None if video_codec == "h264_nvenc" else 8,
+                    output_params=(
+                        ["-preset", "p4", "-cq", "20", "-movflags", "+faststart"]
+                        if video_codec == "h264_nvenc"
+                        else ["-threads", "2", "-movflags", "+faststart"]
+                    ),
                 )
             )
             for name in CAMERAS
         }
         env_ids = torch.tensor([0], dtype=torch.int32, device=base.device)
         for index in range(count):
-            group = episode["initial_state"] if index == 0 else episode["states"]
+            group = buffers["initial_state"] if index == 0 else buffers["states"]
             source_index = 0 if index == 0 else index - 1
             state = {
                 category: {
-                    name: {
-                        key: torch.tensor(value[source_index], device=base.device).unsqueeze(0)
-                        for key, value in fields.items()
-                    }
+                    name: {key: value[source_index : source_index + 1] for key, value in fields.items()}
                     for name, fields in objects.items()
                 }
                 for category, objects in group.items()
@@ -223,7 +280,7 @@ def render_episode(base, path, arrays, staging, fps):
     return {f"observation.images.{name}": value.result() for name, value in stats.items()}, max_eef_error
 
 
-def commit_episode(root, work, base, raw, episode_index, frame_offset):
+def commit_episode(root, work, base, raw, episode_index, frame_offset, video_codec="libx264"):
     """Commit one validated parquet/video bundle; retain raw and any interrupted staging output."""
     path = Path(raw["raw_dir"]) / "episodes.hdf5"
     assert file_digest(path) == raw["sha256"], "Raw changed after successful-core validation"
@@ -234,7 +291,7 @@ def commit_episode(root, work, base, raw, episode_index, frame_offset):
     staging_root = work / "render_staging"
     staging_root.mkdir(exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f"episode_{episode_index:06d}_", dir=staging_root))
-    stats, error = render_episode(base, path, arrays, staging, fps)
+    stats, error = render_episode(base, path, arrays, staging, fps, video_codec=video_codec)
     stats.update({key: array_stats(value.astype("float64")) for key, value in arrays.items()})
     write_parquet(staging / "episode.parquet", arrays, episode_index, frame_offset, fps)
     chunk = episode_index // 1000
@@ -262,6 +319,7 @@ def commit_episode(root, work, base, raw, episode_index, frame_offset):
             if key in ("bowl_positions", "peg_x", "peg_y", "sleeve_x", "sleeve_y")
         },
         "replay_max_eef_error_m": error,
+        "image_source": "recorded_pre_action_rgb" if error is None else "state_render",
         "artifacts": hashes,
         "joint_names": report["joint_names"],
     }
@@ -285,7 +343,17 @@ def run(args):
     raw_episodes = manifest["successes"][: args.demos]
     assert len(raw_episodes) == args.demos
     task = TASK
-    if config["task"] == "peg_into_sleeve":
+    if config["task"] == "clean_workcell_table":
+        from isaaclab_arena.embodiments.g2.g2 import G2JointPositionActionsCfg
+        from isaaclab_arena_environments.g2_clean_workcell_environment import G2CleanWorkcellTableEnvironment
+        from isaaclab_arena_environments.g2_workbench_environments import G2WorkbenchEnvironmentCfg
+
+        assert args.device.startswith("cuda"), "Workcell rendering requires CUDA"
+        factory = G2CleanWorkcellTableEnvironment()
+        task = factory.spec["instruction"]
+        description = factory.build(G2WorkbenchEnvironmentCfg(enable_cameras=True))
+        description.embodiment.action_config = G2JointPositionActionsCfg()
+    elif config["task"] == "peg_into_sleeve":
         from isaaclab_arena_environments.g2_sleeve_environment import G2SleeveEnvironment, G2SleeveEnvironmentCfg
 
         task = "Pick up the cylindrical peg and insert it fully into the fixed upright sleeve."
@@ -321,7 +389,13 @@ def run(args):
             else:
                 print(f"EXPORT episode={index}/{len(raw_episodes)} raw={raw['raw_dir']}", flush=True)
                 entry = commit_episode(
-                    args.root, args.work_dir, env.unwrapped, raw, index, sum(e["length"] for e in entries)
+                    args.root,
+                    args.work_dir,
+                    env.unwrapped,
+                    raw,
+                    index,
+                    sum(e["length"] for e in entries),
+                    video_codec=args.video_codec,
                 )
             entries.append(entry)
             write_metadata(args.root, entries, entry["joint_names"], 1.0 / env.unwrapped.step_dt, task=task)
@@ -336,6 +410,7 @@ def main():
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--work_dir", type=Path, required=True)
     parser.add_argument("--demos", type=int, required=True)
+    parser.add_argument("--video_codec", choices=("libx264", "h264_nvenc"), default="libx264")
     args = parser.parse_args()
     assert args.enable_cameras
     shutil.copyfile(__file__, args.work_dir / "logs" / "renderer_source.py")

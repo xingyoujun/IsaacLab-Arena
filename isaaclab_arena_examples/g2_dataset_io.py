@@ -66,7 +66,13 @@ def read_core(path):
         episode = dataset["data/demo_0"]
         actions = episode["actions"][:].astype(np.float32)
         arrays = {f"observation.{key}": value[:].astype(np.float32) for key, value in episode["core"].items()}
-        assert "camera_obs" not in episode, "Permanent raw must not contain RGB arrays"
+        if report.get("task_variant") == "clean_workcell_table":
+            assert report["configuration"]["image_capture"] == "live_pre_action"
+            for camera, shape in CAMERAS.items():
+                rgb = episode[f"camera_obs/{camera}_camera_rgb"]
+                assert rgb.shape == (len(actions), *shape, 3) and rgb.dtype == np.uint8
+        else:
+            assert "camera_obs" not in episode, "Permanent raw must not contain RGB arrays"
         assert actions.ndim == 2 and actions.shape[1] == 16 and len(actions) > 30
         for key, array in arrays.items():
             assert len(array) == len(actions) and np.isfinite(array).all(), f"Invalid {key}"
@@ -75,7 +81,12 @@ def read_core(path):
             assert arrays[key].shape[1] == 14
             for start in (3, 10):
                 assert np.allclose(np.linalg.norm(arrays[key][:, start : start + 4], axis=1), 1, atol=1e-3)
-        if report.get("task_variant") == "movable_peg_fixed_sleeve":
+        if report.get("task_variant") == "clean_workcell_table":
+            from isaaclab_arena_examples.g2_workcell.audit import audit
+
+            verified = audit(Path(path).parent)
+            assert verified["raw_audit_pass"] and verified["task_success"], "Workcell audit failed"
+        elif report.get("task_variant") == "movable_peg_fixed_sleeve":
             from check_g2_sleeve_dataset import validate
 
             validate(Path(path).parent)
