@@ -49,8 +49,8 @@ simulation_app = AppLauncher(args).app
 
 import numpy as np  # noqa: E402
 
-from isaaclab_arena_cumotion.grasps import DOWN_FACING_ROTATION, quat_wxyz_from_matrix  # noqa: E402
-from isaaclab_arena_cumotion.planner import CumotionArmPlanner  # noqa: E402
+from data_engine.motion.cumotion.grasps import DOWN_FACING_ROTATION, quat_wxyz_from_matrix  # noqa: E402
+from data_engine.motion.cumotion.planner import CumotionArmPlanner  # noqa: E402
 from isaaclab_arena_cumotion.scripts.probe_common import (  # noqa: E402
     build_probe_env,
     environment_cfg_type,

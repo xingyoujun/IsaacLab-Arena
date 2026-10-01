@@ -3,47 +3,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Record the native G2 head and wrist cameras with NVIDIA hardware encoding."""
+"""Compatibility entrypoint; implementation lives in data_engine.g2.collection.workcell.cameras."""
 
-import os
-from contextlib import ExitStack
+import sys
+from pathlib import Path
 
-CAMERA_NAMES = ("head_camera", "left_wrist_camera", "right_wrist_camera")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+if __name__ == "__main__":
+    import runpy
 
-class ThreeViewWriter:
-    """Export synchronized native RGB videos; frame transfer and file I/O remain host operations."""
+    runpy.run_module("data_engine.g2.collection.workcell.cameras", run_name="__main__")
+else:
+    from importlib import import_module
 
-    def __init__(self, directory, fps):
-        import imageio.v2 as imageio
-
-        os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
-        self.stack = ExitStack()
-        self.writers = {
-            name: self.stack.enter_context(
-                imageio.get_writer(
-                    str(directory / f"{name}.mp4"),
-                    fps=fps,
-                    codec="h264_nvenc",
-                    macro_block_size=1,
-                    quality=None,
-                    output_params=["-preset", "p4", "-cq", "20", "-movflags", "+faststart"],
-                )
-            )
-            for name in CAMERA_NAMES
-        }
-        self.frames = 0
-        self.devices = {}
-
-    def append(self, scene):
-        """Read all three GPU RGB buffers at the same simulation state."""
-        for name, writer in self.writers.items():
-            rgb = scene[name].data.output["rgb"].torch[0, ..., :3]
-            assert rgb.is_cuda, f"Camera {name} is not on CUDA"
-            self.devices[name] = str(rgb.device)
-            writer.append_data(rgb.cpu().numpy())
-        self.frames += 1
-
-    def close(self):
-        """Finish all video files."""
-        self.stack.close()
+    sys.modules[__name__] = import_module("data_engine.g2.collection.workcell.cameras")

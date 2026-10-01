@@ -11,7 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from isaaclab_arena.recording.alignment import pre_step_states
+from data_engine.recording.alignment import pre_step_states
 
 
 def derive(source, destination, episode, start, reason):

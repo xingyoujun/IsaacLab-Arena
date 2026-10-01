@@ -59,6 +59,7 @@ TAGS
 
 # outputs
 *outputs/
+/output/
 
 # Training images
 *training_images/

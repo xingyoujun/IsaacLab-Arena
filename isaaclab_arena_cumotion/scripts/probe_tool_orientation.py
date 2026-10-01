@@ -35,13 +35,13 @@ import isaaclab.utils.math as math_utils  # noqa: E402
 import warp as wp  # noqa: E402
 
 import isaaclab_arena_environments  # noqa: E402,F401
+from data_engine.motion.cumotion.planner import CumotionArmPlanner  # noqa: E402
 from isaaclab_arena.assets.registries import EnvironmentRegistry  # noqa: E402
 from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
     arena_env_builder_cfg_from_argparse,
     get_isaaclab_arena_cli_parser,
 )
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder  # noqa: E402
-from isaaclab_arena_cumotion.planner import CumotionArmPlanner  # noqa: E402
 
 arena_args = get_isaaclab_arena_cli_parser().parse_args(["--num_envs", "1"])
 factory = EnvironmentRegistry().get_component_by_name(args.env)()

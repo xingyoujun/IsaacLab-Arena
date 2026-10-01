@@ -1,0 +1,29 @@
+{
+  "schema": "arena.task_plan.v1",
+  "task_id": "stack_bowls",
+  "frame": "world; G2 table surface z=0, +x away from robot, +y robot left",
+  "sequence": [
+    {"skill": "pick_place_rim", "arm": "right", "source": "bowl_1", "destination": "bowl_2"},
+    {"skill": "pick_place_rim", "arm": "left", "source": "bowl_3", "destination": "bowl_1"}
+  ],
+  "stages": ["select_grasp", "approach", "descend", "close", "lift", "transfer", "place", "release", "retreat", "verify"],
+  "grasp": {
+    "strategy": "priority_first_feasible",
+    "feature": "bowl_rim",
+    "radius_m": 0.065,
+    "tcp_height_m": 0.065,
+    "pregrasp_clearance_m": 0.18,
+    "candidate_yaw_deg": {"right": [90, 60, 120], "left": [-90, -60, -120]},
+    "radial_offset_formula": "[-radius*cos(yaw), -radius*sin(yaw), 0]",
+    "orientation_formula": "Rz(yaw) * Rx(pi)",
+    "preclose_max_object_shift_m": 0.005,
+    "close_hold_steps": 30,
+    "minimum_lift_m": 0.10
+  },
+  "contact_path": {"step_m": 0.01, "tolerance_m": 0.003, "angle_deg": 5.0},
+  "tracking": {"max_corrections": 2, "max_compensation_m": 0.003},
+  "placement": {"bowl_center_clearance_m": 0.070, "release_hold_steps": 20, "settle_steps": 30},
+  "verification": {"hold_steps": 10, "predicate": "Arena stack completion plus bowl_2 < bowl_1 < bowl_3 height"},
+  "selection_scope": "Pregrasp and constrained descent feasibility; measured payload and placement are planned after grasp. No full-task lookahead claim.",
+  "gates": ["assets_and_frames", "grasp_candidates", "pregrasp_plan", "descent_corridor", "planned_self_collision", "timed_trajectory", "measured_self_collision", "object_disturbance", "grasp_lift", "physical_task_success"]
+}

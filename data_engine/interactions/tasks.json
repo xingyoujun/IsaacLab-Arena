@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "tasks": {
+    "kettle_release": {
+      "embodiment": "pine_wm_ur7e",
+      "scene": "pine_wm",
+      "tcp_offset_m": 0.1628,
+      "standoff_m": 0.06,
+      "press_overtravel_m": 0.001,
+      "contact_speed": 0.15,
+      "hold_steps": 20,
+      "task_id": "kettle_release",
+      "kind": "kettle",
+      "environment": "pine_wm_kettle_release",
+      "asset_id": "usdcraft_v2_kettle",
+      "instruction": "\u6309\u4e0b\u58f6\u76d6\u91ca\u653e\u6309\u94ae\uff0c\u8ba9\u9501\u6263\u89e3\u9501\u5e76\u4f7f\u58f6\u76d6\u5f39\u5f00",
+      "sequence": [
+        "press_lid_release"
+      ],
+      "position_m": [
+        0.0,
+        0.04,
+        0.742
+      ],
+      "yaw_deg": 180.0,
+      "success": {
+        "released": true,
+        "final_joint": "lid_hinge",
+        "min": 1.2,
+        "max": 1.42,
+        "require_prior_engagement": true
+      },
+      "tool_tilt_degrees": [
+        30,
+        45,
+        60,
+        15,
+        0
+      ],
+      "single_finger_interactions": [
+        "press_lid_release"
+      ],
+      "contact_corrections_m": [
+        0,
+        0.002,
+        0.004,
+        0.006,
+        0.008
+      ],
+      "max_contact_tracking_error_m": 0.012
+    },
+    "toaster_cancel": {
+      "embodiment": "pine_wm_ur7e",
+      "scene": "pine_wm",
+      "tcp_offset_m": 0.1628,
+      "standoff_m": 0.06,
+      "press_overtravel_m": 0.001,
+      "contact_speed": 0.15,
+      "hold_steps": 20,
+      "task_id": "toaster_cancel",
+      "kind": "toaster",
+      "environment": "pine_wm_toaster_cancel",
+      "asset_id": "usdcraft_v2_toaster",
+      "instruction": "\u538b\u4e0b\u70e4\u9762\u5305\u673a\u6258\u67b6\u5e76\u786e\u8ba4\u9501\u4f4f\uff0c\u518d\u6309\u53d6\u6d88\u6309\u94ae\u4f7f\u6258\u67b6\u5f39\u56de",
+      "sequence": [
+        "lower_bread",
+        "press_cancel"
+      ],
+      "position_m": [
+        0.03,
+        0.07,
+        0.742
+      ],
+      "yaw_deg": -90.0,
+      "success": {
+        "released": true,
+        "final_joint": "carriage_slide",
+        "min": -0.001,
+        "max": 0.005,
+        "require_prior_engagement": true
+      },
+      "tool_tilt_degrees": [
+        0,
+        15,
+        30,
+        45,
+        60
+      ],
+      "single_finger_interactions": [
+        "press_cancel"
+      ],
+      "contact_corrections_m": [
+        0,
+        0.002,
+        0.004,
+        0.006,
+        0.008
+      ],
+      "max_contact_tracking_error_m": 0.012,
+      "interaction_tool_tilt_degrees": {
+        "lower_bread": [
+          30,
+          45,
+          60,
+          15,
+          0
+        ]
+      }
+    }
+  }
+}

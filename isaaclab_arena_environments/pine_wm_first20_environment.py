@@ -71,7 +71,7 @@ class PineWmFirst20Environment(ArenaEnvironmentFactory[PineWmFirst20EnvironmentC
             (package / "manifest.json").read_text()
         )
         if is_bundle:
-            catalog = Path(__file__).resolve().parents[1] / "tools/pine_wm/first20/tasks.json"
+            catalog = Path(__file__).resolve().parents[1] / "data_engine/pine_wm/tasks.json"
         else:
             catalog = package / "configs/tasks.json"
         assert (
@@ -85,11 +85,17 @@ class PineWmFirst20Environment(ArenaEnvironmentFactory[PineWmFirst20EnvironmentC
         arena.embodiment.set_joint_initial_pos(UR7E_READY_JOINT_POS)
         arena.first20_instances = task_instances(task)
         arena.first20_bounds = {}
+        arena.first20_interactions = {}
         for i, (name, asset_id, fixed) in enumerate(arena.first20_instances):
             path = (
                 resolve_asset(asset_id, package) if is_bundle else package / task["asset_bindings"][asset_id]["entry"]
             )
             stage = Usd.Stage.Open(str(path))
+            from data_engine.assets.interactions import load_interactions
+
+            annotation = load_interactions(path)
+            if annotation is not None:
+                arena.first20_interactions[name] = annotation
             bounds = (
                 UsdGeom.BBoxCache(0, ["default", "render"])
                 .ComputeWorldBound(stage.GetDefaultPrim())

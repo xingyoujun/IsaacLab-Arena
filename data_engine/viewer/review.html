@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>USDCraft v2 · 验证与问题归因</title>
+        <link rel="stylesheet" href="/style.css" />
+        <link rel="stylesheet" href="/review.css" />
+    </head>
+    <body>
+        <header>
+            <div>
+                <span class="eyebrow">DATA ENGINE · 2026-09-30</span>
+                <h1>USDCraft v2 验证与问题归因</h1>
+            </div>
+            <a href="/">返回任务审核台 →</a>
+        </header>
+        <main class="review">
+            <nav class="review-nav">
+                <a href="#previews">四项预览</a
+                ><a href="#mechanisms">联动曲线</a><a href="#issues">问题归因</a
+                ><a href="#annotations">全部交互</a
+                ><a href="#evidence">审计与下载</a>
+            </nav>
+            <section class="review-intro">
+                <h2>两个新联动任务 + 两个旧任务回归，功能预览均通过</h2>
+                <p>
+                    21 个资产、71 个 interaction
+                    的静态结构审计无错误。两项外力机制探针含 reset
+                    检查均通过；机械臂实测验证热水壶与烤面包机联动。没有发现需要修改源
+                    USD 的已证实关节结构故障。
+                </p>
+                <p class="scope">
+                    验收边界：UR7e 仿真、固定布局、appliance
+                    主体固定。其余操作仅完成静态审计；不代表 71
+                    项机器人操作已通过。当前视频为 post-step
+                    预览，尚未取得训练、随机布局稳定性或批量采集资格。
+                </p>
+            </section>
+            <section id="previews">
+                <h2>看效果</h2>
+                <p class="muted">
+                    下方为最终四次成功运行的原始视频。进入任务可按阶段定位并查看历史失败；调参尝试不能用于统计成功率。
+                </p>
+                <div class="review-grid">
+                    <article class="case">
+                        <div class="case-head">
+                            <h3>热水壶 · 按键释放壶盖</h3>
+                            <span class="badge ok">功能预览通过</span>
+                        </div>
+                        <video
+                            controls
+                            preload="metadata"
+                            playsinline
+                            src="/kettle_release_v2_20260930_12/payload/live_preview/trial_0_scene_cam.mp4"
+                        ></video>
+                        <p>
+                            按钮 2.403 mm 时解锁，原弹簧推盖至 80°，末 20
+                            帧稳定。
+                        </p>
+                        <p>
+                            <a
+                                href="/kettle_release_v2_20260930_12/payload/live_preview/trial_0_realsense_d435.mp4"
+                                >D435</a
+                            >
+                            ·
+                            <a
+                                href="/kettle_release_v2_20260930_12/payload/live_preview/trial_0_wrist_a.mp4"
+                                >腕 A</a
+                            >
+                            ·
+                            <a
+                                href="/kettle_release_v2_20260930_12/payload/live_preview/trial_0_wrist_b.mp4"
+                                >腕 B</a
+                            >
+                            ·
+                            <a
+                                href="/kettle_release_v2_20260930_12/payload/live_preview/trial_0_scene_cam.mp4"
+                                >全景</a
+                            >
+                        </p>
+                        <a
+                            class="review-link"
+                            href="/#kettle_release_v2_20260930_12"
+                            >进入任务：阶段、四路视角与失败历史 →</a
+                        >
+                        <details>
+                            <summary>原始证据下载</summary>
+                            <p>
+                                <a
+                                    href="/kettle_release_v2_20260930_12/run.json"
+                                    >Run / 固定输入</a
+                                >
+                                ·
+                                <a
+                                    href="/kettle_release_v2_20260930_12/quality.json"
+                                    >质量审计</a
+                                >
+                                ·
+                                <a
+                                    href="/kettle_release_v2_20260930_12/payload/results.json"
+                                    >结果</a
+                                >
+                                ·
+                                <a
+                                    href="/kettle_release_v2_20260930_12/payload/demos.hdf5"
+                                    >HDF5</a
+                                >
+                            </p>
+                        </details>
+                    </article>
+                    <article class="case">
+                        <div class="case-head">
+                            <h3>烤面包机 · 托架锁定与取消</h3>
+                            <span class="badge ok">功能预览通过</span>
+                        </div>
+                        <video
+                            controls
+                            preload="metadata"
+                            playsinline
+                            src="/toaster_cancel_v2_20260930_08/payload/live_preview/trial_0_scene_cam.mp4"
+                        ></video>
+                        <p>
+                            托架撤力后保持 60 mm；取消键 2.048 mm
+                            时解锁，托架弹回 0 mm。
+                        </p>
+                        <p>
+                            <a
+                                href="/toaster_cancel_v2_20260930_08/payload/live_preview/trial_0_realsense_d435.mp4"
+                                >D435</a
+                            >
+                            ·
+                            <a
+                                href="/toaster_cancel_v2_20260930_08/payload/live_preview/trial_0_wrist_a.mp4"
+                                >腕 A</a
+                            >
+                            ·
+                            <a
+                                href="/toaster_cancel_v2_20260930_08/payload/live_preview/trial_0_wrist_b.mp4"
+                                >腕 B</a
+                            >
+                            ·
+                            <a
+                                href="/toaster_cancel_v2_20260930_08/payload/live_preview/trial_0_scene_cam.mp4"
+                                >全景</a
+                            >
+                        </p>
+                        <a
+                            class="review-link"
+                            href="/#toaster_cancel_v2_20260930_08"
+                            >进入任务：阶段、四路视角与失败历史 →</a
+                        >
+                        <details>
+                            <summary>原始证据下载</summary>
+                            <p>
+                                <a
+                                    href="/toaster_cancel_v2_20260930_08/run.json"
+                                    >Run / 固定输入</a
+                                >
+                                ·
+                                <a
+                                    href="/toaster_cancel_v2_20260930_08/quality.json"
+                                    >质量审计</a
+                                >
+                                ·
+                                <a
+                                    href="/toaster_cancel_v2_20260930_08/payload/results.json"
+                                    >结果</a
+                                >
+                                ·
+                                <a
+                                    href="/toaster_cancel_v2_20260930_08/payload/demos.hdf5"
+                                    >HDF5</a
+                                >
+                            </p>
+                        </details>
+                    </article>
+                    <article class="case">
+                        <div class="case-head">
+                            <h3>旧任务 T001 · 方块入托盘</h3>
+                            <span class="badge ok">功能预览通过</span>
+                        </div>
+                        <video
+                            controls
+                            preload="metadata"
+                            playsinline
+                            src="/pine_t001_v2_20260930_02/payload/live_preview/trial_0_realsense_d435.mp4"
+                        ></video>
+                        <p>
+                            新版抓点完成提升 150.46 mm；放置稳定，水平误差 1.66
+                            mm。
+                        </p>
+                        <p>
+                            <a
+                                href="/pine_t001_v2_20260930_02/payload/live_preview/trial_0_realsense_d435.mp4"
+                                >D435</a
+                            >
+                            ·
+                            <a
+                                href="/pine_t001_v2_20260930_02/payload/live_preview/trial_0_wrist_a.mp4"
+                                >腕 A</a
+                            >
+                            ·
+                            <a
+                                href="/pine_t001_v2_20260930_02/payload/live_preview/trial_0_wrist_b.mp4"
+                                >腕 B</a
+                            >
+                            ·
+                            <a
+                                href="/pine_t001_v2_20260930_02/payload/live_preview/trial_0_scene_cam.mp4"
+                                >全景</a
+                            >
+                        </p>
+                        <a class="review-link" href="/#pine_t001_v2_20260930_02"
+                            >进入任务：阶段、四路视角与失败历史 →</a
+                        >
+                        <details>
+                            <summary>原始证据下载</summary>
+                            <p>
+                                <a href="/pine_t001_v2_20260930_02/run.json"
+                                    >Run / 固定输入</a
+                                >
+                                ·
+                                <a href="/pine_t001_v2_20260930_02/quality.json"
+                                    >质量审计</a
+                                >
+                                ·
+                                <a
+                                    href="/pine_t001_v2_20260930_02/payload/results.json"
+                                    >结果</a
+                                >
+                                ·
+                                <a
+                                    href="/pine_t001_v2_20260930_02/payload/demos.hdf5"
+                                    >HDF5</a
+                                >
+                            </p>
+                        </details>
+                    </article>
+                    <article class="case">
+                        <div class="case-head">
+                            <h3>旧任务 T041 · 拉开抽屉</h3>
+                            <span class="badge ok">功能预览通过</span>
+                        </div>
+                        <video
+                            controls
+                            preload="metadata"
+                            playsinline
+                            src="/pine_t041_v2_20260930_01/payload/live_preview/trial_0_realsense_d435.mp4"
+                        ></video>
+                        <p>
+                            新版 link-local 抓点完成开度 101.22
+                            mm；松手后保持，柜体位移 0。
+                        </p>
+                        <p>
+                            <a
+                                href="/pine_t041_v2_20260930_01/payload/live_preview/trial_0_realsense_d435.mp4"
+                                >D435</a
+                            >
+                            ·
+                            <a
+                                href="/pine_t041_v2_20260930_01/payload/live_preview/trial_0_wrist_a.mp4"
+                                >腕 A</a
+                            >
+                            ·
+                            <a
+                                href="/pine_t041_v2_20260930_01/payload/live_preview/trial_0_wrist_b.mp4"
+                                >腕 B</a
+                            >
+                            ·
+                            <a
+                                href="/pine_t041_v2_20260930_01/payload/live_preview/trial_0_scene_cam.mp4"
+                                >全景</a
+                            >
+                        </p>
+                        <a class="review-link" href="/#pine_t041_v2_20260930_01"
+                            >进入任务：阶段、四路视角与失败历史 →</a
+                        >
+                        <details>
+                            <summary>原始证据下载</summary>
+                            <p>
+                                <a href="/pine_t041_v2_20260930_01/run.json"
+                                    >Run / 固定输入</a
+                                >
+                                ·
+                                <a href="/pine_t041_v2_20260930_01/quality.json"
+                                    >质量审计</a
+                                >
+                                ·
+                                <a
+                                    href="/pine_t041_v2_20260930_01/payload/results.json"
+                                    >结果</a
+                                >
+                                ·
+                                <a
+                                    href="/pine_t041_v2_20260930_01/payload/demos.hdf5"
+                                    >HDF5</a
+                                >
+                            </p>
+                        </details>
+                    </article>
+                </div>
+            </section>
+            <section id="mechanisms">
+                <h2>机械臂实测：关节与锁扣</h2>
+                <p>
+                    曲线对应上方热水壶 _12 与烤面包机 _08
+                    的最终运行。外力探针单独列在下载区，不混作机械臂示范。
+                </p>
+                <a href="/review-assets/robot_mechanisms.png"
+                    ><img
+                        class="mechanism-plot"
+                        src="/review-assets/robot_mechanisms.png"
+                        alt="热水壶和烤面包机的按钮行程、被保持关节位置及锁扣状态时间曲线"
+                        loading="lazy"
+                /></a>
+            </section>
+            <section id="issues">
+                <h2>问题归因与处理状态</h2>
+                <p>
+                    责任边界：资产定义关节行程、弹簧、锁扣和 joint
+                    联动规则；通用运行时执行这些规则；data engine
+                    定义任务目标、成功判据与数据资格。资产中的操作目标只能作为提示，不能直接替代任务验收。
+                </p>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>归属</th>
+                                <th>状态</th>
+                                <th>问题</th>
+                                <th>依据 / 现象</th>
+                                <th>处理与下一步</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Data engine</td>
+                                <td>已规避误判</td>
+                                <td>不能用按钮局部目标代替任务成功</td>
+                                <td>
+                                    若直接用标注 target=3 mm、tolerance=2 mm
+                                    验收，可在 1 mm
+                                    提前通过；这尚未达到资产定义的 2.4 mm / 2 mm
+                                    解锁阈值。
+                                </td>
+                                <td>
+                                    任务层检查锁扣状态转变、盖子/托架的目标状态与稳定时间。现有两个任务已这样实现；不要求
+                                    USDcraft 定义任务成功或修改物理解锁阈值。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>资产 × 机器人</td>
+                                <td>适配限制</td>
+                                <td>部分抓法超过夹爪开口</td>
+                                <td>
+                                    bar 端面抓取 120 mm、coaster 对侧 rim 抓取
+                                    110 mm，超过 Robotiq 2F-85 的 85 mm。
+                                </td>
+                                <td>
+                                    不属于 USD 结构错误。按机器人筛选抓法；bar
+                                    可用 30 mm 侧抓，coaster
+                                    的该提起方式不适配。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>标注层面</td>
+                                <td>待完善</td>
+                                <td>receive 缺少接收区域</td>
+                                <td>
+                                    当前 receive
+                                    是功能点，没有容器可用体积或区域。
+                                </td>
+                                <td>
+                                    资产提供区域更利于复用；任务层仍需定义放置容差、稳定与支撑条件。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Harness</td>
+                                <td>已修复</td>
+                                <td>联动元数据需要执行器</td>
+                                <td>
+                                    自定义 latch 元数据不会自动产生 PhysX
+                                    运行时行为；reset
+                                    时还可能受收紧关节限位影响。
+                                </td>
+                                <td>
+                                    联动规则与阈值由资产确定；harness
+                                    的通用运行时读取并执行规则，不按任务结果改写机制。已实现物理子步锁扣控制、限位恢复、复位及底座记录；原弹簧参数不变。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Harness</td>
+                                <td>已修复</td>
+                                <td>抓点坐标与机器人工具不相同</td>
+                                <td>
+                                    移动 link
+                                    的标注必须使用当前姿态；旧抽屉代码抓点为 70
+                                    mm，新标注为 75 mm。
+                                </td>
+                                <td>
+                                    已适配单位、四元数约定、动态 link
+                                    frame、机器人接触工具与标注溯源。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Harness</td>
+                                <td>已修复</td>
+                                <td>托盘凹槽被误当实心</td>
+                                <td>
+                                    新版托盘是单一凹
+                                    Mesh；旧规划检查用整体包围盒，误报正常入槽。
+                                </td>
+                                <td>
+                                    读取 PhysX 的 16
+                                    块凸分解；空腔可通过，侧壁与底板碰撞仍被拒绝。资产无需修改。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Harness</td>
+                                <td>已修复</td>
+                                <td>弹簧按压补偿与轨迹末点</td>
+                                <td>
+                                    从受力后的实测位置重规划会丢失预压；浮点末采样可能超出轨迹时长。
+                                </td>
+                                <td>
+                                    补偿从上一命令继续并限制幅度；末采样精确使用
+                                    duration，增加回归检查。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>正常调试</td>
+                                <td>已有可行方案</td>
+                                <td>接近方向、IK 分支与指尖净空</td>
+                                <td>
+                                    热水壶直立指尖约在 1.5 mm
+                                    碰后把手；烤面包机连续换侧可能选到大幅腕部转动。
+                                </td>
+                                <td>
+                                    30°
+                                    倾斜单指与返回准备姿态已成功。碰撞近似可能影响净空，但尚无证据要求修复源
+                                    USD。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>正常观测</td>
+                                <td>视角有限制</td>
+                                <td>近距离操作遮挡 D435</td>
+                                <td>
+                                    烤面包机侧面按取消键时，机械臂遮挡主相机部分目标。
+                                </td>
+                                <td>
+                                    全景看托架，腕 A
+                                    看按钮。若训练要求全程可见，应调整布局/观测策略，不能据此判资产损坏。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Harness / 数据验证</td>
+                                <td>尚未完成</td>
+                                <td>功能成功不等于训练与批量资格</td>
+                                <td>
+                                    仅固定布局功能验收；视频为 post-step；其他
+                                    interaction 尚未逐一由机器人执行。
+                                </td>
+                                <td>
+                                    下一阶段做 pre-action
+                                    同步、重放/状态恢复验证、随机布局重复测试和其余操作覆盖。当前不授予训练或批量资格。
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section id="annotations">
+                <h2>21 个资产 · 71 项交互</h2>
+                <p>
+                    点击资产展开。结构通过只表示引用、坐标、单位等校验通过；不代表机器人可执行。源标注的
+                    runtime_validated=false
+                    保留，实际机器人验证范围见上方四个任务。
+                </p>
+                <details>
+                    <summary>P20_bar · 3 项 · 有夹口限制</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_sides</td>
+                                    <td>pick</td>
+                                    <td>bar</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_ends</td>
+                                    <td>pick</td>
+                                    <td>bar</td>
+                                    <td>夹口不适配</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_by_end</td>
+                                    <td>push_object</td>
+                                    <td>bar</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_bottle · 2 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_and_pour_by_body</td>
+                                    <td>pick</td>
+                                    <td>bottle</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>fill_through_mouth</td>
+                                    <td>receive</td>
+                                    <td>bottle</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_box · 3 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>drop_blocks_inside</td>
+                                    <td>receive</td>
+                                    <td>bin</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_front_rim</td>
+                                    <td>pick</td>
+                                    <td>bin</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_bin</td>
+                                    <td>push_object</td>
+                                    <td>bin</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_button · 1 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>press_button</td>
+                                    <td>press</td>
+                                    <td>button</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_coaster · 3 项 · 有夹口限制</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>place_glass</td>
+                                    <td>receive</td>
+                                    <td>coaster</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_rim</td>
+                                    <td>pick</td>
+                                    <td>coaster</td>
+                                    <td>夹口不适配</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_coaster</td>
+                                    <td>push_object</td>
+                                    <td>coaster</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_cube_25 · 4 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_x_faces</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_y_faces</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_top</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_by_front_face</td>
+                                    <td>push_object</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_cube_32 · 4 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_side_faces</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_front_back_faces</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_top</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_by_front_face</td>
+                                    <td>push_object</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_cube_40 · 9 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_sides_x</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_sides_y</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_x_minus</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_x_plus</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_y_minus</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_y_plus</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_z_minus</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_z_plus</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_by_front_face</td>
+                                    <td>push_object</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_cube_50 · 4 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_x_faces</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_y_faces</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_top</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_from_front</td>
+                                    <td>push_object</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_cube_60 · 4 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_sides_x</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_sides_y</td>
+                                    <td>pick</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>stack_on_top</td>
+                                    <td>receive</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_from_front</td>
+                                    <td>push_object</td>
+                                    <td>block</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_cylinder · 2 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_cylinder</td>
+                                    <td>pick</td>
+                                    <td>cylinder</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>push_to_roll</td>
+                                    <td>push_object</td>
+                                    <td>cylinder</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_drawer · 3 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>open_drawer</td>
+                                    <td>pull</td>
+                                    <td>drawer_fascia</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>close_drawer</td>
+                                    <td>push</td>
+                                    <td>drawer_fascia</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>place_in_drawer</td>
+                                    <td>receive</td>
+                                    <td>drawer_fascia</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_mug · 3 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_grip_faces</td>
+                                    <td>pick</td>
+                                    <td>cup</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_handle</td>
+                                    <td>pick</td>
+                                    <td>cup</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>fill_cup</td>
+                                    <td>receive</td>
+                                    <td>cup</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_push_mat · 1 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>place_payload_on_mat</td>
+                                    <td>receive</td>
+                                    <td>pad</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_sign · 2 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_grip_edges_blue</td>
+                                    <td>pick</td>
+                                    <td>sign</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_grip_edges_orange</td>
+                                    <td>pick</td>
+                                    <td>sign</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_sphere · 2 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>pick_ball</td>
+                                    <td>pick</td>
+                                    <td>ball</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>push_to_roll</td>
+                                    <td>push_object</td>
+                                    <td>ball</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_tray · 3 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>place_on_floor</td>
+                                    <td>receive</td>
+                                    <td>tray</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_rim</td>
+                                    <td>pick</td>
+                                    <td>tray</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>slide_tray</td>
+                                    <td>push_object</td>
+                                    <td>tray</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_v_support · 2 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>receive_cylinder</td>
+                                    <td>receive</td>
+                                    <td>support</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lift_by_base_sides</td>
+                                    <td>pick</td>
+                                    <td>support</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>P20_wall · 1 项</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_and_place_wall</td>
+                                    <td>pick</td>
+                                    <td>wall</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>usdcraft_v2_kettle · 8 项 · 有夹口限制</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>lift_by_handle</td>
+                                    <td>pick</td>
+                                    <td>kettle</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>fill_kettle</td>
+                                    <td>receive</td>
+                                    <td>kettle</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>dock_kettle</td>
+                                    <td>receive</td>
+                                    <td>power_base</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>press_lid_release</td>
+                                    <td>press</td>
+                                    <td>lid_release</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>open_lid</td>
+                                    <td>rotate</td>
+                                    <td>lid</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>close_lid</td>
+                                    <td>rotate</td>
+                                    <td>lid</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>switch_on</td>
+                                    <td>toggle</td>
+                                    <td>power_rocker</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>switch_off</td>
+                                    <td>toggle</td>
+                                    <td>power_rocker</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                <details>
+                    <summary>usdcraft_v2_toaster · 7 项 · 有夹口限制</summary>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>操作</th>
+                                    <th>类型</th>
+                                    <th>绑定部件</th>
+                                    <th>静态检查</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>insert_bread_0</td>
+                                    <td>receive</td>
+                                    <td>body</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>insert_bread_1</td>
+                                    <td>receive</td>
+                                    <td>body</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>set_browning</td>
+                                    <td>turn</td>
+                                    <td>browning_knob</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>press_cancel</td>
+                                    <td>press</td>
+                                    <td>cancel_button</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>lower_bread</td>
+                                    <td>press</td>
+                                    <td>carriage</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>pull_crumb_tray</td>
+                                    <td>pull</td>
+                                    <td>crumb_tray</td>
+                                    <td>结构通过</td>
+                                </tr>
+                                <tr>
+                                    <td>close_crumb_tray</td>
+                                    <td>push</td>
+                                    <td>crumb_tray</td>
+                                    <td>结构通过</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </section>
+            <section id="evidence">
+                <h2>全量审计与可复核证据</h2>
+                <p>
+                    原包与新版组合资产保留。旧 20
+                    项任务语义与资产绑定未变。本轮针对性测试 41
+                    项通过；不是全仓库仿真测试。审计 JSON 内含全部 21 个资产和
+                    71 个交互的检查详情。
+                </p>
+                <p>
+                    <a href="/review-assets/report.md"
+                        >完整工程报告（Markdown）</a
+                    >
+                    ·
+                    <a href="/review-assets/validation_summary.json"
+                        >最终验证汇总</a
+                    >
+                    ·
+                    <a href="/review-assets/interaction_audit_final.json"
+                        >全量 interaction 审计</a
+                    >
+                </p>
+                <details>
+                    <summary>下载曲线、探针、日志与固定源码快照</summary>
+                    <ul>
+                        <li>
+                            <a href="/review-assets/validation_summary.json"
+                                >validation_summary.json</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="/review-assets/interaction_audit_final.json"
+                                >interaction_audit_final.json</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="/review-assets/task_catalog_comparison.json"
+                                >task_catalog_comparison.json</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/tray_convex_audit.json"
+                                >tray_convex_audit.json</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/robot_mechanisms.pdf"
+                                >robot_mechanisms.pdf</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/source_snapshot.tar.gz"
+                                >source_snapshot.tar.gz</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="/review-assets/source_snapshot_manifest.json"
+                                >source_snapshot_manifest.json</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/tests_final.log"
+                                >tests_final.log</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/dependency_audit.log"
+                                >dependency_audit.log</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/final_validation.log"
+                                >final_validation.log</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/precommit_02.log"
+                                >precommit_02.log</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/precommit_convex.log"
+                                >precommit_convex.log</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/review-assets/precommit_viewer.log"
+                                >precommit_viewer.log</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="/review-assets/kettle_probe_final/probe.json"
+                                >kettle_probe_final/probe.json</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="/review-assets/kettle_probe_final/reset.json"
+                                >kettle_probe_final/reset.json</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="/review-assets/toaster_probe_final/probe.json"
+                                >toaster_probe_final/probe.json</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="/review-assets/toaster_probe_final/reset.json"
+                                >toaster_probe_final/reset.json</a
+                            >
+                        </li>
+                    </ul>
+                </details>
+                <p class="muted">
+                    固定源码快照对应机器人验证时的版本；本页面后续整理不改写原运行、录制或质量状态。历史失败保留在任务审核台，未完成封装的失败视频不标作可审核成功视频。
+                </p>
+            </section>
+        </main>
+    </body>
+</html>

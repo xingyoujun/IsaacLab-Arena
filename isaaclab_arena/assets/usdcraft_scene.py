@@ -22,7 +22,7 @@ def resolve_asset(asset_id: str, root: str | Path | None = None) -> Path:
     directory = bundle_root(root)
     manifest_path = directory / "manifest.json"
     assert manifest_path.is_file(), (
-        f"Missing USDCraft-Scene manifest: {manifest_path}. Run tools/usdcraft_scene/manage.py download "
+        f"Missing USDCraft-Scene manifest: {manifest_path}. Run data_engine/assets/manage.py download "
         "DESTINATION and set ARENA_USDCRAFT_SCENE_ROOT=DESTINATION."
     )
     manifest = json.loads(manifest_path.read_text())

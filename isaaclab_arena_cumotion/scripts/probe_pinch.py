@@ -62,9 +62,9 @@ import torch  # noqa: E402
 
 import isaaclab.utils.math as math_utils  # noqa: E402
 
+from data_engine.motion.cumotion.embodiment_cumotion_registry import get_embodiment_cumotion_cfg  # noqa: E402
+from data_engine.motion.cumotion.executor import joint_ids_as_list  # noqa: E402
 from isaaclab_arena.embodiments.agibot.agibot import AgibotDualArmJointActionsCfg  # noqa: E402
-from isaaclab_arena_cumotion.embodiment_cumotion_registry import get_embodiment_cumotion_cfg  # noqa: E402
-from isaaclab_arena_cumotion.executor import joint_ids_as_list  # noqa: E402
 from isaaclab_arena_cumotion.scripts.probe_common import (  # noqa: E402
     build_probe_env,
     environment_cfg_type,

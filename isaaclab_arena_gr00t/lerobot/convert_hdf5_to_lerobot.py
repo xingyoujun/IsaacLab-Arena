@@ -19,7 +19,7 @@ from typing import Any
 import imageio.v2 as imageio
 import pandas as pd
 
-from isaaclab_arena.recording.alignment import export_rows, recorded_contract, validate_video
+from data_engine.recording.alignment import export_rows, recorded_contract, validate_video
 from isaaclab_arena_gr00t.lerobot.config.dataset_config import Gr00tDatasetConfig
 from isaaclab_arena_gr00t.utils.image_conversion import resize_frames_with_padding
 from isaaclab_arena_gr00t.utils.io_utils import (

@@ -3,11 +3,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Fixed reviewed layouts; randomized coverage requires a separate qualification phase."""
+"""Compatibility entrypoint; implementation lives in data_engine.pine_wm.collection.layouts."""
 
+import sys
+from pathlib import Path
 
-def sample_layout(task, names, bounds, rng, workspace, stack_count=5):
-    """Use the fixed central review draft; broad randomization awaits user approval."""
-    from review_layout import sample_review_layout
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-    return sample_review_layout(task, names, bounds, stack_count)
+if __name__ == "__main__":
+    import runpy
+
+    runpy.run_module("data_engine.pine_wm.collection.layouts", run_name="__main__")
+else:
+    from importlib import import_module
+
+    sys.modules[__name__] = import_module("data_engine.pine_wm.collection.layouts")

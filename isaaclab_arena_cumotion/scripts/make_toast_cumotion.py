@@ -318,22 +318,22 @@ import warp as wp  # noqa: E402
 from isaaclab.sensors import Camera, CameraCfg  # noqa: E402
 
 import isaaclab_arena_environments  # noqa: E402,F401
+from data_engine.motion.cumotion.embodiment_cumotion_registry import get_embodiment_cumotion_cfg  # noqa: E402
+from data_engine.motion.cumotion.executor import ArmExecutor  # noqa: E402
+from data_engine.motion.cumotion.grasps import (  # noqa: E402
+    _rot_about,
+    matrix_from_quat_wxyz,
+    quat_wxyz_from_matrix,
+    slab_grasps,
+)
+from data_engine.motion.cumotion.pick_place import PickAndPlace  # noqa: E402
+from data_engine.motion.cumotion.planner import CumotionArmPlanner  # noqa: E402
 from isaaclab_arena.assets.registries import EnvironmentRegistry  # noqa: E402
 from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
     arena_env_builder_cfg_from_argparse,
     get_isaaclab_arena_cli_parser,
 )
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder  # noqa: E402
-from isaaclab_arena_cumotion.embodiment_cumotion_registry import get_embodiment_cumotion_cfg  # noqa: E402
-from isaaclab_arena_cumotion.executor import ArmExecutor  # noqa: E402
-from isaaclab_arena_cumotion.grasps import (  # noqa: E402
-    _rot_about,
-    matrix_from_quat_wxyz,
-    quat_wxyz_from_matrix,
-    slab_grasps,
-)
-from isaaclab_arena_cumotion.pick_place import PickAndPlace  # noqa: E402
-from isaaclab_arena_cumotion.planner import CumotionArmPlanner  # noqa: E402
 
 # RoboDojo's Rigid/bread/00000 aligned bbox: a 116.9 x 116.1 mm face, 11.8 mm thick. The thin axis
 # is the slice's local z, which is what makes it a slab rather than a body of revolution.

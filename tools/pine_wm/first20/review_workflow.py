@@ -3,22 +3,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Keep preview, user review, stability qualification and collection separate."""
+"""Compatibility entrypoint; implementation lives in data_engine.pine_wm.collection.review_workflow."""
 
-import json
+import sys
 from pathlib import Path
 
-CONFIG = Path(__file__).with_name("review_layouts.json")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+if __name__ == "__main__":
+    import runpy
 
-def validate_run(stage, task_ids):
-    """Reject bulk runs until the user approves each revised task and its coverage."""
-    assert stage == "preview", (
-        "Tasks are awaiting layout review. Stability and collection are disabled until "
-        "the user approves layouts, asset dimensions and randomization coverage."
-    )
-    assert len(task_ids) == 1, "Preview one task at a time, then wait for user feedback."
-    config = json.loads(CONFIG.read_text())
-    assert config["launch_authorized"], "Execution paused by user for layout review; do not launch new trials."
-    task = config["tasks"][task_ids[0]]
-    assert not task["asset_revision_required"], f"Asset/layout revision required before preview: {task['notes']}"
+    runpy.run_module("data_engine.pine_wm.collection.review_workflow", run_name="__main__")
+else:
+    from importlib import import_module
+
+    sys.modules[__name__] = import_module("data_engine.pine_wm.collection.review_workflow")

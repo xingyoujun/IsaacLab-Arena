@@ -124,6 +124,10 @@ from isaaclab.managers.recorder_manager import DatasetExportMode  # noqa: E402
 from isaaclab.sensors import Camera, CameraCfg  # noqa: E402
 
 import isaaclab_arena_environments  # noqa: E402,F401
+from data_engine.motion.cumotion.executor import ArmExecutor, EnvActionExecutor, JointActionInterface  # noqa: E402
+from data_engine.motion.cumotion.grasps import matrix_from_quat_wxyz, quat_wxyz_from_matrix, rim_grasps  # noqa: E402
+from data_engine.motion.cumotion.pick_place import PickAndPlace  # noqa: E402
+from data_engine.motion.cumotion.planner import CumotionArmPlanner  # noqa: E402
 from isaaclab_arena.assets.registries import EnvironmentRegistry  # noqa: E402
 from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
     arena_env_builder_cfg_from_argparse,
@@ -131,10 +135,6 @@ from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
 )
 from isaaclab_arena.embodiments.agibot.demo_recorders import agibot_demo_recorder_cfg  # noqa: E402
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder  # noqa: E402
-from isaaclab_arena_cumotion.executor import ArmExecutor, EnvActionExecutor, JointActionInterface  # noqa: E402
-from isaaclab_arena_cumotion.grasps import matrix_from_quat_wxyz, quat_wxyz_from_matrix, rim_grasps  # noqa: E402
-from isaaclab_arena_cumotion.pick_place import PickAndPlace  # noqa: E402
-from isaaclab_arena_cumotion.planner import CumotionArmPlanner  # noqa: E402
 
 # RoboDojo's Rigid/bowl/00001 metadata. The projection circle is the rim (0.0551 matches the
 # 0.11 m aligned-bbox width exactly); the contact circle is the much smaller foot ring the bowl

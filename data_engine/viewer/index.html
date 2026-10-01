@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Data Engine · 任务审核</title>
+        <link rel="stylesheet" href="/style.css" />
+    </head>
+    <body>
+        <header>
+            <div>
+                <span class="eyebrow">DATA ENGINE</span>
+                <h1>任务审核台</h1>
+            </div>
+            <a href="/reviews/usdcraft-v2-20260930" style="color: var(--cyan)"
+                >USDCraft v2 · 视频、审计与问题归因 →</a
+            >
+            <a href="/reviews/pine-wm" style="color: var(--cyan)"
+                >Pine WM · 全部任务同步 →</a
+            >
+            <div class="live">
+                <span class="dot"></span
+                ><span id="sync-status" role="status">正在同步</span>
+            </div>
+        </header>
+        <div class="layout">
+            <aside>
+                <div class="sidebar-head">
+                    <h2>任务</h2>
+                    <span id="counts"></span>
+                </div>
+                <label class="search"
+                    ><span class="sr-only">搜索任务</span
+                    ><input
+                        id="search"
+                        placeholder="搜索任务 / 机器人"
+                        type="search"
+                /></label>
+                <nav id="tasks" aria-label="任务列表"></nav>
+                <p class="hint">
+                    每 10 秒同步新结果。<br />审核、历史尝试与视频集中在任务下面。
+                </p>
+            </aside>
+            <main id="workspace"><div id="empty">正在加载任务…</div></main>
+        </div>
+        <div id="toast" role="status" hidden></div>
+        <noscript>此审核台需要 JavaScript。__FALLBACK__</noscript>
+        <script id="initial-data" type="application/json">
+            __BOOTSTRAP__
+        </script>
+        <script src="/app.js" defer></script>
+    </body>
+</html>

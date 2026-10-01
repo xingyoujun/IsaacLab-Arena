@@ -48,15 +48,15 @@ from isaaclab.managers.recorder_manager import DatasetExportMode
 from isaaclab.utils.math import matrix_from_quat
 
 import isaaclab_arena_environments  # noqa: F401
+from data_engine.motion.cumotion.executor import ArmExecutor, EnvActionExecutor, JointActionInterface
+from data_engine.motion.cumotion.grasps import quat_wxyz_from_matrix
+from data_engine.motion.cumotion.planner import CumotionArmPlanner
+from data_engine.motion.cumotion.robot_description import import_cumotion
 from isaaclab_arena.assets.registries import EnvironmentRegistry
 from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
 from isaaclab_arena.embodiments.ur7e.demo_recorders import ur7e_demo_recorder_cfg
 from isaaclab_arena.embodiments.ur7e.ur7e import TCP_OFFSET_FROM_GRIPPER_BASE_M, Ur7eJointRecordingActionsCfg
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
-from isaaclab_arena_cumotion.executor import ArmExecutor, EnvActionExecutor, JointActionInterface
-from isaaclab_arena_cumotion.grasps import quat_wxyz_from_matrix
-from isaaclab_arena_cumotion.planner import CumotionArmPlanner
-from isaaclab_arena_cumotion.robot_description import import_cumotion
 from isaaclab_arena_environments.ur7e_turn_toaster_knob_environment import BOX_HEIGHT_M, BOX_SIZE_M
 
 output = Path(args.output)

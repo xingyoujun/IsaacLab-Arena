@@ -125,6 +125,17 @@ from isaaclab.managers.recorder_manager import DatasetExportMode  # noqa: E402
 from isaaclab.sensors import Camera, CameraCfg  # noqa: E402
 
 import isaaclab_arena_environments  # noqa: E402,F401
+from data_engine.motion.cumotion.executor import ArmExecutor, EnvActionExecutor, JointActionInterface  # noqa: E402
+from data_engine.motion.cumotion.grasps import (  # noqa: E402
+    DOWN_FACING_ROTATION,
+    GraspProposal,
+    _rot_y,
+    _rot_z,
+    matrix_from_quat_wxyz,
+    quat_wxyz_from_matrix,
+)
+from data_engine.motion.cumotion.pick_place import PickAndPlace  # noqa: E402
+from data_engine.motion.cumotion.planner import CumotionArmPlanner  # noqa: E402
 from isaaclab_arena.assets.local_objects import PegPlatform, PegSleeve  # noqa: E402
 from isaaclab_arena.assets.registries import EnvironmentRegistry  # noqa: E402
 from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
@@ -133,17 +144,6 @@ from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
 )
 from isaaclab_arena.embodiments.agibot.demo_recorders import agibot_demo_recorder_cfg  # noqa: E402
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder  # noqa: E402
-from isaaclab_arena_cumotion.executor import ArmExecutor, EnvActionExecutor, JointActionInterface  # noqa: E402
-from isaaclab_arena_cumotion.grasps import (  # noqa: E402
-    DOWN_FACING_ROTATION,
-    GraspProposal,
-    _rot_y,
-    _rot_z,
-    matrix_from_quat_wxyz,
-    quat_wxyz_from_matrix,
-)
-from isaaclab_arena_cumotion.pick_place import PickAndPlace  # noqa: E402
-from isaaclab_arena_cumotion.planner import CumotionArmPlanner  # noqa: E402
 from isaaclab_arena_environments.agibot_sleeve_on_peg_environment import _PLATFORM_POSITION_XY  # noqa: E402
 
 NUM_HEADINGS = 24

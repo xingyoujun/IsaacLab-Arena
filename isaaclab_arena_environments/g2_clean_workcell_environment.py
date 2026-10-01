@@ -18,7 +18,7 @@ from isaaclab_arena.environments.arena_environment_factory import ArenaEnvironme
 from isaaclab_arena.tasks.no_task import NoTask
 from isaaclab_arena_environments.g2_workbench_environments import G2WorkbenchEnvironmentCfg, _G2WorkbenchEnvironment
 
-CONFIG_PATH = Path(__file__).parents[1] / "isaaclab_arena/embodiments/g2/assets/clean_workcell_table.yaml"
+CONFIG_PATH = Path(__file__).parents[1] / "data_engine/g2/clean_workcell_table.yaml"
 
 
 def load_spec():
@@ -135,7 +135,12 @@ class G2CleanWorkcellTableEnvironment(_G2WorkbenchEnvironment, ArenaEnvironmentF
         template = super().make_object(registry_name, params)
         if name not in self.spec["bins"]:
             return template
+        from isaaclab_arena.assets.convex_decomposition import ConvexDecompositionCfg
+
         spawn = copy.deepcopy(template.spawn_cfg_addon)
+        # Shrink wrapping creates thin slivers that fall back to CPU collision cooking.
+        # Keep the source visual mesh and cavity; qualify the cooked contact surface separately.
+        spawn.setdefault("prim_physics", {})["Bin_B04_01"] = ConvexDecompositionCfg()
         spawn["visual_material"] = sim_utils.PreviewSurfaceCfg(
             diffuse_color=tuple(self.spec["bins"][name]["rgb"]),
             roughness=0.55,

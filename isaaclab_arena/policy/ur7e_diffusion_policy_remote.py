@@ -110,8 +110,8 @@ class Ur7eDiffusionPolicyRemote(PolicyBase[Ur7eDiffusionPolicyRemoteCfg]):
         from isaaclab.sim.utils.extensions import enable_extension
 
         enable_extension("isaacsim.robot_motion.cumotion")
-        from isaaclab_arena_cumotion.embodiment_cumotion_registry import get_cumotion_cfg_by_name
-        from isaaclab_arena_cumotion.robot_description import import_cumotion, load_robot_description
+        from data_engine.motion.cumotion.embodiment_cumotion_registry import get_cumotion_cfg_by_name
+        from data_engine.motion.cumotion.robot_description import import_cumotion, load_robot_description
 
         self._cumotion = import_cumotion()
         self._cfg = get_cumotion_cfg_by_name("ur7e_robotiq")

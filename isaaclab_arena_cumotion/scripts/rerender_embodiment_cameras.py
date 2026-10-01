@@ -68,18 +68,18 @@ import imageio.v2 as iio  # noqa: E402
 import warp as wp  # noqa: E402
 
 import isaaclab_arena_environments  # noqa: E402,F401
+from data_engine.recording.alignment import (  # noqa: E402
+    REPLAY_DT,
+    pre_step_states,
+    transition_metadata,
+    validate_video,
+)
 from isaaclab_arena.assets.registries import EnvironmentRegistry  # noqa: E402
 from isaaclab_arena.cli.isaaclab_arena_cli import (  # noqa: E402
     arena_env_builder_cfg_from_argparse,
     get_isaaclab_arena_cli_parser,
 )
 from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder  # noqa: E402
-from isaaclab_arena.recording.alignment import (  # noqa: E402
-    REPLAY_DT,
-    pre_step_states,
-    transition_metadata,
-    validate_video,
-)
 
 FPS = 15  # one frame per control step at Arena's 15 Hz control rate; the videos play in real time
 
