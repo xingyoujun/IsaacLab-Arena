@@ -3,6 +3,9 @@
 两者共用 Arena 与 UR7e 基础设施，但任务、资产配置、标定和数据独立管理。
 不能因使用同类机器人，或都具有“开抽屉”动作，就把两套任务互相复制。
 
+面向 Pine WM、RR、G2 及其他机器人/场景的公共采集架构，见 [Harness 设计与现有实现盘点](harness/README.md)。
+该设计通过 scenario 引用组合任务家族，不改变本文的现有归属；G2 整合及本机验证状态见 Harness 开发记录。
+
 | 项目 | RR real2sim | Pine WM |
 |---|---|---|
 | 场景入口 | `ur7e_workcell` 和 RR 各任务环境 | `pine_wm`、`pine_wm_first20` |

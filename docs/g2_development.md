@@ -58,8 +58,9 @@ bounded, not mathematically exact; drift and visual-review requirements remain i
 Simulator, cameras and NVENC run on GPU. Python/I/O and the native planner's device ownership are separate;
 this workflow does not claim that all processing is CUDA. `validation.json` records a separate
 `runtime_device_audit`, including any PhysX CPU collision fallback warnings. The current workcell
-bin mesh triggers such a fallback for a thin convex piece; task success does not certify CUDA-only
-collision processing. Changing its collision asset requires a separate physics qualification.
+bin mesh historically triggered this fallback for a thin convex piece. The runtime cooking override
+was qualified on 2026-09-27; see [the bin regression](harness/bin_collision_20260927.md).
+Task success still does not certify CUDA-only processing.
 
 ## Assets and HF publication
 
@@ -97,7 +98,7 @@ G2 room or aluminum-block USD copies, and G2 does not fall back to historical pl
 ## Add a task
 
 1. Add an environment using the registered G2 embodiment and stable manifest asset IDs.
-2. Extend `isaaclab_arena_cumotion/g2_collection/tasks.json` with the environment, initial configuration,
+2. Extend `data_engine/g2/tasks.json` with the environment, initial configuration,
    instruction, required assets, recipe and settling policy. Record any layout change in this registry;
    HF scene snapshots are regenerated from it.
 3. Add a task recipe using the shared Session and native `CumotionArmPlanner` / `EnvActionExecutor`.
@@ -137,8 +138,8 @@ The original pilot candidate and its evidence remain under ignored local output/
 The current published asset revision is pinned in `tools/usdcraft_scene/release.json`; publication and
 cleanup verification are documented in [the release record](g2_native_release_20260926.md).
 
-Strict CUDA-only execution remains unqualified: the workcell's shared bin mesh emits a PhysX CPU
-collision fallback warning, and native cuMotion's planning device is not independently verified.
+Strict CUDA-only execution remains unqualified: native cuMotion's planning device is not independently verified.
+The bin fallback recorded in this pilot was subsequently fixed and separately checked on 2026-09-27.
 This limitation is explicit in every `validation.json`; successful task/data checks do not conceal it.
 No historical raw dataset is migrated by the development workflow. Git publication and HF asset publication
 are independent operations.

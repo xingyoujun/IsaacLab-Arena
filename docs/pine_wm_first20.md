@@ -8,7 +8,7 @@
 旧 RR 抽屉成功记录不适用于本包的 280 mm 新抽屉；它使用横向拉杆，而非球形把手。
 
 环境入口 `pine_wm_first20`，通过 `task_id` 选择任务。任务定义和资产绑定在
-`tools/pine_wm/first20/tasks.json`，实例、固定夹具和资产适配在
+`data_engine/pine_wm/tasks.json`，实例、固定夹具和资产适配在
 `isaaclab_arena_environments/pine_wm_first20_environment.py`。
 
 ## 随机布局与验收
@@ -134,7 +134,7 @@ python3 tools/pine_wm/first20/render_batch.py QUALIFICATION_DIR
 
 The user stopped further attempts. All old broad-workspace results are historical,
 not acceptance of the revised layout. See [all-task layout review](pine_wm_review/README.md)
-and `tools/pine_wm/first20/review_layouts.json`.
+and `data_engine/pine_wm/review_layouts.json`.
 
 Execution is currently locked (`launch_authorized: false`). `qualify.py` and
 `run_batch.py` reject stability/collection launches during this review. Once the
