@@ -209,6 +209,40 @@ def serve(root, host, port):
                 self.end_headers()
                 self.wfile.write(body)
                 return
+            if route in ("/reviews/sim2sim", "/api/sim2sim"):
+                from data_engine.viewer import sim2sim
+
+                body = sim2sim.page() if route.startswith("/reviews/") else sim2sim.api()
+                self.send_response(200)
+                self.send_header(
+                    "Content-Type", "text/html; charset=utf-8" if route.startswith("/reviews/") else "application/json"
+                )
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            if route.startswith("/sim2sim/"):
+                from data_engine.viewer import sim2sim
+
+                allowed.update(sim2sim.files())
+            if route in ("/reviews/asset-baselines", "/api/asset-baselines"):
+                from data_engine.viewer import asset_baselines
+
+                body = asset_baselines.page() if route.startswith("/reviews/") else asset_baselines.api()
+                self.send_response(200)
+                self.send_header(
+                    "Content-Type", "text/html; charset=utf-8" if route.startswith("/reviews/") else "application/json"
+                )
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            if route.startswith("/asset-baselines/"):
+                from data_engine.viewer import asset_baselines
+
+                allowed.update(asset_baselines.files())
             if route in ("/reviews/pine-wm", "/api/pine-tasks"):
                 from data_engine.viewer.inventory import inventory
                 from data_engine.viewer.inventory import page as inventory_page

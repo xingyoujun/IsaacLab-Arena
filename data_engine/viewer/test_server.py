@@ -213,3 +213,37 @@ def test_inventory_does_not_hide_new_asset_failures_behind_old_success():
     assert task["run"] == "new" and task["cameras"] == 0 and task["historical_attempts"] == 1
     assert b"&lt;contact&gt;" in page(records)
     assert b"<contact>" not in page(records)
+
+
+def test_asset_baseline_page_labels_estimates_and_unrun_results(tmp_path):
+    from data_engine.viewer import asset_baselines
+
+    entry = dict(
+        asset_id="lightwheel/Microwave011",
+        source="lightwheel",
+        category="microwave",
+        usd=str(tmp_path / "m.usd"),
+        license="CC BY-NC 4.0",
+        origin={},
+        static=dict(
+            size_m=[0.5, 0.4, 0.3],
+            rigid_bodies=3,
+            colliders=2,
+            collider_approximation={"convexHull": 2},
+            mass_explicit=3,
+            density_only=0,
+            material_density=0,
+            joints=[],
+            closure_files=1,
+            closure_sha256="0" * 64,
+            unresolved=[],
+        ),
+        binding=dict(joint="microjoint", derivation="name_rule", open_direction="unknown", handle="none"),
+        manual_steps_estimate=[dict(step="open_direction", reason="资产没有声明哪一端是开")],
+        runtime=dict(renders=["renders/../../escape.png"]),
+    )
+    tasks = {c: dict(task="t", label=c, joint="revolute", success="s") for c in asset_baselines.CATEGORY_ORDER}
+    (tmp_path / "manifest.json").write_text(json.dumps(dict(tasks=tasks, entries=[entry])))
+    body = asset_baselines.page(tmp_path).decode()
+    assert "名称规则推断" in body and "Isaac 加载：未运行" in body and "静态估计" in body
+    assert asset_baselines.files(tmp_path) == {}  # paths outside the baseline folder are never served
