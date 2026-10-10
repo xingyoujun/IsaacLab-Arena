@@ -42,11 +42,12 @@ class DeformableObject(ObjectBase):
         prim_path: str | None = None,
         initial_pose: Pose | PosePerEnv | None = None,
         asset_cfg_addon: dict[str, Any] | None = None,
+        physics_backend: PhysicsBackend | None = None,
         **kwargs,
     ):
         super().__init__(name=name, prim_path=prim_path, object_type=ObjectType.DEFORMABLE, **kwargs)
         self.spawner_cfg = spawner_cfg
-        self.physics_preset = self._infer_physics_preset(spawner_cfg)
+        self.physics_preset = self._infer_physics_preset(spawner_cfg, physics_backend)
         self.asset_cfg_addon = asset_cfg_addon or {}
         self._bounding_box = self._bounding_box_from_spawner(spawner_cfg)
         self.initial_pose = initial_pose
@@ -73,10 +74,22 @@ class DeformableObject(ObjectBase):
         )
 
     @staticmethod
-    def _infer_physics_preset(spawner_cfg: DeformableObjectSpawnerCfg) -> PhysicsBackend:
-        """Infer the backend from the deformable properties."""
+    def _infer_physics_preset(
+        spawner_cfg: DeformableObjectSpawnerCfg, physics_backend: PhysicsBackend | None = None
+    ) -> PhysicsBackend:
+        """Infer the backend from the deformable properties, or take it from a USD-authored deformable.
+
+        A USD file that already carries its deformable body schemas is spawned without
+        ``deformable_props`` (re-applying them would define a second body on the asset root), so
+        its backend has to be given explicitly.
+        """
         deformable_props = spawner_cfg.deformable_props
-        assert deformable_props is not None, "Deformable spawners require backend-specific deformable_props"
+        if deformable_props is None:
+            assert physics_backend is not None and isinstance(
+                spawner_cfg, UsdFileCfg
+            ), "Deformable spawners require backend-specific deformable_props, or a USD file and physics_backend"
+            return physics_backend
+        assert physics_backend is None, "physics_backend is inferred from deformable_props when they are given"
         if isinstance(deformable_props, PhysxDeformableBodyPropertiesCfg):
             return PhysicsBackend.PHYSX
         if isinstance(deformable_props, NewtonDeformableBodyPropertiesCfg):

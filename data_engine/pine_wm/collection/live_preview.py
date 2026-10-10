@@ -43,10 +43,14 @@ class LivePreview:
         names = ["realsense_d435", "wrist_a", "wrist_b", "scene_cam"]
         self.motion = dict.fromkeys(names, 0.0)
         self.contrast = dict.fromkeys(names, 0.0)
-        os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
+        # Prefer the system NVENC build; imageio-ffmpeg's bundled fallback has no NVENC encoder.
+        codec = "libx264"
+        if os.path.exists("/usr/bin/ffmpeg"):
+            os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
+            codec = "h264_nvenc"
         self.writers = {
             n: imageio.get_writer(
-                self.output / f"trial_{trial}_{n}.part.mp4", fps=self.fps, codec="h264_nvenc", macro_block_size=8
+                self.output / f"trial_{trial}_{n}.part.mp4", fps=self.fps, codec=codec, macro_block_size=8
             )
             for n in names
         }

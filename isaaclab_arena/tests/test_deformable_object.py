@@ -105,6 +105,19 @@ def _test_backend_specific_deformable_config(simulation_app) -> bool:
             name="authored_soft_body",
             spawner_cfg=UsdFileCfg(usd_path="/tmp/authored_soft_body.usd"),
         )
+    authored = DeformableObject(
+        name="authored_soft_body",
+        spawner_cfg=UsdFileCfg(usd_path="/tmp/authored_soft_body.usd"),
+        physics_backend=PhysicsBackend.PHYSX,
+    )
+    assert authored.physics_preset is PhysicsBackend.PHYSX
+    assert authored.get_object_cfg()[1].spawn.deformable_props is None
+    with pytest.raises(AssertionError, match="inferred from deformable_props"):
+        DeformableObject(
+            name="conflicting_backend",
+            spawner_cfg=physx_cfg.spawn,
+            physics_backend=PhysicsBackend.NEWTON,
+        )
 
     for asset_type, asset_name, material_type in (
         (DeformableCube, "deformable_cube", PhysxDeformableBodyMaterialCfg),

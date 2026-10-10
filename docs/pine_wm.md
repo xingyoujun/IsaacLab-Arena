@@ -119,6 +119,12 @@ the gripper base lies 13 mm beyond tool0, with camera and mount collision sphere
 The 162.8 mm grasp offset is relative to the gripper base. Shared UR7e control,
 black gripper appearance and planner infrastructure are code reuse, not copied RR tasks.
 
+## Towel fold
+
+A USDCraft surface-deformable towel and its cuMotion diagonal-fold collection are described in
+[pine_wm_towel_fold.md](pine_wm_towel_fold.md).
+The USDCraft cable wrapped around a post is in [pine_wm_cable_wrap.md](pine_wm_cable_wrap.md).
+
 ## First 20 supplied PhysX tasks
 
 The September 25 package is integrated as `pine_wm_first20`; see
