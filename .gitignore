@@ -104,3 +104,6 @@ core.*
 
 # uv venv (Arena native install)
 .venv*/
+
+# Downloaded asset packs (G2-Eval: isaaclab_arena/g2_eval/pack.py)
+/local_assets/

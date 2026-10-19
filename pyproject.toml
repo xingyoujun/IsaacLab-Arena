@@ -177,6 +177,9 @@ constraint-dependencies = [
     "pyglet<3",
     "tinyobjloader==2.0.0rc13",
     "mujoco-usd-converter==0.2.0",
+    # isaacteleop is transitive, so its PyPI source route below does not apply and
+    # the NVIDIA index offers 1.3.x release candidates; keep the stable release.
+    "isaacteleop==1.3.131",
 ]
 # Use a uv-managed CPython 3.12 rather than whatever happens to be on PATH.
 python-preference = "only-managed"
@@ -260,9 +263,6 @@ include = [
     "isaaclab_arena_openpi*",
 ]
 namespaces = false
-
-[tool.setuptools.package-data]
-"isaaclab_arena.embodiments.g2" = ["assets/*.usda"]
 
 # ----------------------------------------------------------------------------
 # Existing tool configuration (migrated unchanged from the previous pyproject)

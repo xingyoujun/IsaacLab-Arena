@@ -1,0 +1,13 @@
+{
+  "repo_id": "xingyoujun/G2-Eval",
+  "repo_type": "dataset",
+  "revision": "1ecdf3f7ca5109caf02075b270a1a096f77436ec",
+  "manifest_sha256": "d3d5cfa90a27bbb3e40db186bc01cc88ff0a7c5d5ac8a4eef23277dcf7ebd32b",
+  "tasks": [
+    "clean_workcell_table",
+    "peg_into_sleeve",
+    "pick_apple",
+    "pick_orange",
+    "stack_bowls"
+  ]
+}

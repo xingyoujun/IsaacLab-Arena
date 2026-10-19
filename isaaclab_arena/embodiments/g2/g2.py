@@ -335,7 +335,7 @@ class G2DualArmActionsCfg:
 
 @configclass
 class G2JointPositionActionsCfg:
-    """Planner/replay actions: right joints (7), gripper (1), left joints (7), gripper (1)."""
+    """Absolute joint-position actions, as the G2-Eval tasks were recorded: right joints (7), gripper (1), left joints (7), gripper (1)."""
 
     right_arm = JointPositionActionCfg(
         asset_name="robot",
@@ -381,31 +381,6 @@ class G2CameraCfg(ArenaCameraCfg):
         width=640,
         data_types=["rgb"],
         spawn=None,
-    )
-
-
-@configclass
-class G2CollectionCameraCfg(G2CameraCfg):
-    """Wrist cameras plus a fixed external view for inspecting the task."""
-
-    head_camera: CameraCfg | None = None
-
-    overview_camera: CameraCfg = CameraCfg(
-        prim_path="{ENV_REGEX_NS}/CollectionCamera",
-        height=480,
-        width=640,
-        data_types=["rgb"],
-        spawn=sim_utils.PinholeCameraCfg(
-            focal_length=24.0,
-            horizontal_aperture=20.955,
-            clipping_range=(0.05, 20.0),
-        ),
-        offset=CameraCfg.OffsetCfg(
-            pos=(-1.0, -1.2, 0.9),
-            # Isaac Lab camera offsets use xyzw, unlike cuRobo's wxyz goal poses.
-            rot=(0.47902577, -0.16666203, -0.28319755, 0.81397618),
-            convention="opengl",
-        ),
     )
 
 
