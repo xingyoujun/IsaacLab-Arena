@@ -126,6 +126,32 @@ git submodule update --init --recursive
 
 For detailed setup instructions (including server-client mode for GR00T), see the [Installation Guide](https://isaac-sim.github.io/IsaacLab-Arena/main/pages/quickstart/installation.html).
 
+## AgiBot G2 Evaluation (`team/g2/dev`)
+
+This branch adds evaluation environments for the AgiBot G2 omnipicker: `pick_apple`, `pick_orange`, `stack_bowls`,
+`peg_into_sleeve` and `clean_workcell_table`. Their robot, scene and object assets come from the G2-Eval asset pack, a
+gated Hugging Face dataset ([`xingyoujun/G2-Eval`](https://huggingface.co/datasets/xingyoujun/G2-Eval)) pinned by
+revision in `isaaclab_arena/g2_eval/lock.json`.
+
+```bash
+# 1. Clone this branch and create the locked environment
+git clone --recurse-submodules -b team/g2/dev git@github.com:xingyoujun/IsaacLab-Arena.git
+cd IsaacLab-Arena
+uv sync --locked
+export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y
+
+# 2. Request access on the dataset page, log in, and download the pinned pack into local_assets/G2-Eval/
+.venv/bin/hf auth login
+.venv/bin/python -m isaaclab_arena.g2_eval.pack download
+
+# 3. Evaluate a policy on a task (the environment name is the task name)
+.venv/bin/python isaaclab_arena/evaluation/policy_runner.py \
+  --headless --policy_type zero_action --num_episodes 1 pick_apple
+```
+
+Set `G2_EVAL_ASSETS_DIR` to keep the pack elsewhere. The action interface, cameras and success checks are described in
+[`isaaclab_arena/embodiments/g2/README.md`](isaaclab_arena/embodiments/g2/README.md).
+
 ## Usage Example
 
 Compose a Franka arm in a kitchen scene with a couple of objects:
