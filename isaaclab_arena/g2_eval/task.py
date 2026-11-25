@@ -3,7 +3,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""The task of a G2-Eval environment: each episode's layout, success and time limit from the pack's ``task.json``."""
+"""The task of a G2-Eval environment: each episode's layout, success and time limit from the pack's ``task.json``.
+
+A ``g2.eval.task.v1`` task draws each episode's layout (``draw_layout``) and judges its success relations
+(``success.evaluate``). A ``g2.eval.task.v2`` task starts each episode from one of its listed layouts
+(``layout.layout_index``) and is judged every control step by its success check (``success_check.Judge``, one per
+environment, made anew at each reset): the episode ends as a success when the judge decides ``success`` and as a
+failure when it decides ``failed`` (a query counted past its aim). The judge's start (each object's pose and each
+arm's end body) is the state after the episode's first control step: G2-Eval has no settle steps after a reset,
+unlike the data engine's evaluation (15).
+"""
 
 from __future__ import annotations
 
@@ -19,6 +28,7 @@ from isaaclab.utils.configclass import configclass
 from isaaclab_arena.embodiments.common.arm_mode import ArmMode
 from isaaclab_arena.g2_eval import layout, pack
 from isaaclab_arena.g2_eval.success import evaluate
+from isaaclab_arena.g2_eval.success_check import Judge
 from isaaclab_arena.metrics.metric_base import MetricBase
 from isaaclab_arena.metrics.success_rate import SuccessRateMetric
 from isaaclab_arena.tasks.task_base import TaskBase
@@ -35,6 +45,13 @@ DROPPED_BELOW_M = 0.3
 """An object this far below the table top has fallen off it: the episode ends as a failure."""
 GRIPPER_JOINTS = (("l", "idx41", "idx31"), ("r", "idx81", "idx71"))
 """Per gripper: side, outer and inner finger joint prefixes (outer opens positive, inner negative)."""
+ARMS = {"left": "l", "right": "r"}
+"""The success check's arm names and their gripper sides."""
+
+
+def is_v2(task: dict) -> bool:
+    """Whether a ``task.json`` is a ``g2.eval.task.v2`` task (judged by its ``success_check``)."""
+    return task["schema"] == pack.TASK_SCHEMA_CHECK
 
 
 def contact_sensor_name(obj: str, target: str) -> str:
@@ -44,11 +61,11 @@ def contact_sensor_name(obj: str, target: str) -> str:
 
 def contact_pairs(task: dict) -> list[tuple[str, str]]:
     """The (object, target) pairs whose contact force the task's success reads."""
-    return sorted({(e["object"], e["target"]) for e in task["success"] if e["relation"] == "placed"})
+    return sorted({(e["object"], e["target"]) for e in task.get("success") or [] if e["relation"] == "placed"})
 
 
 class G2EvalTask(TaskBase):
-    """One G2-Eval task (``pack.load_task``): reset draws the layout, ``success`` judges the task's relations.
+    """One G2-Eval task (``pack.load_task``): reset places the episode's layout, ``success`` judges the task.
 
     Args:
         name: The task's name in the locked pack.
@@ -72,6 +89,14 @@ class G2EvalTask(TaskBase):
         return self.scene_config
 
     def get_termination_cfg(self):
+        if is_v2(pack.load_task(self.name)["task"]):
+            return G2EvalTerminationsCfg(
+                success=TerminationTermCfg(func=check_succeeded, params={"name": self.name}),
+                check_failed=TerminationTermCfg(func=check_failed, params={"name": self.name}),
+                object_dropped=TerminationTermCfg(
+                    func=object_dropped, params={"objects": self.objects, "minimum_z": self.dropped_z}
+                ),
+            )
         return G2EvalTerminationsCfg(
             success=TerminationTermCfg(func=task_success, params={"name": self.name}),
             object_dropped=TerminationTermCfg(
@@ -93,6 +118,13 @@ def rest_pose(spec: dict, lift_m: float = REST_LIFT_M) -> tuple[np.ndarray, np.n
     """An object's start: its resting position lifted by ``lift_m``, and its xyzw quaternion."""
     position = np.asarray(spec["rest_pose"]["position_m"], float) + [0.0, 0.0, lift_m]
     return position, np.asarray(spec["rest_pose"]["quat_xyzw"], float)
+
+
+def layout_pose(task: dict, index: int, obj: str, lift_m: float) -> tuple[np.ndarray, np.ndarray]:
+    """An object's start in the listed layout ``index``: its position lifted by ``lift_m``, and its xyzw quaternion."""
+    placed = task["randomization"]["layouts"][index]["objects"][obj]
+    position = np.asarray(placed["position_m"], float) + [0.0, 0.0, lift_m]
+    return position, np.asarray(placed["quat_xyzw"], float)
 
 
 def draw_layout(task: dict, rng: np.random.Generator) -> dict:
@@ -120,10 +152,11 @@ def _origins(env: ManagerBasedEnv) -> torch.Tensor:
 
 
 def reset_layout(env: ManagerBasedEnv, env_ids: torch.Tensor, name: str) -> None:
-    """Place each object of the resetting environments at its rest pose moved by the episode's layout draw.
+    """Place each object of the resetting environments (fixed ones too) at the episode's start.
 
-    The draw of episode ``k`` of environment ``i`` uses the generator seeded ``[env seed, i, k]``, so a run with the
-    same seed and number of environments evaluates the same layouts.
+    A v1 task: its rest pose moved by the episode's layout draw; the draw of episode ``k`` of environment ``i`` uses
+    the generator seeded ``[env seed, i, k]``. A v2 task: its pose in the listed layout ``layout.layout_index`` (and a new
+    judge for the episode). Either way a run with the same seed and number of environments evaluates the same layouts.
     """
     from scipy.spatial.transform import Rotation
 
@@ -134,16 +167,26 @@ def reset_layout(env: ManagerBasedEnv, env_ids: torch.Tensor, name: str) -> None
     seed = int(env.cfg.seed or 0)
     episodes = env.__dict__.setdefault("_g2_eval_episodes", {})
     origins = _origins(env)
+    v2 = is_v2(task)
+    layouts = env.__dict__.setdefault("_g2_eval_layouts", {})
     for env_id in env_ids.tolist():
         episode = episodes.get(env_id, 0)
         episodes[env_id] = episode + 1
-        drawn = draw_layout(task, np.random.default_rng([seed, env_id, episode]))
+        if v2:
+            layout_id = layout.layout_index(env_id, episode, env.num_envs, len(task["randomization"]["layouts"]))
+            layouts[env_id] = layout_id
+            starts = {obj: layout_pose(task, layout_id, obj, lift) for obj in task["objects"]}
+            judges(env, name)[env_id] = {"judge": Judge(task["success_check"]), "initial": None, "ee_start": None}
+        else:
+            drawn = draw_layout(task, np.random.default_rng([seed, env_id, episode]))
+            starts = {}
+            for obj, spec in task["objects"].items():
+                position, quat_xyzw = rest_pose(spec, lift)
+                turn = Rotation.from_euler("z", drawn[obj]["dyaw_deg"], degrees=True)
+                position[:2] += drawn[obj]["dxy_m"]
+                starts[obj] = position, (turn * Rotation.from_quat(quat_xyzw)).as_quat()
         index = torch.tensor([env_id], device=env.device)
-        for obj, spec in task["objects"].items():
-            position, quat_xyzw = rest_pose(spec, lift)
-            turn = Rotation.from_euler("z", drawn[obj]["dyaw_deg"], degrees=True)
-            quat_xyzw = (turn * Rotation.from_quat(quat_xyzw)).as_quat()
-            position[:2] += drawn[obj]["dxy_m"]
+        for obj, (position, quat_xyzw) in starts.items():
             pose = torch.tensor(np.r_[position, quat_xyzw], dtype=torch.float32, device=env.device)
             pose[:3] += origins[env_id, :3].to(pose.dtype)
             asset = env.scene[obj]
@@ -170,6 +213,96 @@ def object_poses(env: ManagerBasedEnv, objects: list[str]) -> list[dict[str, np.
             T[:3, 3] = values[env_id, :3] - origins[env_id, :3]
             poses[env_id][obj] = T
     return poses
+
+
+def ee_poses(env: ManagerBasedEnv, bodies: dict[str, str]) -> list[dict[str, np.ndarray]]:
+    """Per environment, each arm's end body pose (4x4) relative to its environment origin (``bodies``: arm -> body)."""
+    from scipy.spatial.transform import Rotation
+
+    import warp as wp
+
+    robot = env.scene["robot"]
+    origins = _origins(env).detach().cpu().numpy().astype(np.float64)
+    values = wp.to_torch(robot.data.body_link_pose_w).detach().cpu().numpy().astype(np.float64)
+    poses = [{} for _ in range(env.num_envs)]
+    for arm, body in bodies.items():
+        index = robot.body_names.index(body)
+        rotations = Rotation.from_quat(values[:, index, 3:7]).as_matrix()  # xyzw
+        for env_id in range(env.num_envs):
+            T = np.eye(4)
+            T[:3, :3] = rotations[env_id]
+            T[:3, 3] = values[env_id, index, :3] - origins[env_id, :3]
+            poses[env_id][arm] = T
+    return poses
+
+
+def gripper_openings(env: ManagerBasedEnv, arms) -> list[dict[str, float]]:
+    """Per environment, each arm's gripper opening: its finger joints' mean angle over the open angle
+    (``G2_GRIPPER_OPEN``; the inner joint negated), clipped to 1 open, 0 closed (``is_all_gripper_open``)."""
+    import warp as wp
+
+    from isaaclab_arena.embodiments.g2.g2 import G2_GRIPPER_OPEN
+
+    robot = env.scene["robot"]
+    q = wp.to_torch(robot.data.joint_pos).detach().cpu().numpy().astype(np.float64)
+    fingers = {side: (outer, inner) for side, outer, inner in GRIPPER_JOINTS}
+    openings = [{} for _ in range(env.num_envs)]
+    for arm in arms:
+        side = ARMS[arm]
+        outer, inner = fingers[side]
+        a = q[:, robot.joint_names.index(f"{outer}_gripper_{side}_outer_joint1")]
+        b = -q[:, robot.joint_names.index(f"{inner}_gripper_{side}_inner_joint1")]
+        values = np.clip((a + b) / 2 / G2_GRIPPER_OPEN, 0.0, 1.0)
+        for env_id in range(env.num_envs):
+            openings[env_id][arm] = float(values[env_id])
+    return openings
+
+
+def judges(env: ManagerBasedEnv, name: str) -> dict:
+    """The environments' judges of a v2 task: env id -> ``judge`` and its start (``initial``, ``ee_start``)."""
+    found = env.__dict__.setdefault("_g2_eval_judges", {})
+    if len(found) < env.num_envs:
+        spec = pack.load_task(name)["task"]["success_check"]
+        for env_id in range(env.num_envs):
+            found.setdefault(env_id, {"judge": Judge(spec), "initial": None, "ee_start": None})
+    return found
+
+
+def judge_outcomes(env: ManagerBasedEnv, name: str) -> list[str | None]:
+    """Per environment, its judge's outcome after this control step (``success``, ``failed`` or None).
+
+    Each judge is updated once per control step (the success and failure terms share it): with the objects' poses,
+    the arms' end bodies and gripper openings; the first update of an episode also records its start.
+    """
+    step = int(env.common_step_counter)
+    cached = env.__dict__.get("_g2_eval_outcomes")
+    if cached is not None and cached[0] == step:
+        return cached[1]
+    spec = pack.load_task(name)["task"]["success_check"]
+    labels = [label for label, entry in spec["objects"].items() if not entry.get("pose")]
+    poses = object_poses(env, labels)
+    ends = ee_poses(env, spec["ee_bodies"])
+    openings = gripper_openings(env, spec["ee_bodies"])
+    outcomes = []
+    for env_id, state in sorted(judges(env, name).items()):
+        if state["initial"] is None:
+            state["initial"], state["ee_start"] = poses[env_id], ends[env_id]
+        judge = state["judge"]
+        outcomes.append(
+            judge.update(poses[env_id], ends[env_id], state["ee_start"], state["initial"], openings[env_id])
+        )
+    env.__dict__["_g2_eval_outcomes"] = (step, outcomes)
+    return outcomes
+
+
+def check_succeeded(env: ManagerBasedRLEnv, name: str) -> torch.Tensor:
+    """Whether a v2 task's judge decided ``success``, per environment."""
+    return torch.tensor([o == "success" for o in judge_outcomes(env, name)], dtype=torch.bool, device=env.device)
+
+
+def check_failed(env: ManagerBasedRLEnv, name: str) -> torch.Tensor:
+    """Whether a v2 task's judge decided ``failed`` (a query counted past its aim), per environment."""
+    return torch.tensor([o == "failed" for o in judge_outcomes(env, name)], dtype=torch.bool, device=env.device)
 
 
 def object_states(env: ManagerBasedEnv, task: dict) -> list[dict]:
@@ -254,6 +387,9 @@ class G2EvalTerminationsCfg:
     success: TerminationTermCfg = MISSING
 
     object_dropped: TerminationTermCfg = MISSING
+
+    check_failed: TerminationTermCfg | None = None
+    """A v2 task: its success check decided the episode failed."""
 
 
 @configclass

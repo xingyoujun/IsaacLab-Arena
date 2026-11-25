@@ -129,7 +129,7 @@ For detailed setup instructions (including server-client mode for GR00T), see th
 ## AgiBot G2 Evaluation (`team/g2/dev`)
 
 This branch adds evaluation environments for the AgiBot G2 omnipicker: `pick_apple`, `pick_orange`, `stack_bowls`,
-`peg_into_sleeve` and `clean_workcell_table`. Their robot, scene and object assets come from the G2-Eval asset pack, a
+`peg_into_sleeve`, `clean_workcell_table`, `tube_rack_insert` and `gear_shaft_assembly`. Their robot, scene and object assets come from the G2-Eval asset pack, a
 gated Hugging Face dataset ([`xingyoujun/G2-Eval`](https://huggingface.co/datasets/xingyoujun/G2-Eval)) pinned by
 revision in `isaaclab_arena/g2_eval/lock.json`.
 

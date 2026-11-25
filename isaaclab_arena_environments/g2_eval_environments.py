@@ -7,7 +7,10 @@
 
 Each environment is named after its task (``pick_apple``) and built from the pack alone: the G2 platform of
 ``common/platform.json`` (the robot the data engine collects with, the table and the room), the task's objects at
-their resting poses, a layout drawn each episode, and the task's success relations and time limit (``G2EvalTask``).
+their resting poses, each episode's layout, and the task's success and time limit (``G2EvalTask``). A task with a
+``workbench`` (``g2.eval.workbench.v1``) replaces the platform's table, room, light and robot position with its own:
+the physical table it was collected on (always colliding, hidden when a look stands in for it), and either a room lit
+by its own lights or a look: a stand-in table and room that are only seen, never collided with.
 The environments are registered from the lock; building one needs the pack (``python -m
 isaaclab_arena.g2_eval.pack download``, or ``G2_EVAL_ASSETS_DIR``).
 
@@ -36,11 +39,12 @@ class G2EvalEnvironmentCfg(ArenaEnvironmentCfg):
     """dual_arm, or left/right for a single arm."""
     teleop_device: str | None = None
     hdr: str | None = None
-    light_intensity: float = 1000.0
+    light_intensity: float | None = None
+    """The dome light's intensity; None: the task workbench's (no dome when its room brings its lights), else 1000."""
 
     def __post_init__(self):
         assert self.arm_mode in ("dual_arm", "left", "right"), "Unsupported arm_mode"
-        assert self.light_intensity >= 0, "light_intensity must be non-negative"
+        assert self.light_intensity is None or self.light_intensity >= 0, "light_intensity must be non-negative"
 
 
 class _G2EvalEnvironment:
@@ -49,7 +53,8 @@ class _G2EvalEnvironment:
     name: str
 
     def build(self, cfg: G2EvalEnvironmentCfg) -> IsaacLabArenaEnvironment:
-        """The platform, the task's objects at their resting poses and the task."""
+        """The platform (or the task's workbench), the task's objects at their resting poses and the task."""
+        import isaaclab.sim as sim_utils
         from isaaclab.envs.common import ViewerCfg
 
         from isaaclab_arena.assets.background import Background
@@ -64,7 +69,9 @@ class _G2EvalEnvironment:
 
         loaded = pack.load_task(self.name)
         task, platform, root, pack_root = loaded["task"], loaded["platform"], loaded["root"], loaded["pack_root"]
-        floor_z = float(platform["robot"]["base_position_m"][2])
+        workbench = task.get("workbench")
+        robot_place = (workbench or platform)["robot"]
+        floor_z = -float(workbench["table_height_m"]) if workbench else float(robot_place["base_position_m"][2])
 
         def placed(entry: dict) -> Pose:
             return Pose(
@@ -72,26 +79,38 @@ class _G2EvalEnvironment:
                 rotation_xyzw=tuple(float(v) for v in entry["quat_xyzw"]),
             )
 
-        table = Background(
-            name="g2_table",
-            usd_path=str(pack_root / platform["table"]["asset"]),
-            object_min_z=floor_z,
-            initial_pose=placed(platform["table"]),
-            scale=tuple(float(v) for v in platform["table"]["scale"]),
-        )
-        room = Background(
-            name="g2_workroom",
-            usd_path=str(pack_root / platform["room"]["asset"]),
-            object_min_z=floor_z,
-            initial_pose=placed(platform["room"]),
-        )
+        if workbench is None:
+            backgrounds = [
+                Background(
+                    name="g2_table",
+                    usd_path=str(pack_root / platform["table"]["asset"]),
+                    object_min_z=floor_z,
+                    initial_pose=placed(platform["table"]),
+                    scale=tuple(float(v) for v in platform["table"]["scale"]),
+                ),
+                Background(
+                    name="g2_workroom",
+                    usd_path=str(pack_root / platform["room"]["asset"]),
+                    object_min_z=floor_z,
+                    initial_pose=placed(platform["room"]),
+                ),
+            ]
+            intensity = 1000.0 if cfg.light_intensity is None else cfg.light_intensity
+        else:
+            backgrounds = workbench_backgrounds(workbench, pack_root, floor_z)
+            intensity = workbench.get("light_intensity") if cfg.light_intensity is None else cfg.light_intensity
+        # A workbench's room (or look) has its own floor: the ground plane below it only collides.
         ground = self.asset_registry.get_asset_by_name("ground_plane")(
-            initial_pose=Pose(position_xyz=(0.0, 0.0, floor_z - 0.08), rotation_xyzw=(0.0, 0.0, 0.0, 1.0))
+            initial_pose=Pose(position_xyz=(0.0, 0.0, floor_z - 0.08), rotation_xyzw=(0.0, 0.0, 0.0, 1.0)),
+            spawner_cfg=sim_utils.GroundPlaneCfg(visible=workbench is None),
         )
-        light = self.asset_registry.get_asset_by_name("light")()
-        light.set_intensity(cfg.light_intensity)
-        if cfg.hdr is not None:
-            light.add_hdr(self.hdr_registry.get_hdr_by_name(cfg.hdr)())
+        lights = []
+        if intensity is not None:
+            light = self.asset_registry.get_asset_by_name("light")()
+            light.set_intensity(float(intensity))
+            if cfg.hdr is not None:
+                light.add_hdr(self.hdr_registry.get_hdr_by_name(cfg.hdr)())
+            lights.append(light)
 
         objects = {}
         lift = float(task.get("spawn_lift_m", REST_LIFT_M))
@@ -121,8 +140,8 @@ class _G2EvalEnvironment:
         robot = embodiment.scene_config.robot
         robot.spawn = robot.spawn.replace(usd_path=str(pack_root / platform["robot"]["asset"]))
         embodiment.set_initial_pose(placed({
-            "position_m": platform["robot"]["base_position_m"],
-            "quat_xyzw": platform["robot"]["base_quat_xyzw"],
+            "position_m": robot_place["base_position_m"],
+            "quat_xyzw": robot_place["base_quat_xyzw"],
         }))  # fmt: skip
         device = self.device_registry.get_device_by_name(cfg.teleop_device)() if cfg.teleop_device else None
 
@@ -141,11 +160,47 @@ class _G2EvalEnvironment:
         return IsaacLabArenaEnvironment(
             name=self.name,
             embodiment=embodiment,
-            scene=Scene(assets=[table, room, ground, light, *objects.values()]),
+            scene=Scene(assets=[*backgrounds, ground, *lights, *objects.values()]),
             task=G2EvalTask(self.name, objects),
             teleop_device=device,
             env_cfg_callback=configure,
         )
+
+
+def workbench_backgrounds(workbench: dict, pack_root, floor_z: float) -> list:
+    """The scene parts of a task's ``workbench``: its physical table (kinematic, hidden when not ``visible``), and its
+    look's table and room (collision disabled unless the look ``collides``) or its room."""
+    import isaaclab.sim as sim_utils
+
+    from isaaclab_arena.assets.background import Background
+    from isaaclab_arena.utils.pose import Pose
+
+    def background(name: str, entry: dict, **addon) -> Background:
+        return Background(
+            name=name,
+            usd_path=str(pack_root / entry["asset"]),
+            object_min_z=floor_z,
+            initial_pose=Pose(
+                position_xyz=tuple(float(v) for v in entry["position_m"]),
+                rotation_xyzw=tuple(float(v) for v in entry.get("quat_xyzw", (0.0, 0.0, 0.0, 1.0))),
+            ),
+            spawn_cfg_addon=addon,
+        )
+
+    table = workbench["table"]
+    # The table USD is a rigid body (Genie Sim's, 200 kg): kinematic, it stays where it stands.
+    still = sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True)
+    parts = [background("g2_table", table, visible=bool(table["visible"]), rigid_props=still)]
+    look = workbench.get("look")
+    if look is None:
+        parts.append(background("g2_workroom", workbench["room"]))
+        return parts
+    seen_only = (
+        {} if look.get("collides") else {"collision_props": sim_utils.CollisionPropertiesCfg(collision_enabled=False)}
+    )
+    parts.append(background("g2_look_table", look["table"], **seen_only))
+    parts.append(background("g2_look_room", look["room"], **seen_only))
+    return parts
 
 
 def spawn_settings(spec: dict) -> dict:

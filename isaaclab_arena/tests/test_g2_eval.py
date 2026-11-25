@@ -3,17 +3,23 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""G2-Eval's pack check, success relations and layout draws, without Isaac Sim."""
+"""G2-Eval's pack check, success relations, success check and layouts, without Isaac Sim."""
 
 import hashlib
 import json
 import numpy as np
+from pathlib import Path
 from scipy.spatial.transform import Rotation
 
 import pytest
 
 from isaaclab_arena.g2_eval import layout, pack
 from isaaclab_arena.g2_eval.success import evaluate
+from isaaclab_arena.g2_eval.success_check import Judge
+
+PARITY = Path(__file__).with_name("test_data") / "g2_eval_success_check_parity.json"
+"""SimEngine's judge (``data_engine/harness/success_check.py``, with Shapely) frozen on the two v2 tasks' pilot start
+and end poses (``provenance.json``), with an arm away, a gripper closed and a fixed prop pushed, and on quads."""
 
 
 def _box(size) -> list[list[float]]:
@@ -103,10 +109,33 @@ def test_layout_draws_are_reproducible_and_accepted():
         layout.sample(OBJECTS, np.random.default_rng(0), 0.05, 30.0, workspace_m=[5.0, 6.0, 5.0, 6.0])
 
 
+WORKBENCH = {
+    "schema": pack.WORKBENCH_SCHEMA,
+    "table_height_m": 0.73,
+    "robot": {"base_position_m": [-0.66, 0.0, -0.73], "base_quat_xyzw": [0.0, 0.0, 0.0, 1.0]},
+    "table": {"asset": "common/table.usda", "position_m": [0, 0, -0.465], "quat_xyzw": [0, 0, 0, 1], "visible": False},
+    "look": {
+        "table": {"asset": "tasks/insert/workbench/table.usda", "position_m": [0.0, 0.0, 0.0]},
+        "room": {"asset": "tasks/insert/workbench/room.usda", "position_m": [0.0, 0.0, -0.73]},
+        "collides": False,
+    },
+    "light_intensity": 5000.0,
+}
+
+
 def _write_pack(root, lock_path):
     (root / "tasks/pick_apple").mkdir(parents=True)
+    (root / "tasks/insert").mkdir(parents=True)
     (root / "common").mkdir()
     files = {
+        "tasks/insert/task.json": {
+            "schema": pack.TASK_SCHEMA_CHECK,
+            "name": "insert",
+            "platform": "common/platform.json",
+            "randomization": {"mode": "layouts", "layouts": []},
+            "success_check": {"schema": "success_check.v1", "objects": {}, "ee_bodies": {"left": "l", "right": "r"}},
+            "workbench": WORKBENCH,
+        },
         "tasks/pick_apple/task.json": {
             "schema": pack.TASK_SCHEMA,
             "name": "pick_apple",
@@ -121,10 +150,10 @@ def _write_pack(root, lock_path):
         (root / relative).write_text(json.dumps(value))
         data = (root / relative).read_bytes()
         records[relative] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
-    manifest = {"schema_version": 1, "pack": pack.PACK_SCHEMA, "tasks": ["pick_apple"], "files": records}
+    manifest = {"schema_version": 1, "pack": pack.PACK_SCHEMA, "tasks": ["insert", "pick_apple"], "files": records}
     (root / "manifest.json").write_text(json.dumps(manifest))
     lock = {"repo_id": None, "revision": None, "manifest_sha256": pack.digest(root / "manifest.json")}
-    lock_path.write_text(json.dumps({**lock, "tasks": ["pick_apple"]}))
+    lock_path.write_text(json.dumps({**lock, "tasks": ["insert", "pick_apple"]}))
 
 
 def test_pack_is_checked_against_the_lock(tmp_path, monkeypatch):
@@ -138,6 +167,10 @@ def test_pack_is_checked_against_the_lock(tmp_path, monkeypatch):
     assert loaded["geometry"]["bin"]["receive_m"] == [0.0, 0.0, 0.08] and loaded["platform"]["table_top_z_m"] == 0.0
     with pytest.raises(AssertionError, match="not a task of the locked"):
         pack.load_task("pick_orange")
+    # A v2 task: no geometry, judged by its success check, on its own workbench.
+    v2 = pack.load_task("insert")
+    assert v2["geometry"] is None and v2["task"]["workbench"] == WORKBENCH
+    assert v2["task"]["randomization"]["mode"] == "layouts"
     with pytest.raises(AssertionError, match="no published G2-Eval revision"):
         pack.download(tmp_path / "download")
 
@@ -217,3 +250,45 @@ def test_uniform_layout_keeps_the_legacy_constraints():
     assert one["sleeve"]["dxy_m"] == [0.0, 0.0] and one["peg"]["dxy_m"] != [0.0, 0.0]
     with pytest.raises(AssertionError, match="no layout"):
         layout.sample_uniform(nominal, np.random.default_rng(0), 0.02, list(nominal), 0.5)
+
+
+def _array(value):
+    return {key: np.asarray(T, float) for key, T in value.items()}
+
+
+@pytest.mark.parametrize("case", json.loads(PARITY.read_text())["cases"], ids=lambda case: case["name"])
+def test_success_check_matches_the_data_engine(case):
+    """Every step's judgement (outcome, checks with their measures, segments, queries) is SimEngine's."""
+    specs = json.loads(PARITY.read_text())["specs"]
+    judge = Judge(specs[case["spec"]])
+    for step, expected in zip(case["steps"], case["expected"]):
+        judge.update(
+            _array(step["poses"]),
+            _array(step["ee_now"]),
+            _array(step["ee_start"]),
+            _array(step["initial"]),
+            grippers=step["grippers"],
+        )
+        assert json.loads(json.dumps(judge.result())) == expected
+
+
+def test_success_check_refuses_what_g2_eval_does_not_evaluate():
+    spec = {
+        "schema": "success_check.v1",
+        "objects": {},
+        "checks": [{"fn": "is_A_in_B", "label_A": "a", "label_B": "b"}],
+    }
+    with pytest.raises(AssertionError, match="does not evaluate is_A_in_B"):
+        Judge(spec)
+    grasp = {"fn": "any", "of": [{"fn": "is_grasped", "label": "a"}]}
+    with pytest.raises(AssertionError, match="does not evaluate is_grasped"):
+        Judge({**spec, "checks": [], "segments": [[grasp]]})
+
+
+def test_layouts_are_taken_in_turn():
+    # One environment: episode k starts from layout k modulo their count.
+    assert [layout.layout_index(0, k, 1, 3) for k in range(5)] == [0, 1, 2, 0, 1]
+    # Several: the environments take consecutive layouts, the next episodes the ones after them.
+    taken = [[layout.layout_index(env_id, k, 4, 200) for env_id in range(4)] for k in range(3)]
+    assert taken == [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]]
+    assert layout.layout_index(3, 49, 4, 200) == 199 and layout.layout_index(0, 50, 4, 200) == 0

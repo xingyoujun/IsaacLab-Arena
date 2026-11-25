@@ -10,7 +10,8 @@ evaluation uses it: each free object moves by a uniform offset within ``xy_m`` a
 ``yaw_deg`` (none for a rotationally symmetric object). A draw is kept when every moved centre stays in the workspace
 and in a cell some arm reaches, every moved object stays in the head camera's image, and no two objects come closer
 than their footprint radii plus ``min_gap_m`` (or than they started, if closer); otherwise it is drawn again.
-``task.json``'s ``randomization`` holds the settings and, under ``objects``, each object's layout entry.
+``task.json``'s ``randomization`` holds the settings and, under ``objects``, each object's layout entry. A
+``g2.eval.task.v2`` task instead lists its layouts (``mode: layouts``); ``layout_index`` picks each episode's.
 """
 
 import numpy as np
@@ -20,6 +21,13 @@ VIEW_MARGIN_PX = 8
 """An object's outline must stay this far inside the camera image."""
 SAMPLE_KEYS = ("xy_m", "yaw_deg", "workspace_m", "min_gap_m", "per_object", "shuffle", "face_camera", "region")
 """The ``randomization`` keys ``sample`` takes."""
+
+
+def layout_index(env_id: int, episode: int, num_envs: int, count: int) -> int:
+    """The listed layout that episode ``episode`` of environment ``env_id`` starts from: ``(episode * num_envs +
+    env_id)`` modulo ``count``. The environments take the layouts in turn, so a run with the same number of
+    environments evaluates the same layouts; with one environment, episode k starts from layout k modulo ``count``."""
+    return (episode * num_envs + env_id) % count
 
 
 def in_view(camera: dict, points: np.ndarray) -> bool:

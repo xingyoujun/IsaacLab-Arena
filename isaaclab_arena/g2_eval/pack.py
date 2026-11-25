@@ -28,6 +28,10 @@ DEFAULT_ROOT = Path(__file__).resolve().parents[2] / "local_assets" / "G2-Eval"
 ROOT_ENV = "G2_EVAL_ASSETS_DIR"
 PACK_SCHEMA = "g2.eval.pack.v1"
 TASK_SCHEMA = "g2.eval.task.v1"
+"""A task judged by success relations on ``geometry.json`` and laid out by a drawn perturbation."""
+TASK_SCHEMA_CHECK = "g2.eval.task.v2"
+"""A task judged by its ``success_check`` (``success_check.Judge``) and laid out by its listed ``layouts``."""
+WORKBENCH_SCHEMA = "g2.eval.workbench.v1"
 
 
 def lock() -> dict:
@@ -76,16 +80,26 @@ def verified_root() -> Path:
 
 @functools.cache
 def load_task(name: str) -> dict:
-    """A task of the locked pack: ``task`` (``task.json``), ``geometry`` (``geometry.json``'s objects), ``platform``
-    (``common/platform.json``) and ``root`` (the task's directory); asset paths stay relative to their file."""
+    """A task of the locked pack: ``task`` (``task.json``), ``geometry`` (``geometry.json``'s objects; None for a
+    ``g2.eval.task.v2`` task), ``platform`` (``common/platform.json``), ``root`` (the task's directory) and
+    ``pack_root``; asset paths stay relative to their file."""
     assert name in lock()["tasks"], f"{name} is not a task of the locked G2-Eval pack ({lock()['tasks']})"
     root = verified_root()
     directory = root / "tasks" / name
     task = json.loads((directory / "task.json").read_text())
-    assert task["schema"] == TASK_SCHEMA and task["name"] == name, f"{directory / 'task.json'} is not {name}"
+    assert task["schema"] in (TASK_SCHEMA, TASK_SCHEMA_CHECK), f"{directory / 'task.json'}: unknown {task['schema']}"
+    assert task["name"] == name, f"{directory / 'task.json'} is not {name}"
+    if task["schema"] == TASK_SCHEMA_CHECK:
+        assert task["randomization"]["mode"] == "layouts", f"{name}: a v2 task lists its layouts"
+        assert task["success_check"]["ee_bodies"], f"{name}: its success check names no end bodies"
+    workbench = task.get("workbench")
+    assert workbench is None or workbench["schema"] == WORKBENCH_SCHEMA, f"{name}: unknown workbench {workbench}"
+    geometry = None
+    if task["schema"] == TASK_SCHEMA:
+        geometry = json.loads((directory / task["geometry"]).read_text())["objects"]
     return {
         "task": task,
-        "geometry": json.loads((directory / task["geometry"]).read_text())["objects"],
+        "geometry": geometry,
         "platform": json.loads((root / task["platform"]).read_text()),
         "root": directory,
         "pack_root": root,

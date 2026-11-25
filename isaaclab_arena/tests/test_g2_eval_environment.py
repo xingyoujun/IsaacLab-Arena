@@ -8,6 +8,10 @@
 Needs the locked pack (``python -m isaaclab_arena.g2_eval.pack download``, or ``G2_EVAL_ASSETS_DIR``).
 """
 
+import json
+import os
+from pathlib import Path
+
 import pytest
 
 from isaaclab_arena.g2_eval import pack
@@ -30,6 +34,187 @@ def _pack_present() -> bool:
 requires_pack = pytest.mark.skipif(not _pack_present(), reason="the locked G2-Eval pack is not downloaded")
 
 
+def _tasks(schema: str) -> list[str]:
+    """The locked tasks of a ``task.json`` schema."""
+    if not _pack_present():
+        return []
+    root = pack.pack_root()
+    return [
+        n
+        for n in pack.lock()["tasks"]
+        if json.loads((root / "tasks" / n / "task.json").read_text())["schema"] == schema
+    ]
+
+
+V2_STEPS = 300
+"""Zero-action control steps (20 s) of a v2 task's first episode: nothing moves, nothing succeeds or fails."""
+LAYOUT_XY_M = 0.002
+"""An object starts this close to its listed layout position (the start lifts it 1 mm; it settles in one step)."""
+FIXED_YAW_DEG = 0.5
+ARM_JOINTS = [f"idx6{i}_arm_r_joint{i}" for i in range(1, 8)], [f"idx2{i}_arm_l_joint{i}" for i in range(1, 8)]
+"""The right and left arm joints in action order."""
+IMAGE_DIR_ENV = "G2_EVAL_TEST_IMAGE_DIR"
+"""Where ``test_g2_eval_v2_head_camera`` saves each v2 task's head-camera frame (``g2eval_<task>_head.png``)."""
+
+
+def _build(name: str, enable_cameras: bool = False):
+    from isaaclab_arena.assets.registries import EnvironmentRegistry
+    from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
+    from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
+    from isaaclab_arena_environments.cli import ensure_environments_registered
+
+    ensure_environments_registered()
+    factory = EnvironmentRegistry().get_component_by_name(name)
+    description = factory().build(factory._legacy_argparse_cfg_type(enable_cameras=enable_cameras))
+    argv = ["--num_envs", "1", *(["--enable_cameras"] if enable_cameras else [])]
+    args = get_isaaclab_arena_cli_parser().parse_args(argv)
+    return ArenaEnvBuilder(description, arena_env_builder_cfg_from_argparse(args)).make_registered()
+
+
+def _write_poses(base, poses: dict) -> None:
+    """Write object poses T_W_O (task frame) into environment 0, at rest."""
+    import numpy as np
+    import torch
+    from scipy.spatial.transform import Rotation
+
+    import warp as wp
+
+    origins = base.scene.env_origins
+    origin = (wp.to_torch(origins) if isinstance(origins, wp.array) else origins)[0]
+    index = torch.tensor([0], device=base.device)
+    for obj, T in poses.items():
+        T = np.asarray(T, float)
+        pose = torch.tensor(
+            np.r_[T[:3, 3], Rotation.from_matrix(T[:3, :3]).as_quat()], dtype=torch.float32, device=base.device
+        )
+        pose[:3] += origin[:3].to(pose.dtype)
+        base.scene[obj].write_root_pose_to_sim_index(root_pose=pose[None], env_ids=index)
+        base.scene[obj].write_root_velocity_to_sim_index(
+            root_velocity=torch.zeros((1, 6), device=base.device), env_ids=index
+        )
+
+
+def _test_g2_eval_v2_environments(simulation_app, names):
+    import numpy as np
+    import torch
+    from scipy.spatial.transform import Rotation
+
+    from isaaclab_arena.g2_eval import layout
+    from isaaclab_arena.g2_eval.success_check import Judge
+    from isaaclab_arena.g2_eval.task import ee_poses, gripper_openings, judges, layout_pose, object_poses
+
+    for name in names:
+        loaded = pack.load_task(name)
+        task = loaded["task"]
+        objects = list(task["objects"])
+        fixed = [obj for obj, spec in task["objects"].items() if spec["fixed"]]
+        count = len(task["randomization"]["layouts"])
+        lift = float(task["spawn_lift_m"])
+        env = _build(name)
+        try:
+            base = env.unwrapped
+            zero = torch.zeros(env.action_space.shape, device=base.device)
+            starts, taken = [], []
+            for episode in range(EPISODES):
+                env.reset()
+                index = base._g2_eval_layouts[0]
+                expected = layout.layout_index(0, base._g2_eval_episodes[0] - 1, 1, count)
+                assert index == expected, f"{name}: episode starts from layout {index}, not {expected}"
+                taken.append(index)
+                env.step(zero)
+                start = object_poses(base, objects)[0]
+                for obj in objects:
+                    position, quat = layout_pose(task, index, obj, lift)
+                    xy = float(np.linalg.norm(start[obj][:2, 3] - position[:2]))
+                    dz = float(start[obj][2, 3] - position[2])
+                    assert (
+                        xy < LAYOUT_XY_M and -0.003 < dz < 0.001
+                    ), f"{name} {obj}: {xy:.4f} m, dz {dz:.4f} m off layout"
+                    if obj in fixed:
+                        turn = Rotation.from_matrix(start[obj][:3, :3]).inv() * Rotation.from_quat(quat)
+                        assert np.degrees(turn.magnitude()) < FIXED_YAW_DEG, f"{name} {obj}: not at its layout turn"
+                judge = judges(base, name)[0]["judge"]
+                steps = V2_STEPS if episode == 0 else SETTLE_STEPS
+                for _ in range(steps):
+                    env.step(zero)
+                    terms = {
+                        t: bool(base.termination_manager.get_term(t)[0])
+                        for t in ("success", "check_failed", "object_dropped")
+                    }
+                    assert not any(terms.values()), f"{name}: an idle episode ended: {terms} {judge.result()}"
+                settled = object_poses(base, objects)[0]
+                for obj in objects:
+                    moved = float(np.linalg.norm(settled[obj][:3, 3] - start[obj][:3, 3]))
+                    tipped = float(np.degrees(np.arccos(np.clip(settled[obj][:3, 2] @ start[obj][:3, 2], -1.0, 1.0))))
+                    print(
+                        f"{name} layout {index} {obj}: start {start[obj][:3, 3].round(4).tolist()}, moved {moved:.4f} m"
+                    )
+                    assert moved < SETTLED_M, f"{name}: {obj} moved {moved:.3f} m in {steps} idle steps"
+                    assert tipped < START_TILT_MAX_DEG, f"{name}: {obj} tipped over by {tipped:.1f} deg"
+                assert judge.outcome is None and judge.step == steps + 1, (name, judge.result())
+                print(f"{name} layout {index}: judged {judge.step} steps, {judge.result()['segments']}")
+                starts.append(np.r_[[start[obj][:2, 3] for obj in objects]])
+            assert taken == [taken[0] + k for k in range(EPISODES)], f"{name}: layouts {taken} not taken in turn"
+            assert all(not np.allclose(starts[0], other) for other in starts[1:]), f"{name}: layouts all the same"
+
+            # The pilot's successful end (provenance.json), written into the simulation and left to settle on the
+            # physics only; judged from the pilot's start with the robot as the sim holds it (arms home, grippers open).
+            provenance = json.loads((loaded["root"] / "provenance.json").read_text())["success_check"]["poses"]
+            _write_poses(base, provenance["end"])
+            for _ in range(SETTLE_STEPS * base.cfg.decimation):
+                base.scene.write_data_to_sim()
+                base.sim.step(render=False)
+                base.scene.update(dt=base.physics_dt)
+            spec = task["success_check"]
+            labels = [label for label, entry in spec["objects"].items() if not entry.get("pose")]
+            end = object_poses(base, labels)[0]
+            ends, openings = ee_poses(base, spec["ee_bodies"])[0], gripper_openings(base, spec["ee_bodies"])[0]
+            initial = {obj: np.asarray(T, float) for obj, T in provenance["start"].items()}
+            judge = Judge(spec)
+            for _ in range(len(judge.segments) + 1):
+                judge.update(end, ends, ends, initial, openings)
+            for obj in labels:
+                moved = float(np.linalg.norm(end[obj][:3, 3] - np.asarray(provenance["end"][obj])[:3, 3]))
+                print(f"{name} {obj}: the pilot's end settled {moved:.4f} m")
+            print(f"{name} pilot's end: {judge.result()}")
+            assert judge.outcome == "success", f"{name}: the pilot's end is not a success: {judge.result()}"
+        finally:
+            env.close()
+    return True
+
+
+def _test_g2_eval_v2_head_camera(simulation_app, names, directory):
+    import numpy as np
+    import torch
+
+    import warp as wp
+    from PIL import Image
+
+    for name in names:
+        env = _build(name, enable_cameras=True)
+        try:
+            base = env.unwrapped
+            env.reset()
+            robot = base.scene["robot"]
+            # Hold both arms where the reset put them (grippers open), as the training data start.
+            q = wp.to_torch(robot.data.joint_pos)[0]
+            arms = [[q[robot.joint_names.index(j)] for j in side] for side in ARM_JOINTS]
+            one = torch.ones(1, device=base.device)
+            hold = torch.cat([torch.stack(arms[0]), one, torch.stack(arms[1]), one])[None]
+            for _ in range(3):
+                env.step(hold)
+            (camera,) = (key for key in base.scene.sensors if "head" in key)
+            rgb = base.scene.sensors[camera].data.output["rgb"]
+            rgb = (wp.to_torch(rgb) if isinstance(rgb, wp.array) else rgb)[0, ..., :3].detach().cpu().numpy()
+            assert rgb.std() > 1.0, f"{name}: the head camera sees a blank image"
+            path = Path(directory) / f"g2eval_{name}_head.png"
+            Image.fromarray(rgb.astype(np.uint8)).save(path)
+            print(f"{name}: head camera {rgb.shape} at layout {base._g2_eval_layouts[0]} -> {path}")
+        finally:
+            env.close()
+    return True
+
+
 def _test_g2_eval_environments(simulation_app, names=None):
     import json
     import numpy as np
@@ -47,7 +232,7 @@ def _test_g2_eval_environments(simulation_app, names=None):
 
     ensure_environments_registered()
     arm_joints = [f"idx6{i}_arm_r_joint{i}" for i in range(1, 8)], [f"idx2{i}_arm_l_joint{i}" for i in range(1, 8)]
-    for name in names or pack.lock()["tasks"]:
+    for name in names or _tasks(pack.TASK_SCHEMA):
         loaded = pack.load_task(name)
         task = loaded["task"]
         objects = list(task["objects"])
@@ -135,3 +320,19 @@ def _test_g2_eval_environments(simulation_app, names=None):
 @requires_pack
 def test_g2_eval_environments():
     assert run_function_with_persistent_simulation_app(_test_g2_eval_environments, headless=True)
+
+
+@requires_pack
+def test_g2_eval_v2_environments():
+    names = _tasks(pack.TASK_SCHEMA_CHECK)
+    assert run_function_with_persistent_simulation_app(_test_g2_eval_v2_environments, headless=True, names=names)
+
+
+@requires_pack
+@pytest.mark.with_cameras
+def test_g2_eval_v2_head_camera(tmp_path):
+    names = _tasks(pack.TASK_SCHEMA_CHECK)
+    directory = os.environ.get(IMAGE_DIR_ENV) or tmp_path
+    assert run_function_with_persistent_simulation_app(
+        _test_g2_eval_v2_head_camera, headless=True, enable_cameras=True, names=names, directory=directory
+    )
